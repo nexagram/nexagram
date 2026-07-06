@@ -131,6 +131,7 @@
         .back-btn { background: none; border: none; color: var(--p); font-size: 28px; cursor: pointer; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; margin-right: 4px; flex-shrink: 0;}
         
         #auth, #loader { position: fixed; inset: 0; background: #000; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 24px; }
+        #auth { display: none; } /* Скрыт по умолчанию для мгновенного входа */
         #loader { z-index: 3000; background: rgba(0,0,0,0.8); flex-direction: column; gap: 16px; display: none; }
         .spinner { width: 40px; height: 40px; border: 4px solid var(--in); border-top: 4px solid var(--p); border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -205,7 +206,8 @@
         .story-nav-area div { flex: 1; cursor: pointer; }
 
         /* ЭКРАН ЗВОНКА И ВИДЕОСВЯЗИ */
-        #callOverlay { z-index: 9000; flex-direction: column; position: fixed; inset: 0; transition: background 0.3s ease; }
+        #callOverlay { z-index: 9000; flex-direction: column; position: fixed; inset: 0; transition: background 0.3s ease; opacity: 0; display: none; }
+        #callOverlay.active { display: flex; opacity: 1; }
         
         @keyframes iridescentGradient { 0% { background-position: 0% 0%; } 50% { background-position: 100% 100%; } 100% { background-position: 0% 0%; } }
 
@@ -253,6 +255,22 @@
         #remoteVideo.active-video { opacity: 1; pointer-events: auto; }
         #localVideo { position: absolute; top: calc(20px + env(safe-area-inset-top)); right: 20px; width: 100px; height: 140px; border-radius: 12px; object-fit: cover; border: 2px solid rgba(255,255,255,0.5); z-index: 10; display: none; background: #000; transform: scaleX(-1); box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
 
+        /* СВЕРНУТЫЙ ЗВОНОК */
+        #minimizedCallBar {
+            position: fixed; top: 0; left: 0; width: 100%; height: calc(56px + env(safe-area-inset-top));
+            background: linear-gradient(135deg, #115930, #0a331a);
+            z-index: 8000; display: none; align-items: center; justify-content: space-between;
+            padding: env(safe-area-inset-top) 16px 0; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            cursor: pointer; animation: slideDown 0.3s ease;
+        }
+        @keyframes slideDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
+        #minimizedCallBar .min-call-info { color: white; font-weight: 600; font-size: 15px; flex: 1; text-align: center; }
+        #minimizedCallBar .icon-btn-min { width: 36px; height: 36px; border-radius: 50%; border: none; display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; transition: transform 0.2s; }
+        #minimizedCallBar .icon-btn-min:active { transform: scale(0.9); }
+        #minimizedCallBar .mic-btn { background: rgba(255,255,255,0.2); color: white; }
+        #minimizedCallBar .mic-btn.muted { background: white; color: #115930; }
+        #minimizedCallBar .end-btn { background: var(--red); color: white; }
+
         /* ПЕЧАТАЕТ... */
         #typing-indicator { font-size: 12px; color: var(--p); padding: 4px 16px; background: rgba(var(--bg), 0.9); display: none; border-bottom: 1px solid var(--brd); position: sticky; top: 56px; z-index: 9; }
         
@@ -284,6 +302,13 @@
 
 <audio id="incomingRingtone" loop src="https://upload.wikimedia.org/wikipedia/commons/c/c4/Telephone_ringing.ogg"></audio>
 <audio id="outgoingRingtone" loop src="https://upload.wikimedia.org/wikipedia/commons/f/fc/Ringback_tone_%28North_America%29.ogg"></audio>
+
+<!-- СВЕРНУТЫЙ ЗВОНОК -->
+<div id="minimizedCallBar" onclick="expandCall()">
+    <button class="icon-btn-min mic-btn" id="minCallMicBtn" onclick="event.stopPropagation(); toggleCallMic();">🎤</button>
+    <div class="min-call-info" id="minCallInfo">Имя · 00:00</div>
+    <button class="icon-btn-min end-btn" onclick="event.stopPropagation(); endCall();">📞</button>
+</div>
 
 <div id="loader">
     <div class="spinner"></div>
@@ -333,7 +358,6 @@
             <div id="c-list"></div>
         </div>
 
-        <!-- ВКЛАДКА ЗВОНКОВ -->
         <div class="screen" id="calls-screen">
             <div class="head">Журнал вызовов</div>
             <div id="calls-list" style="padding-top: 10px;"></div>
@@ -376,6 +400,7 @@
 
             <div class="section-header">Система</div>
             <div class="sett-box">
+                <div class="sett-row" onclick="requestNotifications()">🔔 Включить уведомления</div>
                 <div class="sett-row" onclick="openSupportChat()">💬 Чат с поддержкой</div>
                 <div class="sett-row" id="admin-switch-btn" style="display: none;" onclick="switchAccount()">🔄 Сменить аккаунт (Админ)</div>
                 <div class="sett-row" id="admin-panel-btn" style="display: none; color: #a855f7; font-weight: bold;" onclick="openAdminPanel()">👑 Управление пользователями</div>
@@ -520,12 +545,19 @@
     <div class="call-actions-row" id="callControls"></div>
 </div>
 
-<audio id="remoteAudio" autoplay playsinline></audio>
-
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 
 <script>
+    // МГНОВЕННЫЙ ВХОД (Без загрузчика)
+    const savedSessionInstant = localStorage.getItem('Nexagram_Session_UID');
+    if (savedSessionInstant) {
+        document.getElementById('auth').style.display = 'none';
+        document.getElementById('app').style.display = 'flex';
+    } else {
+        document.getElementById('auth').style.display = 'flex';
+    }
+
     let currentStoryUser = null;
     let currentStoryIdx = 0;
     let storyTimerId = null;
@@ -566,8 +598,8 @@
     
     let localSettings = JSON.parse(localStorage.getItem('Nexagram_Settings')) || { theme: 'green', lightMode: false };
     let drafts = JSON.parse(localStorage.getItem('Nexagram_Drafts')) || {};
-    let lastKnownMsgCounts = {}; // Для уведомлений
-    let isInitialLoadDone = false; // Для уведомлений
+    let lastKnownMsgCounts = {}; 
+    let isInitialLoadDone = false; 
     
     let db = { users: [], chats: [], stories: [], callLogs: [] };
     let me = null;
@@ -610,8 +642,6 @@
         if (!user) return false;
         return ['helper', 'demo', 'admin'].includes(user.login.toLowerCase()) || user.isGlobalAdmin;
     }
-
-    document.getElementById('loader').style.display = 'flex';
     
     rtdb.ref('/dg_app_data').on('value', (snapshot) => {
         try {
@@ -637,7 +667,6 @@
             db.stories = ensureArray(data.stories).filter(s => s && typeof s === 'object');
             db.callLogs = ensureArray(data.callLogs).filter(c => c && typeof c === 'object');
             
-            // ИСПРАВЛЕНИЕ: Логика уведомлений о новых сообщениях
             if (me) {
                 db.chats.forEach(c => {
                     const currentCount = c.msgs ? c.msgs.length : 0;
@@ -661,7 +690,6 @@
             
             if (!isInitialLoadDone) isInitialLoadDone = true;
             isDbReady = true;
-            document.getElementById('loader').style.display = 'none';
 
             if (me) {
                 const updatedMe = db.users.find(u => u.id === me.id);
@@ -695,17 +723,33 @@
                 if (savedSession) {
                     const user = db.users.find(u => u.id === savedSession);
                     if (user && !user.isBanned) proceedWithLogin(user);
-                    else localStorage.removeItem('Nexagram_Session_UID');
+                    else {
+                        localStorage.removeItem('Nexagram_Session_UID');
+                        document.getElementById('app').style.display = 'none';
+                        document.getElementById('auth').style.display = 'flex';
+                    }
                 }
             }
         } catch (err) {
-            document.getElementById('loader').style.display = 'none';
             console.error(err);
         }
     }, (error) => {
-        document.getElementById('loader').style.display = 'none';
         alert("Ошибка подключения к серверу: " + error.message);
     });
+
+    function requestNotifications() {
+        if (!("Notification" in window)) {
+            alert("Ваш браузер не поддерживает уведомления.");
+            return;
+        }
+        Notification.requestPermission().then(permission => {
+            if (permission === "granted") {
+                new Notification("Nexagram", { body: "Уведомления успешно включены!" });
+            } else {
+                alert("Уведомления отклонены. Разрешите их в настройках вашего браузера/телефона.");
+            }
+        });
+    }
 
     function markChatAsReadLocally() {
         if (!activeChat || !me) return;
@@ -840,7 +884,6 @@
         document.getElementById('callStatusSmall').textContent = text;
     }
 
-    // ИСПРАВЛЕНИЕ: ДИНАМИЧЕСКИЙ ФОН ДЛЯ ЗВОНКОВ (ОБОИ ИЛИ ЦВЕТ ТЕМЫ)
     function applyCallBackground() {
         const overlay = document.getElementById('callOverlay');
         if (me && me.wallpaper) {
@@ -859,6 +902,14 @@
 
     function renderCallControls() {
         const controls = document.getElementById('callControls');
+        
+        const minMicBtn = document.getElementById('minCallMicBtn');
+        if (minMicBtn) {
+            minMicBtn.textContent = isCallMicMuted ? '🔇' : '🎤';
+            if (isCallMicMuted) minMicBtn.classList.add('muted');
+            else minMicBtn.classList.remove('muted');
+        }
+
         if (!currentCallIsVideo) {
             controls.innerHTML = `
                 <div class="call-btn-group">
@@ -918,17 +969,20 @@
         currentCallIsVideo = isVideoCall;
         const caller = db.users.find(u => u.id === callerId);
         
-        applyCallBackground(); // Применяем фон!
+        applyCallBackground(); 
         
         document.getElementById('callAvatar').innerHTML = getAvatarHtml(caller.avatarType, caller.avatarValue);
         document.getElementById('callName').textContent = caller.name;
         document.getElementById('callNameSmall').textContent = caller.name;
+        document.getElementById('minCallInfo').textContent = `${caller.name} · Ожидание...`;
         
         setCallStatusText('Входящий вызов...');
         isCallMicMuted = false; isCallCamOff = false; isSpeakerOn = true;
         
         const overlay = document.getElementById('callOverlay');
         overlay.classList.add('active');
+        overlay.style.display = 'flex';
+        document.getElementById('minimizedCallBar').style.display = 'none';
         
         document.getElementById('callCenterArea').style.display = 'flex';
         document.getElementById('callTopCenter').style.display = 'none';
@@ -948,16 +1002,26 @@
         document.getElementById('remoteVideo').classList.remove('active-video');
         inRing.play().catch(e => console.warn('Автовоспроизведение заблокировано', e));
         
-        // Уведомление о звонке (если страница скрыта)
         if ("Notification" in window && Notification.permission === "granted" && document.hidden) {
             new Notification('Входящий вызов', { body: `Звонит ${caller.name}` });
         }
     }
 
-    function minimizeCall() { alert('Звонок свернут (в разработке)'); }
+    function minimizeCall() { 
+        document.getElementById('callOverlay').style.display = 'none';
+        document.getElementById('minimizedCallBar').style.display = 'flex';
+    }
+
+    function expandCall() {
+        document.getElementById('callOverlay').style.display = ''; 
+        document.getElementById('minimizedCallBar').style.display = 'none';
+    }
 
     function hideCallUI() {
         document.getElementById('callOverlay').classList.remove('active');
+        document.getElementById('callOverlay').style.display = '';
+        document.getElementById('minimizedCallBar').style.display = 'none';
+        
         document.getElementById('localVideo').style.display = 'none';
         document.getElementById('remoteVideo').classList.remove('active-video');
         document.getElementById('remoteVideo').srcObject = null;
@@ -1019,16 +1083,20 @@
         currentCallIsVideo = isVideo;
         currentFacingMode = 'user';
 
-        applyCallBackground(); // Применяем фон!
+        applyCallBackground(); 
 
         document.getElementById('callAvatar').innerHTML = getAvatarHtml(targetUser.avatarType, targetUser.avatarValue);
         document.getElementById('callName').textContent = targetUser.name;
         document.getElementById('callNameSmall').textContent = targetUser.name;
+        document.getElementById('minCallInfo').textContent = `${targetUser.name} · Ожидание...`;
         
         setCallStatusText('Запрос . .');
         isCallMicMuted = false; isCallCamOff = false; isSpeakerOn = true;
         
         document.getElementById('callOverlay').classList.add('active');
+        document.getElementById('callOverlay').style.display = 'flex';
+        document.getElementById('minimizedCallBar').style.display = 'none';
+        
         document.getElementById('callCenterArea').style.display = 'flex';
         document.getElementById('callTopCenter').style.display = 'none';
         
@@ -1053,23 +1121,21 @@
             
             peerConnection.ontrack = event => { 
                 const rVid = document.getElementById('remoteVideo');
-                const rAud = document.getElementById('remoteAudio');
-                const stream = event.streams[0] || new MediaStream([event.track]);
                 
-                if (event.track.kind === 'video') {
-                    if (rVid.srcObject !== stream) rVid.srcObject = stream;
-                    
-                    rVid.onloadedmetadata = () => {
-                        if (currentCallIsVideo) {
-                            rVid.classList.add('active-video');
-                            document.getElementById('callTopCenter').style.display = 'block';
-                            document.getElementById('callCenterArea').style.display = 'none';
-                        }
-                    };
-                } else if (event.track.kind === 'audio') {
-                    if (rAud.srcObject !== stream) rAud.srcObject = stream;
-                    rAud.play().catch(e => console.warn('Playback prevented', e));
+                if (!rVid.srcObject) {
+                    rVid.srcObject = event.streams[0] || new MediaStream([event.track]);
+                } else if (event.streams[0]) {
+                    rVid.srcObject = event.streams[0];
                 }
+                
+                rVid.onloadedmetadata = () => {
+                    rVid.play().catch(e => console.warn('Play error', e));
+                    if (currentCallIsVideo && rVid.srcObject.getVideoTracks().length > 0) {
+                        rVid.classList.add('active-video');
+                        document.getElementById('callTopCenter').style.display = 'block';
+                        document.getElementById('callCenterArea').style.display = 'none';
+                    }
+                };
             };
 
             peerConnection.onicecandidate = event => {
@@ -1138,23 +1204,21 @@
             
             peerConnection.ontrack = event => { 
                 const rVid = document.getElementById('remoteVideo');
-                const rAud = document.getElementById('remoteAudio');
-                const stream = event.streams[0] || new MediaStream([event.track]);
                 
-                if (event.track.kind === 'video') {
-                    if (rVid.srcObject !== stream) rVid.srcObject = stream;
-                    
-                    rVid.onloadedmetadata = () => {
-                        if (currentCallIsVideo) {
-                            rVid.classList.add('active-video');
-                            document.getElementById('callTopCenter').style.display = 'block';
-                            document.getElementById('callCenterArea').style.display = 'none';
-                        }
-                    };
-                } else if (event.track.kind === 'audio') {
-                    if (rAud.srcObject !== stream) rAud.srcObject = stream;
-                    rAud.play().catch(e => console.warn('Playback prevented', e));
+                if (!rVid.srcObject) {
+                    rVid.srcObject = event.streams[0] || new MediaStream([event.track]);
+                } else if (event.streams[0]) {
+                    rVid.srcObject = event.streams[0];
                 }
+                
+                rVid.onloadedmetadata = () => {
+                    rVid.play().catch(e => console.warn('Play error', e));
+                    if (currentCallIsVideo && rVid.srcObject.getVideoTracks().length > 0) {
+                        rVid.classList.add('active-video');
+                        document.getElementById('callTopCenter').style.display = 'block';
+                        document.getElementById('callCenterArea').style.display = 'none';
+                    }
+                };
             };
 
             peerConnection.onicecandidate = event => {
@@ -1232,13 +1296,11 @@
         }
     }
     
-    // ИСПРАВЛЕНИЕ: НАДЕЖНЫЙ ПОВОРОТ КАМЕРЫ (С ОТКЛЮЧЕНИЕМ ПРЕДЫДУЩЕГО ТРЕКА)
     async function flipCamera() {
         if (!localStream || !currentCallIsVideo) return;
         currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
         
         try {
-            // Останавливаем старый трек перед запросом нового
             const oldVideoTrack = localStream.getVideoTracks()[0];
             if (oldVideoTrack) {
                 oldVideoTrack.stop();
@@ -1256,7 +1318,6 @@
             const localVid = document.getElementById('localVideo');
             localVid.srcObject = localStream;
             
-            // Отзеркаливаем только если смотрим на себя
             localVid.style.transform = currentFacingMode === 'user' ? 'scaleX(-1)' : 'none';
 
             if (peerConnection) {
@@ -1272,10 +1333,10 @@
     function toggleCallSpeaker() {
         isSpeakerOn = !isSpeakerOn;
         renderCallControls();
-        const rAud = document.getElementById('remoteAudio');
-        if (typeof rAud.setSinkId === 'function') {
+        const rVid = document.getElementById('remoteVideo');
+        if (typeof rVid.setSinkId === 'function') {
             const targetSink = isSpeakerOn ? 'default' : ''; 
-            rAud.setSinkId(targetSink).catch(e => console.log(e));
+            rVid.setSinkId(targetSink).catch(e => console.log(e));
         }
     }
 
@@ -1288,7 +1349,12 @@
             callSeconds++;
             const m = Math.floor(callSeconds / 60);
             const s = (callSeconds % 60).toString().padStart(2, '0');
-            setCallStatusText(`Разговор (${m}:${s})`);
+            const timeStr = `${m}:${s}`;
+            
+            setCallStatusText(`Разговор (${timeStr})`);
+            
+            const name = document.getElementById('callNameSmall').textContent;
+            document.getElementById('minCallInfo').textContent = `${name} · ${m.toString().padStart(2, '0')}:${s}`;
         }, 1000);
     }
 
@@ -1317,6 +1383,11 @@
     }
 
     function login() {
+        // Принудительный запрос уведомлений по клику пользователя
+        if ("Notification" in window && Notification.permission === "default") {
+            Notification.requestPermission();
+        }
+
         if (!isDbReady) return alert('Подождите, идет подключение к серверу...');
         ensureHelper();
         
@@ -1347,11 +1418,6 @@
     function proceedWithLogin(user) {
         me = user;
         localStorage.setItem('Nexagram_Session_UID', me.id);
-        
-        // Запрос прав на уведомления
-        if ("Notification" in window && Notification.permission === "default") {
-            Notification.requestPermission();
-        }
 
         document.getElementById('auth').style.display = 'none';
         document.getElementById('app').style.display = 'flex';
