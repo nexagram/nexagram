@@ -142,6 +142,7 @@
 
         .auth-container { width: 100%; max-width: 340px; text-align: center; animation: fadeIn 0.5s ease; }
         
+        /* ЛОГОТИП (СЕРЕБРИСТЫЙ ГРАДИЕНТ) */
         .brand-square { 
             display: inline-block; 
             font-size: 42px; 
@@ -302,6 +303,7 @@
 </head>
 <body>
 
+<!-- АВТОГЕНЕРАЦИЯ PWA MANIFEST -->
 <script>
     const pwaManifest = {
         "name": "Nexagram",
@@ -319,12 +321,14 @@
 <audio id="incomingRingtone" loop src="https://upload.wikimedia.org/wikipedia/commons/c/c4/Telephone_ringing.ogg"></audio>
 <audio id="outgoingRingtone" loop src="https://upload.wikimedia.org/wikipedia/commons/f/fc/Ringback_tone_%28North_America%29.ogg"></audio>
 
+<!-- СВЕРНУТЫЙ ЗВОНОК -->
 <div id="minimizedCallBar" onclick="expandCall()">
     <button class="icon-btn-min mic-btn" id="minCallMicBtn" onclick="event.stopPropagation(); toggleCallMic();">🎤</button>
     <div class="min-call-info" id="minCallInfo">Имя · 00:00</div>
     <button class="icon-btn-min end-btn" onclick="event.stopPropagation(); endCall();">📞</button>
 </div>
 
+<!-- ЗАГРУЗОЧНЫЙ ЭКРАН СИНХРОНИЗАЦИИ -->
 <div id="loader">
     <div class="spinner"></div>
     <div style="color: white; font-weight: 600;">Синхронизация...</div>
@@ -500,6 +504,7 @@
 <div id="profileModal" class="modal"><div class="modal-content profile-view" id="profileModalContent"></div></div>
 <div id="accountsModal" class="modal"><div class="modal-content"><h3>Сменить аккаунт</h3><div id="accountsList" class="accounts-list"></div><button class="auth-btn" style="margin-top: 24px; background: var(--in); color: var(--txt);" onclick="closeAccountsModal()">Отмена</button></div></div>
 
+<!-- ОБНОВЛЕННОЕ ОКНО ВОССТАНОВЛЕНИЯ ПАРОЛЯ -->
 <div id="forgotModal" class="modal">
     <div class="modal-content">
         <h3>Восстановление</h3>
@@ -564,7 +569,7 @@
     <div class="call-top-bar">
         <button class="icon-btn" style="color: white; font-size: 28px; width:40px;" onclick="minimizeCall()">↙</button>
         <div class="call-top-center" id="callTopCenter">
-            <div id="callNameSmall" style="font-weight: 600; font-size: 18px;">Имя</div>
+            <div id="callNameSmall" style="font-weight: 600; font-size: 18px;">Евгений</div>
             <div id="callStatusSmall" style="font-size: 14px; opacity: 0.8; margin-top:2px;">Ожидание...</div>
         </div>
         <div style="width:40px;"></div> 
@@ -576,7 +581,7 @@
             <div class="call-avatar-ring-1"></div>
             <div class="call-avatar-img" id="callAvatar"></div>
         </div>
-        <div id="callName" style="font-size: 32px; font-weight: 600; margin-bottom: 8px;">Имя</div>
+        <div id="callName" style="font-size: 32px; font-weight: 600; margin-bottom: 8px;">Евгений</div>
         <div id="callStatus" style="font-size: 16px; opacity: 0.8;">Запрос . .</div>
     </div>
 
@@ -590,6 +595,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 
 <script>
+    // Вспомогательная функция шифрования
     function hashString(str) {
         return btoa(unescape(encodeURIComponent(str)));
     }
@@ -604,12 +610,17 @@
     const firebaseConfig = {
       apiKey: "AIzaSyC0wruK-Dy-hsAu6lRYMzO-KlpXJrt3ioo",
       authDomain: "nexagrammessanger.firebaseapp.com",
+      
+      // ВНИМАНИЕ: Замени ссылку ниже на ту, что указана в твоей вкладке Realtime Database!
+      // Если база в США: "https://nexagrammessanger-default-rtdb.firebaseio.com"
+      // Если в Европе: "https://nexagrammessanger-default-rtdb.europe-west1.firebasedatabase.app"
       databaseURL: "https://nexagrammessanger-default-rtdb.europe-west1.firebasedatabase.app",
+      
       projectId: "nexagrammessanger",
       storageBucket: "nexagrammessanger.firebasestorage.app",
       messagingSenderId: "208335236412",
-      appId: "1:208335236412:web:e7ce71ccdb2afacf260239",
-      measurementId: "G-56405NSVC8"
+      appId: "1:208335236412:web:2828a6134af91dfa260239",
+      measurementId: "G-RGR25Y1HJ9"
     };
 
     firebase.initializeApp(firebaseConfig);
@@ -2675,48 +2686,6 @@
         container.innerHTML = friendUsers.map(u => ` <div class="list-item" onclick="startChat('${u.id}')"> <div class="av-sm">${getAvatarHtml(u.avatarType, u.avatarValue)}</div> <div class="list-info"> <div class="list-name">${escapeHtml(u.name)}</div> <div class="list-preview">${getUserStatus(u)}</div> </div> </div> `).join(''); 
     }
 
-    async function linkEmail() {
-        if (!me) return;
-        if (me.firebaseUid || me.googleUid || me.email) {
-            return alert("К этому аккаунту уже привязана почта или Google.");
-        }
-        const email = prompt("Введите ваш Email для привязки:");
-        if (!email || !email.includes('@')) return alert("Некорректный Email");
-        
-        const pass = prompt("Придумайте пароль для входа по Email (минимум 6 символов):");
-        if (!pass || pass.length < 6) return alert("Пароль слишком короткий");
-
-        try {
-            document.getElementById('loader').style.display = 'flex';
-            const cred = await firebase.auth().createUserWithEmailAndPassword(email, pass);
-            
-            me.firebaseUid = cred.user.uid;
-            me.email = email.toLowerCase();
-            const uIdx = db.users.findIndex(u => u.id === me.id);
-            if (uIdx > -1) {
-                await rtdb.ref(`/dg_app_data/users/${uIdx}/firebaseUid`).set(me.firebaseUid);
-                await rtdb.ref(`/dg_app_data/users/${uIdx}/email`).set(me.email);
-            }
-            document.getElementById('loader').style.display = 'none';
-            alert("Почта успешно привязана! Теперь вы можете входить по ней.");
-        } catch (error) {
-            document.getElementById('loader').style.display = 'none';
-            alert("Ошибка привязки: " + error.message);
-        }
-    }
-
-    async function resetFirebasePassword() {
-        const email = document.getElementById('forgotLogin').value.trim().toLowerCase();
-        if (!email || !email.includes('@')) return alert('Введите корректный Email в первое поле');
-        try {
-            await firebase.auth().sendPasswordResetEmail(email);
-            alert('Письмо для сброса пароля отправлено на ' + email + '.\nОбязательно проверьте папку "Спам" или "Рассылки"!');
-            closeForgotModal();
-        } catch (error) {
-            alert('Ошибка: ' + error.message);
-        }
-    }
-
     function acceptReq(id) {
         me.friendRequests = me.friendRequests.filter(x => x !== id);
         if (!me.friends.includes(id)) me.friends.push(id);
@@ -2815,7 +2784,16 @@
     function selectAvatar(type, value) { me.avatarType = type; me.avatarValue = value; const uIdx = db.users.findIndex(u => u.id === me.id); if (uIdx > -1) { rtdb.ref(`/dg_app_data/users/${uIdx}/avatarType`).set(me.avatarType); rtdb.ref(`/dg_app_data/users/${uIdx}/avatarValue`).set(me.avatarValue); } updUI(); closeAvatarModal(); renderChats(); renderFriends(); }
     function selectAvatarFromUrl() { const url = prompt('Прямая ссылка:'); if (url && url.trim()) selectAvatar('url', url.trim()); }
     function closeAvatarModal() { document.getElementById('avatarModal').classList.remove('active'); }
-    function resetAllData() { if (confirm("Внимание! Это очистит только твои локальные настройки. База останется на сервере.")) { localStorage.removeItem('Nexagram_Settings'); localStorage.removeItem('Nexagram_Session_UID'); localStorage.removeItem('Nexagram_Drafts'); location.reload(); } }
+    
+    // ДОБАВЛЕНО ОЧИЩЕНИЕ КЭША ПРИ СБРОСЕ ДАННЫХ ДЛЯ РЕШЕНИЯ ПРОБЛЕМ
+    function resetAllData() { 
+        if (confirm("Внимание! Это очистит только твои локальные настройки. База останется на сервере.")) { 
+            localStorage.removeItem('Nexagram_Settings'); 
+            localStorage.removeItem('Nexagram_Session_UID'); 
+            localStorage.removeItem('Nexagram_Drafts'); 
+            location.reload(); 
+        } 
+    }
 </script>
 </body>
 </html>
