@@ -136,13 +136,12 @@
         .back-btn { background: none; border: none; color: var(--p); font-size: 28px; cursor: pointer; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; margin-right: 4px; flex-shrink: 0;}
         
         #auth, #loader { position: fixed; inset: 0; background: #000; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 24px; }
-        #loader { z-index: 3000; background: rgba(0,0,0,0.8); flex-direction: column; gap: 16px; } /* Возвращен лоадер */
+        #loader { z-index: 3000; background: rgba(0,0,0,0.8); flex-direction: column; gap: 16px; display: none; }
         .spinner { width: 40px; height: 40px; border: 4px solid var(--in); border-top: 4px solid var(--p); border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
         .auth-container { width: 100%; max-width: 340px; text-align: center; animation: fadeIn 0.5s ease; }
         
-        /* НОВЫЙ ЛОГОТИП (СЕРЕБРИСТЫЙ ГРАДИЕНТ) */
         .brand-square { 
             display: inline-block; 
             font-size: 42px; 
@@ -303,7 +302,6 @@
 </head>
 <body>
 
-<!-- АВТОГЕНЕРАЦИЯ PWA MANIFEST -->
 <script>
     const pwaManifest = {
         "name": "Nexagram",
@@ -321,14 +319,12 @@
 <audio id="incomingRingtone" loop src="https://upload.wikimedia.org/wikipedia/commons/c/c4/Telephone_ringing.ogg"></audio>
 <audio id="outgoingRingtone" loop src="https://upload.wikimedia.org/wikipedia/commons/f/fc/Ringback_tone_%28North_America%29.ogg"></audio>
 
-<!-- СВЕРНУТЫЙ ЗВОНОК -->
 <div id="minimizedCallBar" onclick="expandCall()">
     <button class="icon-btn-min mic-btn" id="minCallMicBtn" onclick="event.stopPropagation(); toggleCallMic();">🎤</button>
     <div class="min-call-info" id="minCallInfo">Имя · 00:00</div>
     <button class="icon-btn-min end-btn" onclick="event.stopPropagation(); endCall();">📞</button>
 </div>
 
-<!-- ЗАГРУЗОЧНЫЙ ЭКРАН СИНХРОНИЗАЦИИ -->
 <div id="loader">
     <div class="spinner"></div>
     <div style="color: white; font-weight: 600;">Синхронизация...</div>
@@ -338,7 +334,7 @@
     <div class="auth-container">
         <div class="brand-square">Nexagram</div>
         <div class="auth-subtitle">Где рождается общение</div>
-        <input type="text" id="loginInput" class="auth-input" placeholder="Логин" autocomplete="off" onkeypress="if(event.key==='Enter') login()">
+        <input type="text" id="loginInput" class="auth-input" placeholder="Логин или Email" autocomplete="off" onkeypress="if(event.key==='Enter') login()">
         <input type="password" id="passwordInput" class="auth-input" placeholder="Пароль" autocomplete="current-password" onkeypress="if(event.key==='Enter') login()">
         <input type="text" id="secretInput" class="auth-input secret-field" placeholder="Секретное слово (для восстановления)" autocomplete="off" onkeypress="if(event.key==='Enter') login()">
         <button class="auth-btn" id="mainAuthBtn" onclick="login()">Войти</button>
@@ -412,6 +408,7 @@
 
             <div class="section-header">Безопасность</div>
             <div class="sett-box">
+                <div class="sett-row" onclick="linkEmail()">📧 Привязать Email</div>
                 <div class="sett-row" onclick="changePassword()">🔒 Сменить пароль</div>
                 <div class="sett-row" onclick="changeSecretWord()">🔑 Сменить секретное слово</div>
             </div>
@@ -502,7 +499,18 @@
 <div id="avatarModal" class="modal"><div class="modal-content"><h3>Выберите аватар</h3><div class="avatar-list" id="avatarList"></div><button class="auth-btn" style="margin-top: 24px; background: var(--in); color: var(--txt);" onclick="closeAvatarModal()">Отмена</button></div></div>
 <div id="profileModal" class="modal"><div class="modal-content profile-view" id="profileModalContent"></div></div>
 <div id="accountsModal" class="modal"><div class="modal-content"><h3>Сменить аккаунт</h3><div id="accountsList" class="accounts-list"></div><button class="auth-btn" style="margin-top: 24px; background: var(--in); color: var(--txt);" onclick="closeAccountsModal()">Отмена</button></div></div>
-<div id="forgotModal" class="modal"><div class="modal-content"><h3>Восстановление</h3><input type="text" id="forgotLogin" class="auth-input" placeholder="Ваш логин" style="margin-top: 16px;"><input type="text" id="forgotSecret" class="auth-input" placeholder="Секретное слово"><button class="auth-btn" onclick="resetPasswordWithSecret()">Сбросить пароль</button><button class="auth-btn" style="background: var(--in); color: var(--txt); margin-top: 12px;" onclick="closeForgotModal()">Отмена</button></div></div>
+
+<div id="forgotModal" class="modal">
+    <div class="modal-content">
+        <h3>Восстановление</h3>
+        <input type="text" id="forgotLogin" class="auth-input" placeholder="Ваш логин или Email" style="margin-top: 16px;">
+        <input type="text" id="forgotSecret" class="auth-input" placeholder="Секретное слово (для логина)">
+        <button class="auth-btn" onclick="resetPasswordWithSecret()">Сбросить локальный пароль</button>
+        <button class="auth-btn" style="background: var(--online); margin-top: 12px;" onclick="resetFirebasePassword()">Сбросить по Email</button>
+        <button class="auth-btn" style="background: var(--in); color: var(--txt); margin-top: 12px;" onclick="closeForgotModal()">Отмена</button>
+    </div>
+</div>
+
 <div id="adminModal" class="modal"><div class="modal-content"><h3>👑 Админ-панель</h3><div id="adminUserList" class="accounts-list" style="max-height: 400px; margin-bottom: 20px;"></div><button class="auth-btn" style="background: var(--in); color: var(--txt);" onclick="closeAdminPanel()">Закрыть</button></div></div>
 <div id="forwardModal" class="modal"><div class="modal-content"><h3>Переслать в чат:</h3><div id="forwardChatsList" class="accounts-list" style="max-height: 400px; margin-bottom: 20px;"></div><button class="auth-btn" style="background: var(--in); color: var(--txt);" onclick="closeForwardModal()">Отмена</button></div></div>
 
@@ -556,7 +564,7 @@
     <div class="call-top-bar">
         <button class="icon-btn" style="color: white; font-size: 28px; width:40px;" onclick="minimizeCall()">↙</button>
         <div class="call-top-center" id="callTopCenter">
-            <div id="callNameSmall" style="font-weight: 600; font-size: 18px;">Евгений</div>
+            <div id="callNameSmall" style="font-weight: 600; font-size: 18px;">Имя</div>
             <div id="callStatusSmall" style="font-size: 14px; opacity: 0.8; margin-top:2px;">Ожидание...</div>
         </div>
         <div style="width:40px;"></div> 
@@ -568,7 +576,7 @@
             <div class="call-avatar-ring-1"></div>
             <div class="call-avatar-img" id="callAvatar"></div>
         </div>
-        <div id="callName" style="font-size: 32px; font-weight: 600; margin-bottom: 8px;">Евгений</div>
+        <div id="callName" style="font-size: 32px; font-weight: 600; margin-bottom: 8px;">Имя</div>
         <div id="callStatus" style="font-size: 16px; opacity: 0.8;">Запрос . .</div>
     </div>
 
@@ -582,7 +590,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 
 <script>
-    // ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ ШИФРОВАНИЯ ДЛЯ ПОДДЕРЖКИ РУССКОГО ЯЗЫКА
     function hashString(str) {
         return btoa(unescape(encodeURIComponent(str)));
     }
@@ -595,19 +602,18 @@
     const CLOUDINARY_UPLOAD_PRESET = 'ml_default'; 
 
     const firebaseConfig = {
-      apiKey: "AIzaSyAnJbjdLnCBbsTX9F8RFaUcM6Ux10icSws",
-      authDomain: "planning-with-ai-51656.firebaseapp.com",
-      databaseURL: "https://planning-with-ai-51656-default-rtdb.europe-west1.firebasedatabase.app",
-      projectId: "planning-with-ai-51656",
-      storageBucket: "planning-with-ai-51656.firebasestorage.app",
-      messagingSenderId: "563652920629",
-      appId: "1:563652920629:web:1f22002d27b36c320c787c"
+      apiKey: "AIzaSyC0wruK-Dy-hsAu6lRYMzO-KlpXJrt3ioo",
+      authDomain: "nexagrammessanger.firebaseapp.com",
+      databaseURL: "https://nexagrammessanger-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "nexagrammessanger",
+      storageBucket: "nexagrammessanger.firebasestorage.app",
+      messagingSenderId: "208335236412",
+      appId: "1:208335236412:web:e7ce71ccdb2afacf260239",
+      measurementId: "G-56405NSVC8"
     };
 
     firebase.initializeApp(firebaseConfig);
     const rtdb = firebase.database();
-    
-    // ИНИЦИАЛИЗАЦИЯ GOOGLE AUTH
     const googleProvider = new firebase.auth.GoogleAuthProvider();
     
     const inRing = document.getElementById('incomingRingtone');
@@ -651,7 +657,6 @@
 
     const builtInAvatars = ['😀', '😎', '🦊', '🐱', '🐶', '🦁', '🐼', '🐨', '⭐', '🔥', '🌈', '🎨', '🚀', '💎', '🎮', '🎵', '💪', '🧠', '❤️', '💙', '💚', '💛', '💜', '🖤'];
 
-    // WebRTC Variables
     let peerConnection = null;
     let localStream = null;
     let currentCallId = null;
@@ -1431,7 +1436,6 @@
         document.getElementById('forgotBtn').style.display = isRegisterMode ? 'none' : 'block';
     }
 
-    // ВХОД ЧЕРЕЗ GOOGLE
     async function loginWithGoogle() {
         if (!isDbReady) return alert('Подождите, идет подключение к серверу...');
         ensureHelper();
@@ -1441,10 +1445,11 @@
         }
 
         try {
+            document.getElementById('loader').style.display = 'flex';
             const result = await firebase.auth().signInWithPopup(googleProvider);
             const gUser = result.user;
 
-            let user = db.users.find(u => u.googleUid === gUser.uid || u.login === gUser.email.toLowerCase());
+            let user = db.users.find(u => u.googleUid === gUser.uid || u.email === gUser.email.toLowerCase());
 
             if (!user) {
                 const baseLogin = gUser.email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -1458,6 +1463,7 @@
                 user = {
                     id: 'u_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
                     login: finalLogin,
+                    email: gUser.email.toLowerCase(),
                     name: gUser.displayName || finalLogin,
                     avatarType: 'url',
                     avatarValue: gUser.photoURL || '',
@@ -1467,14 +1473,17 @@
                     secretWord: hashString('google_auth'),
                     lastSeen: Date.now(),
                     isBanned: false,
-                    googleUid: gUser.uid
+                    googleUid: gUser.uid,
+                    firebaseUid: gUser.uid 
                 };
                 db.users.push(user);
                 await rtdb.ref('/dg_app_data/users').set(db.users);
             }
-
+            
+            document.getElementById('loader').style.display = 'none';
             proceedWithLogin(user);
         } catch (error) {
+            document.getElementById('loader').style.display = 'none';
             console.error(error);
             if (error.code !== 'auth/popup-closed-by-user') {
                 alert('Ошибка Google авторизации: ' + error.message);
@@ -1482,7 +1491,7 @@
         }
     }
 
-    function login() {
+    async function login() {
         if ("Notification" in window && Notification.permission === "default") {
             Notification.requestPermission();
         }
@@ -1494,23 +1503,89 @@
         const passwordVal = document.getElementById('passwordInput').value;
         const secretVal = document.getElementById('secretInput').value.trim();
         
-        if (!loginVal) return alert('Введите логин');
+        if (!loginVal) return alert('Введите логин или почту');
         const loginLower = loginVal.toLowerCase();
+        const isEmail = loginLower.includes('@');
         
         if (isRegisterMode) {
             if (!passwordVal || passwordVal.length < 4) return alert('Пароль от 4 символов');
-            if (!secretVal || secretVal.length < 3) return alert('Секретное слово от 3 символов');
-            if (db.users.find(u => u.login === loginLower)) return alert('Логин занят');
+            if (!isEmail && (!secretVal || secretVal.length < 3)) return alert('Секретное слово от 3 символов');
+            if (!isEmail && db.users.find(u => u.login === loginLower)) return alert('Логин занят');
             
-            me = { id: 'u_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6), login: loginLower, name: loginVal, avatarType: 'emoji', avatarValue: builtInAvatars[Math.floor(Math.random() * builtInAvatars.length)], friends: [], friendRequests: [], password: hashString(passwordVal), secretWord: hashString(secretVal), lastSeen: Date.now(), isBanned: false };
-            db.users.push(me); rtdb.ref('/dg_app_data/users').set(db.users);
-            isRegisterMode = false; proceedWithLogin(me);
+            if (isEmail) {
+                let customLogin = prompt("Для удобного поиска добавьте логин (без @):");
+                if (!customLogin || customLogin.trim().length < 3 || customLogin.includes('@')) {
+                    return alert('Некорректный логин. Минимум 3 символа, без @.');
+                }
+                customLogin = customLogin.trim().toLowerCase();
+                if (db.users.find(u => u.login === customLogin)) {
+                    return alert('Этот логин уже занят другим пользователем.');
+                }
+
+                try {
+                    document.getElementById('loader').style.display = 'flex';
+                    const userCred = await firebase.auth().createUserWithEmailAndPassword(loginLower, passwordVal);
+                    const fUser = userCred.user;
+                    
+                    let user = db.users.find(u => u.email === loginLower);
+                    if (!user) {
+                        user = { 
+                            id: 'u_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6), 
+                            login: customLogin, 
+                            email: loginLower, 
+                            name: customLogin, 
+                            avatarType: 'emoji', 
+                            avatarValue: builtInAvatars[Math.floor(Math.random() * builtInAvatars.length)], 
+                            friends: [], 
+                            friendRequests: [], 
+                            password: hashString('firebase_auth'), 
+                            secretWord: hashString(secretVal || 'firebase_auth'), 
+                            lastSeen: Date.now(), 
+                            isBanned: false,
+                            firebaseUid: fUser.uid
+                        };
+                        db.users.push(user);
+                        await rtdb.ref('/dg_app_data/users').set(db.users);
+                    }
+                    document.getElementById('loader').style.display = 'none';
+                    isRegisterMode = false;
+                    proceedWithLogin(user);
+                } catch (error) {
+                    document.getElementById('loader').style.display = 'none';
+                    return alert('Ошибка регистрации по почте: ' + error.message);
+                }
+            } else {
+                me = { id: 'u_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6), login: loginLower, name: loginVal, avatarType: 'emoji', avatarValue: builtInAvatars[Math.floor(Math.random() * builtInAvatars.length)], friends: [], friendRequests: [], password: hashString(passwordVal), secretWord: hashString(secretVal), lastSeen: Date.now(), isBanned: false };
+                db.users.push(me); rtdb.ref('/dg_app_data/users').set(db.users);
+                isRegisterMode = false; proceedWithLogin(me);
+            }
         } else {
-            const user = db.users.find(u => u.login === loginLower);
-            if (!user) return alert('Аккаунт не найден');
-            if (user.isBanned) return alert('❌ Аккаунт заблокирован администратором.');
-            if (user.password !== hashString(passwordVal)) return alert('Неверный пароль');
-            proceedWithLogin(user);
+            if (isEmail) {
+                try {
+                    document.getElementById('loader').style.display = 'flex';
+                    const userCred = await firebase.auth().signInWithEmailAndPassword(loginLower, passwordVal);
+                    let user = db.users.find(u => u.email === loginLower || u.firebaseUid === userCred.user.uid);
+                    if (!user) {
+                        document.getElementById('loader').style.display = 'none';
+                        return alert('Пользователь не найден в базе');
+                    }
+                    if (user.isBanned) {
+                        document.getElementById('loader').style.display = 'none';
+                        return alert('❌ Аккаунт заблокирован администратором.');
+                    }
+                    document.getElementById('loader').style.display = 'none';
+                    proceedWithLogin(user);
+                } catch (error) {
+                    document.getElementById('loader').style.display = 'none';
+                    return alert('Ошибка входа по почте: ' + (error.code === 'auth/wrong-password' ? 'Неверный пароль' : error.message));
+                }
+            } else {
+                const user = db.users.find(u => u.login === loginLower);
+                if (!user) return alert('Аккаунт не найден');
+                if (user.isBanned) return alert('❌ Аккаунт заблокирован администратором.');
+                if (user.password !== hashString(passwordVal)) return alert('Неверный пароль');
+                proceedWithLogin(user);
+            }
         }
     }
     
@@ -2598,6 +2673,48 @@
         } 
         
         container.innerHTML = friendUsers.map(u => ` <div class="list-item" onclick="startChat('${u.id}')"> <div class="av-sm">${getAvatarHtml(u.avatarType, u.avatarValue)}</div> <div class="list-info"> <div class="list-name">${escapeHtml(u.name)}</div> <div class="list-preview">${getUserStatus(u)}</div> </div> </div> `).join(''); 
+    }
+
+    async function linkEmail() {
+        if (!me) return;
+        if (me.firebaseUid || me.googleUid || me.email) {
+            return alert("К этому аккаунту уже привязана почта или Google.");
+        }
+        const email = prompt("Введите ваш Email для привязки:");
+        if (!email || !email.includes('@')) return alert("Некорректный Email");
+        
+        const pass = prompt("Придумайте пароль для входа по Email (минимум 6 символов):");
+        if (!pass || pass.length < 6) return alert("Пароль слишком короткий");
+
+        try {
+            document.getElementById('loader').style.display = 'flex';
+            const cred = await firebase.auth().createUserWithEmailAndPassword(email, pass);
+            
+            me.firebaseUid = cred.user.uid;
+            me.email = email.toLowerCase();
+            const uIdx = db.users.findIndex(u => u.id === me.id);
+            if (uIdx > -1) {
+                await rtdb.ref(`/dg_app_data/users/${uIdx}/firebaseUid`).set(me.firebaseUid);
+                await rtdb.ref(`/dg_app_data/users/${uIdx}/email`).set(me.email);
+            }
+            document.getElementById('loader').style.display = 'none';
+            alert("Почта успешно привязана! Теперь вы можете входить по ней.");
+        } catch (error) {
+            document.getElementById('loader').style.display = 'none';
+            alert("Ошибка привязки: " + error.message);
+        }
+    }
+
+    async function resetFirebasePassword() {
+        const email = document.getElementById('forgotLogin').value.trim().toLowerCase();
+        if (!email || !email.includes('@')) return alert('Введите корректный Email в первое поле');
+        try {
+            await firebase.auth().sendPasswordResetEmail(email);
+            alert('Письмо для сброса пароля отправлено на ' + email + '.\nОбязательно проверьте папку "Спам" или "Рассылки"!');
+            closeForgotModal();
+        } catch (error) {
+            alert('Ошибка: ' + error.message);
+        }
     }
 
     function acceptReq(id) {
