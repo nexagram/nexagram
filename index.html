@@ -115,6 +115,12 @@
         .sent .voice-bar { background: white; }
         .voice-time { font-size: 13px; min-width: 35px; text-align: right; font-weight: 500; flex-shrink: 0; }
         
+        /* Кнопки ускорения */
+        .voice-speed-btn { background: rgba(255,255,255,0.25); border: none; color: white; border-radius: 12px; padding: 4px 8px; font-size: 12px; font-weight: 700; cursor: pointer; transition: 0.2s; }
+        .sent .voice-speed-btn { background: rgba(0,0,0,0.15); color: var(--p); }
+        .voice-speed-btn:active { transform: scale(0.9); }
+        .circle-speed-btn { position: absolute; bottom: 12px; right: 50%; transform: translateX(50%); background: rgba(0,0,0,0.5); color: white; backdrop-filter: blur(4px); }
+
         .chat-input-area { padding: 10px 16px 10px 12px; padding-bottom: calc(10px + env(safe-area-inset-bottom)); background: var(--bg); border-top: 1px solid var(--brd); display: flex; flex-direction: column; }
         .input-row { display: flex; gap: 8px; align-items: center; width: 100%; }
         .chat-input { flex: 1; padding: 12px 16px; border-radius: 24px; background: var(--in); border: 1px solid transparent; color: var(--txt); outline: none; font-size: 16px; transition: border 0.2s; min-width: 0; }
@@ -131,7 +137,6 @@
         .back-btn { background: none; border: none; color: var(--p); font-size: 28px; cursor: pointer; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; margin-right: 4px; flex-shrink: 0;}
         
         #auth, #loader { position: fixed; inset: 0; background: #000; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 24px; }
-        #auth { display: none; } /* Скрыт по умолчанию для мгновенного входа */
         #loader { z-index: 3000; background: rgba(0,0,0,0.8); flex-direction: column; gap: 16px; display: none; }
         .spinner { width: 40px; height: 40px; border: 4px solid var(--in); border-top: 4px solid var(--p); border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -310,6 +315,7 @@
     <button class="icon-btn-min end-btn" onclick="event.stopPropagation(); endCall();">📞</button>
 </div>
 
+<!-- ЗАГРУЗОЧНЫЙ ЭКРАН СИНХРОНИЗАЦИИ ВЕРНУЛСЯ -->
 <div id="loader">
     <div class="spinner"></div>
     <div style="color: white; font-weight: 600;">Синхронизация...</div>
@@ -490,6 +496,7 @@
             <span onclick="reactMsg('😢')">😢</span>
             <span onclick="reactMsg('👏')">👏</span>
         </div>
+        <button class="auth-btn" id="btn-edit-msg" style="background:var(--in); color:var(--txt); margin-bottom: 12px; display:none;" onclick="editSelectedMsg()">✏️ Редактировать</button>
         <button class="auth-btn" style="background:var(--p); margin-bottom: 12px;" onclick="replySelectedMsg()">↩ Ответить</button>
         <button class="auth-btn" style="background:var(--in); color:var(--txt); margin-bottom: 12px;" onclick="openForwardModal()">➡️ Переслать</button>
         <button class="auth-btn" id="btn-del-msg" style="background:var(--red); margin-bottom: 12px;" onclick="deleteSelectedMsg()">🗑 Удалить у всех</button>
@@ -497,7 +504,6 @@
     </div>
 </div>
 
-<!-- ИНТЕРФЕЙС ИСТОРИЙ -->
 <div id="storyViewer">
     <div class="story-bars" id="storyBars"></div>
     <div class="story-header">
@@ -518,7 +524,6 @@
     </div>
 </div>
 
-<!-- ИНТЕРФЕЙС ЗВОНКОВ -->
 <div id="callOverlay" class="modal">
     <video id="remoteVideo" autoplay playsinline></video>
     <video id="localVideo" autoplay playsinline muted></video>
@@ -549,14 +554,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 
 <script>
-    // МГНОВЕННЫЙ ВХОД (Без загрузчика)
-    const savedSessionInstant = localStorage.getItem('Nexagram_Session_UID');
-    if (savedSessionInstant) {
-        document.getElementById('auth').style.display = 'none';
-        document.getElementById('app').style.display = 'flex';
-    } else {
-        document.getElementById('auth').style.display = 'flex';
-    }
+    // Экран авторизации (по умолчанию скрыт, loader показывается)
+    document.getElementById('auth').style.display = 'none';
 
     let currentStoryUser = null;
     let currentStoryIdx = 0;
@@ -619,7 +618,6 @@
 
     const builtInAvatars = ['😀', '😎', '🦊', '🐱', '🐶', '🦁', '🐼', '🐨', '⭐', '🔥', '🌈', '🎨', '🚀', '💎', '🎮', '🎵', '💪', '🧠', '❤️', '💙', '💚', '💛', '💜', '🖤'];
 
-    // WebRTC Variables
     let peerConnection = null;
     let localStream = null;
     let currentCallId = null;
@@ -630,11 +628,15 @@
     let currentCallIsVideo = false;
     let currentFacingMode = 'user';
 
+    // ДОБАВЛЕНЫ TURN СЕРВЕРЫ ДЛЯ VPN/STRICT NAT
     const rtcConfig = { 
         iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
             { urls: 'stun:stun1.l.google.com:19302' },
-            { urls: 'stun:stun.cloudflare.com:3478' }
+            { urls: 'stun:stun.cloudflare.com:3478' },
+            { urls: "turn:openrelay.metered.ca:80", username: "openrelayproject", credential: "openrelayproject" },
+            { urls: "turn:openrelay.metered.ca:443", username: "openrelayproject", credential: "openrelayproject" },
+            { urls: "turn:openrelay.metered.ca:443?transport=tcp", username: "openrelayproject", credential: "openrelayproject" }
         ] 
     };
 
@@ -642,6 +644,9 @@
         if (!user) return false;
         return ['helper', 'demo', 'admin'].includes(user.login.toLowerCase()) || user.isGlobalAdmin;
     }
+
+    // ПОКАЗЫВАЕМ ЭКРАН СИНХРОНИЗАЦИИ
+    document.getElementById('loader').style.display = 'flex';
     
     rtdb.ref('/dg_app_data').on('value', (snapshot) => {
         try {
@@ -690,12 +695,19 @@
             
             if (!isInitialLoadDone) isInitialLoadDone = true;
             isDbReady = true;
+            document.getElementById('loader').style.display = 'none';
+
+            const savedSession = localStorage.getItem('Nexagram_Session_UID');
 
             if (me) {
                 const updatedMe = db.users.find(u => u.id === me.id);
                 if (updatedMe) {
                     if (updatedMe.isBanned) { alert('❌ Ваш аккаунт заблокирован.'); logout(); return; }
                     me = updatedMe;
+                    
+                    document.getElementById('app').style.display = 'flex';
+                    document.getElementById('auth').style.display = 'none';
+
                     updUI(); renderFriends(); renderChats(); renderStories(); renderCalls();
                     
                     if (activeChat) document.getElementById('m-area').style.backgroundImage = me.wallpaper ? `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url(${escapeHtml(me.wallpaper)})` : 'none';
@@ -718,22 +730,24 @@
                         }
                     }
                 } else logout();
-            } else {
-                const savedSession = localStorage.getItem('Nexagram_Session_UID');
-                if (savedSession) {
-                    const user = db.users.find(u => u.id === savedSession);
-                    if (user && !user.isBanned) proceedWithLogin(user);
-                    else {
-                        localStorage.removeItem('Nexagram_Session_UID');
-                        document.getElementById('app').style.display = 'none';
-                        document.getElementById('auth').style.display = 'flex';
-                    }
+            } else if (savedSession) {
+                const user = db.users.find(u => u.id === savedSession);
+                if (user && !user.isBanned) proceedWithLogin(user);
+                else {
+                    localStorage.removeItem('Nexagram_Session_UID');
+                    document.getElementById('app').style.display = 'none';
+                    document.getElementById('auth').style.display = 'flex';
                 }
+            } else {
+                document.getElementById('app').style.display = 'none';
+                document.getElementById('auth').style.display = 'flex';
             }
         } catch (err) {
+            document.getElementById('loader').style.display = 'none';
             console.error(err);
         }
     }, (error) => {
+        document.getElementById('loader').style.display = 'none';
         alert("Ошибка подключения к серверу: " + error.message);
     });
 
@@ -1025,7 +1039,6 @@
         document.getElementById('localVideo').style.display = 'none';
         document.getElementById('remoteVideo').classList.remove('active-video');
         document.getElementById('remoteVideo').srcObject = null;
-        document.getElementById('remoteAudio').srcObject = null;
         
         document.getElementById('callTopCenter').style.display = 'none';
         document.getElementById('callCenterArea').style.display = 'flex';
@@ -1119,6 +1132,7 @@
             peerConnection = new RTCPeerConnection(rtcConfig);
             localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
             
+            // ИСПРАВЛЕНИЕ 3: ВСЁ ИДЕТ В ОДИН ТЕГ VIDEO ДЛЯ РЕШЕНИЯ ПРОБЛЕМ СО ЗВУКОМ
             peerConnection.ontrack = event => { 
                 const rVid = document.getElementById('remoteVideo');
                 
@@ -1126,6 +1140,8 @@
                     rVid.srcObject = event.streams[0] || new MediaStream([event.track]);
                 } else if (event.streams[0]) {
                     rVid.srcObject = event.streams[0];
+                } else {
+                    rVid.srcObject.addTrack(event.track);
                 }
                 
                 rVid.onloadedmetadata = () => {
@@ -1209,6 +1225,8 @@
                     rVid.srcObject = event.streams[0] || new MediaStream([event.track]);
                 } else if (event.streams[0]) {
                     rVid.srcObject = event.streams[0];
+                } else {
+                    rVid.srcObject.addTrack(event.track);
                 }
                 
                 rVid.onloadedmetadata = () => {
@@ -1383,7 +1401,6 @@
     }
 
     function login() {
-        // Принудительный запрос уведомлений по клику пользователя
         if ("Notification" in window && Notification.permission === "default") {
             Notification.requestPermission();
         }
@@ -1648,15 +1665,38 @@
         e.preventDefault(); 
         selectedMsgIdxForMenu = idx;
         const btnDel = document.getElementById('btn-del-msg');
+        const btnEdit = document.getElementById('btn-edit-msg');
+        const targetMsg = getFilteredMsgs()[idx];
         
         const isChatAdmin = activeChat && (activeChat.admin === me.id || (activeChat.admins && activeChat.admins.includes(me.id)));
         
         if (msgUid === me.id || isSuperAdmin(me) || isChatAdmin) btnDel.style.display = 'block';
         else btnDel.style.display = 'none';
+
+        if (msgUid === me.id && (!targetMsg.type || targetMsg.type === 'text')) btnEdit.style.display = 'block';
+        else btnEdit.style.display = 'none';
+
         document.getElementById('msgMenuModal').classList.add('active');
     }
     
     function closeMsgMenu() { document.getElementById('msgMenuModal').classList.remove('active'); selectedMsgIdxForMenu = null; }
+
+    function editSelectedMsg() {
+        if (selectedMsgIdxForMenu === null || !activeChat) return;
+        const targetMsg = getFilteredMsgs()[selectedMsgIdxForMenu];
+        const newTxt = prompt('Редактировать сообщение:', targetMsg.txt || '');
+        
+        if (newTxt !== null && newTxt.trim() !== '') {
+            const chatIndex = db.chats.findIndex(c => c.id === activeChat.id);
+            const globalIdx = db.chats[chatIndex].msgs.findIndex(m => m.time === targetMsg.time && m.uid === targetMsg.uid);
+            if (globalIdx > -1) {
+                db.chats[chatIndex].msgs[globalIdx].txt = newTxt.trim();
+                db.chats[chatIndex].msgs[globalIdx].isEdited = true;
+                rtdb.ref(`/dg_app_data/chats/${chatIndex}/msgs`).set(db.chats[chatIndex].msgs);
+            }
+        }
+        closeMsgMenu();
+    }
 
     function deleteSelectedMsg() {
         if (selectedMsgIdxForMenu === null || !activeChat) return;
@@ -1973,6 +2013,7 @@
             else if (activeChat.type === 'direct') isRead = msg.time <= otherReadTime;
             else { isRead = Object.keys(activeChat.lastRead || {}).some(uid => uid !== me.id && activeChat.lastRead[uid] >= msg.time); }
             const readHtml = isSent ? `<span class="read-receipt ${isRead ? 'read' : ''}">${isRead ? '✔✔' : '✔'}</span>` : '';
+            const editedHtml = msg.isEdited ? `<span style="font-size: 10px; opacity: 0.6; margin-left: 4px;">(изм.)</span>` : '';
 
             let content = '';
             let authorNameHtml = '';
@@ -1987,7 +2028,7 @@
             if (msg.type === 'voice' || msg.type === 'audio') content = `<div class="voice-msg-placeholder" data-idx="${idx}"></div>`;
             else if (msg.type === 'image') content = `<div class="media-content"><img src="${escapeHtml(msg.url)}" onclick="openMedia(${idx})"></div>`;
             else if (msg.type === 'video') content = `<div class="media-content video-wrapper" onclick="openMedia(${idx})"><video src="${escapeHtml(msg.url)}"></video><div class="play-overlay">▶</div></div>`;
-            else if (msg.type === 'video_circle') content = `<div class="media-content" style="background: none;"><video src="${escapeHtml(msg.url)}" autoplay loop playsinline class="video-circle" onclick="this.muted = !this.muted" muted></video></div>`;
+            else if (msg.type === 'video_circle') content = `<div class="media-content" style="background: none; position:relative;"><video src="${escapeHtml(msg.url)}" autoplay loop playsinline class="video-circle" onclick="this.muted = !this.muted" muted></video><button class="voice-speed-btn circle-speed-btn" onclick="event.stopPropagation(); const v = this.previousElementSibling; if(v.playbackRate===1){v.playbackRate=1.5;this.textContent='1.5x';}else if(v.playbackRate===1.5){v.playbackRate=2;this.textContent='2x';}else{v.playbackRate=1;this.textContent='1x';}">1x</button></div>`;
             else if (msg.type === 'file') content = `<div style="display:flex;align-items:center;gap:12px;padding:8px 12px;background:rgba(255,255,255,0.15);border-radius:12px;margin-top:4px;"><span style="font-size:24px;">📄</span><a href="${escapeHtml(msg.url)}" target="_blank" style="color:inherit;text-decoration:none;font-weight:600;font-size:15px;word-break:break-all;">Скачать файл</a></div>`;
             else content = `<div>${escapeHtml(msg.txt || '')}</div>`;
             
@@ -2003,7 +2044,7 @@
             }
             
             return `<div class="m-body ${isSent ? 'sent' : 'received'}" oncontextmenu="openMsgMenu(event, ${idx}, '${msg.uid}')">
-                ${authorNameHtml}${replyHtml}${content}${reactionsHtml}<div class="msg-time">${time} ${readHtml}</div>
+                ${authorNameHtml}${replyHtml}${content}${reactionsHtml}<div class="msg-time">${editedHtml} ${time} ${readHtml}</div>
             </div>`;
         }).join('');
         
@@ -2179,7 +2220,19 @@
         const wave = document.createElement('div'); wave.className = 'voice-wave';
         for (let i = 0; i < 15; i++) { const bar = document.createElement('div'); bar.className = 'voice-bar'; bar.style.height = '4px'; wave.appendChild(bar); }
         const timeSpan = document.createElement('span'); timeSpan.className = 'voice-time'; timeSpan.textContent = '0:00';
-        container.append(playBtn, wave, timeSpan);
+        
+        const speedBtn = document.createElement('button');
+        speedBtn.className = 'voice-speed-btn';
+        speedBtn.textContent = '1x';
+        speedBtn.onclick = (e) => {
+            e.preventDefault(); e.stopPropagation(); 
+            let currentSpeed = audio.playbackRate;
+            if (currentSpeed === 1) { audio.playbackRate = 1.5; speedBtn.textContent = '1.5x'; }
+            else if (currentSpeed === 1.5) { audio.playbackRate = 2.0; speedBtn.textContent = '2x'; }
+            else { audio.playbackRate = 1.0; speedBtn.textContent = '1x'; }
+        };
+
+        container.append(playBtn, wave, timeSpan, speedBtn);
         let isPlaying = false; let animationId;
         function animateWave() { wave.querySelectorAll('.voice-bar').forEach(bar => { bar.style.height = isPlaying ? (4 + Math.random() * 16) + 'px' : '4px'; }); if (isPlaying) animationId = requestAnimationFrame(animateWave); }
         playBtn.onclick = (e) => {
