@@ -115,7 +115,6 @@
         .sent .voice-bar { background: white; }
         .voice-time { font-size: 13px; min-width: 35px; text-align: right; font-weight: 500; flex-shrink: 0; }
         
-        /* Кнопки ускорения */
         .voice-speed-btn { background: rgba(255,255,255,0.25); border: none; color: white; border-radius: 12px; padding: 4px 8px; font-size: 12px; font-weight: 700; cursor: pointer; transition: 0.2s; }
         .sent .voice-speed-btn { background: rgba(0,0,0,0.15); color: var(--p); }
         .voice-speed-btn:active { transform: scale(0.9); }
@@ -137,12 +136,26 @@
         .back-btn { background: none; border: none; color: var(--p); font-size: 28px; cursor: pointer; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; margin-right: 4px; flex-shrink: 0;}
         
         #auth, #loader { position: fixed; inset: 0; background: #000; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 24px; }
-        #loader { z-index: 3000; background: rgba(0,0,0,0.8); flex-direction: column; gap: 16px; display: none; }
+        #loader { z-index: 3000; background: rgba(0,0,0,0.8); flex-direction: column; gap: 16px; } /* Возвращен лоадер */
         .spinner { width: 40px; height: 40px; border: 4px solid var(--in); border-top: 4px solid var(--p); border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
         .auth-container { width: 100%; max-width: 340px; text-align: center; animation: fadeIn 0.5s ease; }
-        .brand-square { display: inline-block; background: var(--p, #30d158); padding: 16px 28px; border-radius: 24px; font-size: 32px; font-weight: 800; letter-spacing: -1px; color: white; box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4); margin-bottom: 12px; }
+        
+        /* НОВЫЙ ЛОГОТИП (СЕРЕБРИСТЫЙ ГРАДИЕНТ) */
+        .brand-square { 
+            display: inline-block; 
+            font-size: 42px; 
+            font-weight: 800; 
+            letter-spacing: -1px; 
+            background: linear-gradient(135deg, #e0e0e0 0%, #f8f9fa 50%, #b8b8b8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 16px; 
+            padding: 0; 
+            box-shadow: none; 
+        }
+
         .auth-subtitle { color: var(--mut); font-size: 15px; margin-bottom: 32px; letter-spacing: 0.5px; }
         .auth-input { width: 100%; padding: 16px; background: #111; border: 1px solid #333; color: #fff; border-radius: 16px; margin-bottom: 12px; font-size: 16px; outline: none; transition: all 0.2s; }
         .auth-input:focus { border-color: var(--p); background: #1a1a1a; }
@@ -315,7 +328,7 @@
     <button class="icon-btn-min end-btn" onclick="event.stopPropagation(); endCall();">📞</button>
 </div>
 
-<!-- ЗАГРУЗОЧНЫЙ ЭКРАН СИНХРОНИЗАЦИИ ВЕРНУЛСЯ -->
+<!-- ЗАГРУЗОЧНЫЙ ЭКРАН СИНХРОНИЗАЦИИ -->
 <div id="loader">
     <div class="spinner"></div>
     <div style="color: white; font-weight: 600;">Синхронизация...</div>
@@ -329,6 +342,18 @@
         <input type="password" id="passwordInput" class="auth-input" placeholder="Пароль" autocomplete="current-password" onkeypress="if(event.key==='Enter') login()">
         <input type="text" id="secretInput" class="auth-input secret-field" placeholder="Секретное слово (для восстановления)" autocomplete="off" onkeypress="if(event.key==='Enter') login()">
         <button class="auth-btn" id="mainAuthBtn" onclick="login()">Войти</button>
+        
+        <div style="margin-top: 24px; display:flex; align-items:center; gap:12px;">
+            <div style="flex:1; height:1px; background:#333;"></div>
+            <div style="color:var(--mut); font-size:12px; font-weight:600;">ИЛИ</div>
+            <div style="flex:1; height:1px; background:#333;"></div>
+        </div>
+        
+        <button class="auth-btn" style="background: #fff; color: #000; margin-top: 24px; display: flex; align-items: center; justify-content: center; gap: 10px;" onclick="loginWithGoogle()">
+            <svg width="20" height="20" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+            Войти через Google
+        </button>
+
         <div class="auth-links">
             <div class="auth-switch" onclick="toggleAuthMode()">Нет аккаунта? <span id="authSwitchText">Зарегистрироваться</span></div>
             <div class="auth-forgot" id="forgotBtn" onclick="showForgotPassword()">Забыли пароль?</div>
@@ -550,12 +575,17 @@
     <div class="call-actions-row" id="callControls"></div>
 </div>
 
+<audio id="remoteAudio" autoplay playsinline></audio>
+
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 
 <script>
-    // Экран авторизации (по умолчанию скрыт, loader показывается)
-    document.getElementById('auth').style.display = 'none';
+    // ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ ШИФРОВАНИЯ ДЛЯ ПОДДЕРЖКИ РУССКОГО ЯЗЫКА
+    function hashString(str) {
+        return btoa(unescape(encodeURIComponent(str)));
+    }
 
     let currentStoryUser = null;
     let currentStoryIdx = 0;
@@ -576,6 +606,9 @@
 
     firebase.initializeApp(firebaseConfig);
     const rtdb = firebase.database();
+    
+    // ИНИЦИАЛИЗАЦИЯ GOOGLE AUTH
+    const googleProvider = new firebase.auth.GoogleAuthProvider();
     
     const inRing = document.getElementById('incomingRingtone');
     const outRing = document.getElementById('outgoingRingtone');
@@ -618,6 +651,7 @@
 
     const builtInAvatars = ['😀', '😎', '🦊', '🐱', '🐶', '🦁', '🐼', '🐨', '⭐', '🔥', '🌈', '🎨', '🚀', '💎', '🎮', '🎵', '💪', '🧠', '❤️', '💙', '💚', '💛', '💜', '🖤'];
 
+    // WebRTC Variables
     let peerConnection = null;
     let localStream = null;
     let currentCallId = null;
@@ -628,7 +662,6 @@
     let currentCallIsVideo = false;
     let currentFacingMode = 'user';
 
-    // ДОБАВЛЕНЫ TURN СЕРВЕРЫ ДЛЯ VPN/STRICT NAT
     const rtcConfig = { 
         iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
@@ -645,7 +678,6 @@
         return ['helper', 'demo', 'admin'].includes(user.login.toLowerCase()) || user.isGlobalAdmin;
     }
 
-    // ПОКАЗЫВАЕМ ЭКРАН СИНХРОНИЗАЦИИ
     document.getElementById('loader').style.display = 'flex';
     
     rtdb.ref('/dg_app_data').on('value', (snapshot) => {
@@ -829,7 +861,7 @@
     function ensureHelper() {
         let helper = db.users.find(u => u.login === 'helper');
         if (!helper) {
-            helper = { id: 'helper_1', login: 'helper', name: 'Админ Nexagram', avatarType: 'emoji', avatarValue: '🤖', friends: [], password: btoa('maskimru'), secretWord: btoa('admin123'), lastSeen: Date.now(), isBanned: false };
+            helper = { id: 'helper_1', login: 'helper', name: 'Админ Nexagram', avatarType: 'emoji', avatarValue: '🤖', friends: [], password: hashString('maskimru'), secretWord: hashString('admin123'), lastSeen: Date.now(), isBanned: false };
             db.users.push(helper); rtdb.ref('/dg_app_data').set({ users: db.users, chats: db.chats, stories: db.stories });
         }
         return helper;
@@ -1132,7 +1164,6 @@
             peerConnection = new RTCPeerConnection(rtcConfig);
             localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
             
-            // ИСПРАВЛЕНИЕ 3: ВСЁ ИДЕТ В ОДИН ТЕГ VIDEO ДЛЯ РЕШЕНИЯ ПРОБЛЕМ СО ЗВУКОМ
             peerConnection.ontrack = event => { 
                 const rVid = document.getElementById('remoteVideo');
                 
@@ -1400,6 +1431,57 @@
         document.getElementById('forgotBtn').style.display = isRegisterMode ? 'none' : 'block';
     }
 
+    // ВХОД ЧЕРЕЗ GOOGLE
+    async function loginWithGoogle() {
+        if (!isDbReady) return alert('Подождите, идет подключение к серверу...');
+        ensureHelper();
+
+        if ("Notification" in window && Notification.permission === "default") {
+            Notification.requestPermission();
+        }
+
+        try {
+            const result = await firebase.auth().signInWithPopup(googleProvider);
+            const gUser = result.user;
+
+            let user = db.users.find(u => u.googleUid === gUser.uid || u.login === gUser.email.toLowerCase());
+
+            if (!user) {
+                const baseLogin = gUser.email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
+                let finalLogin = baseLogin;
+                let counter = 1;
+                while(db.users.find(u => u.login === finalLogin)) {
+                    finalLogin = baseLogin + counter;
+                    counter++;
+                }
+                
+                user = {
+                    id: 'u_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+                    login: finalLogin,
+                    name: gUser.displayName || finalLogin,
+                    avatarType: 'url',
+                    avatarValue: gUser.photoURL || '',
+                    friends: [],
+                    friendRequests: [],
+                    password: hashString('google_auth'),
+                    secretWord: hashString('google_auth'),
+                    lastSeen: Date.now(),
+                    isBanned: false,
+                    googleUid: gUser.uid
+                };
+                db.users.push(user);
+                await rtdb.ref('/dg_app_data/users').set(db.users);
+            }
+
+            proceedWithLogin(user);
+        } catch (error) {
+            console.error(error);
+            if (error.code !== 'auth/popup-closed-by-user') {
+                alert('Ошибка Google авторизации: ' + error.message);
+            }
+        }
+    }
+
     function login() {
         if ("Notification" in window && Notification.permission === "default") {
             Notification.requestPermission();
@@ -1420,14 +1502,14 @@
             if (!secretVal || secretVal.length < 3) return alert('Секретное слово от 3 символов');
             if (db.users.find(u => u.login === loginLower)) return alert('Логин занят');
             
-            me = { id: 'u_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6), login: loginLower, name: loginVal, avatarType: 'emoji', avatarValue: builtInAvatars[Math.floor(Math.random() * builtInAvatars.length)], friends: [], friendRequests: [], password: btoa(passwordVal), secretWord: btoa(secretVal), lastSeen: Date.now(), isBanned: false };
+            me = { id: 'u_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6), login: loginLower, name: loginVal, avatarType: 'emoji', avatarValue: builtInAvatars[Math.floor(Math.random() * builtInAvatars.length)], friends: [], friendRequests: [], password: hashString(passwordVal), secretWord: hashString(secretVal), lastSeen: Date.now(), isBanned: false };
             db.users.push(me); rtdb.ref('/dg_app_data/users').set(db.users);
             isRegisterMode = false; proceedWithLogin(me);
         } else {
             const user = db.users.find(u => u.login === loginLower);
             if (!user) return alert('Аккаунт не найден');
             if (user.isBanned) return alert('❌ Аккаунт заблокирован администратором.');
-            if (user.password !== btoa(passwordVal)) return alert('Неверный пароль');
+            if (user.password !== hashString(passwordVal)) return alert('Неверный пароль');
             proceedWithLogin(user);
         }
     }
@@ -2532,6 +2614,8 @@
         const myIdx = db.users.findIndex(u => u.id === me.id);
         rtdb.ref(`/dg_app_data/users/${myIdx}/friendRequests`).set(me.friendRequests);
         rtdb.ref(`/dg_app_data/users/${myIdx}/friends`).set(me.friends);
+        
+        alert(`Пользователь ${friend ? friend.name : ''} добавлен в контакты!`);
         renderFriends();
     }
 
@@ -2546,9 +2630,45 @@
     function closeProfileModal() { document.getElementById('profileModal').classList.remove('active'); }
     function showForgotPassword() { document.getElementById('forgotModal').classList.add('active'); document.getElementById('forgotLogin').value = ''; document.getElementById('forgotSecret').value = ''; }
     function closeForgotModal() { document.getElementById('forgotModal').classList.remove('active'); }
-    function resetPasswordWithSecret() { const login = document.getElementById('forgotLogin').value.trim().toLowerCase(); const secret = document.getElementById('forgotSecret').value.trim(); if (!login || !secret) return alert('Заполните все поля'); const user = db.users.find(u => u.login === login); if (!user) return alert('Юзер не найден'); if (user.secretWord !== btoa(secret)) return alert('Неверное слово'); const newPass = prompt('Новый пароль (от 4 симв):'); if (!newPass || newPass.length < 4) return alert('Слишком короткий'); user.password = btoa(newPass); rtdb.ref('/dg_app_data/users').set(db.users); alert('Сброшен!'); closeForgotModal(); }
-    function changeSecretWord() { if (!me) return; const oldSecret = prompt('Текущее секретное слово:'); if (!oldSecret || me.secretWord !== btoa(oldSecret)) return alert('Неверное слово'); const newSecret = prompt('Новое слово:'); if (!newSecret || newSecret.length < 3) return; me.secretWord = btoa(newSecret); const uIdx = db.users.findIndex(u => u.id === me.id); if (uIdx > -1) rtdb.ref(`/dg_app_data/users/${uIdx}/secretWord`).set(me.secretWord); alert('Обновлено!'); }
-    function changePassword() { if (!me) return; const oldPass = prompt('Старый пароль:'); if (!oldPass || me.password !== btoa(oldPass)) return alert('Неверный старый'); const newPass = prompt('Новый пароль:'); if (!newPass || newPass.length < 4) return; if (prompt('Подтвердите:') !== newPass) return alert('Не совпадают'); me.password = btoa(newPass); const uIdx = db.users.findIndex(u => u.id === me.id); if (uIdx > -1) rtdb.ref(`/dg_app_data/users/${uIdx}/password`).set(me.password); alert('Изменен!'); }
+    
+    function resetPasswordWithSecret() { 
+        const login = document.getElementById('forgotLogin').value.trim().toLowerCase(); 
+        const secret = document.getElementById('forgotSecret').value.trim(); 
+        if (!login || !secret) return alert('Заполните все поля'); 
+        const user = db.users.find(u => u.login === login); 
+        if (!user) return alert('Юзер не найден'); 
+        if (user.secretWord !== hashString(secret)) return alert('Неверное слово'); 
+        const newPass = prompt('Новый пароль (от 4 симв):'); 
+        if (!newPass || newPass.length < 4) return alert('Слишком короткий'); 
+        user.password = hashString(newPass); 
+        rtdb.ref('/dg_app_data/users').set(db.users); 
+        alert('Сброшен!'); closeForgotModal(); 
+    }
+    
+    function changeSecretWord() { 
+        if (!me) return; 
+        const oldSecret = prompt('Текущее секретное слово:'); 
+        if (!oldSecret || me.secretWord !== hashString(oldSecret)) return alert('Неверное слово'); 
+        const newSecret = prompt('Новое слово:'); 
+        if (!newSecret || newSecret.length < 3) return; 
+        me.secretWord = hashString(newSecret); 
+        const uIdx = db.users.findIndex(u => u.id === me.id); 
+        if (uIdx > -1) rtdb.ref(`/dg_app_data/users/${uIdx}/secretWord`).set(me.secretWord); 
+        alert('Обновлено!'); 
+    }
+    
+    function changePassword() { 
+        if (!me) return; 
+        const oldPass = prompt('Старый пароль:'); 
+        if (!oldPass || me.password !== hashString(oldPass)) return alert('Неверный старый'); 
+        const newPass = prompt('Новый пароль:'); 
+        if (!newPass || newPass.length < 4) return; 
+        if (prompt('Подтвердите:') !== newPass) return alert('Не совпадают'); 
+        me.password = hashString(newPass); 
+        const uIdx = db.users.findIndex(u => u.id === me.id); 
+        if (uIdx > -1) rtdb.ref(`/dg_app_data/users/${uIdx}/password`).set(me.password); 
+        alert('Изменен!'); 
+    }
     
     function editBio() {
         if (!me) return;
