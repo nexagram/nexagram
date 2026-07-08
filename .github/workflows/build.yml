@@ -1,0 +1,44 @@
+name: Build Nexagram APK
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+
+    - name: Install Cordova
+      run: npm install -g cordova
+
+    - name: Setup Java JDK
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v2
+
+    - name: Build Android App
+      run: |
+        cordova create app com.nexagram.app Nexagram
+        cd app
+        rm www/index.html
+        cp ../index.html www/index.html
+        cordova platform add android
+        cordova plugin add cordova-plugin-android-permissions
+        cordova plugin add cordova-plugin-media-capture
+        cordova plugin add cordova-plugin-inappbrowser
+        cordova build android --debug
+
+    - name: Upload APK to download link
+      uses: actions/upload-artifact@v3
+      with:
+        name: nexagram-apk
+        path: app/platforms/android/app/build/outputs/apk/debug/app-debug.apk
