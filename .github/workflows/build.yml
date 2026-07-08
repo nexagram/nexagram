@@ -32,20 +32,29 @@ jobs:
         rm www/index.html
         cp ../index.html www/index.html
         
-        # Добавляем иконку (если ты её загрузил как icon.png)
+        # Подхват иконки (если загружена)
         if [ -f "../icon.png" ]; then
           cp ../icon.png icon.png
           sed -i 's|</widget>|    <icon src="icon.png" />\n</widget>|' config.xml
         fi
         
-        # === ВАЖНЫЙ ФИКС БЛОКИРОВОК ===
-        # Запускаем приложение как https://localhost и разрешаем все запросы
-        sed -i 's|</widget>|    <preference name="scheme" value="https" />\n    <preference name="hostname" value="localhost" />\n    <preference name="AndroidInsecureFileModeEnabled" value="true" />\n    <access origin="*" />\n    <allow-navigation href="*" />\n    <allow-intent href="*" />\n</widget>|' config.xml
+        # Фикс интерфейса: сдвигаем шапку чата из-под часов и делаем фон черным
+        sed -i 's|</widget>|    <preference name="StatusBarOverlaysWebView" value="false" />\n    <preference name="StatusBarBackgroundColor" value="#000000" />\n    <preference name="StatusBarStyle" value="lightcontent" />\n</widget>|' config.xml
+        
+        # Настройка безопасного домена (localhost)
+        sed -i 's|</widget>|    <preference name="scheme" value="https" />\n    <preference name="hostname" value="localhost" />\n    <access origin="*" />\n    <allow-navigation href="*" />\n    <allow-intent href="*" />\n</widget>|' config.xml
+        
+        # Инъекция: Запрашиваем права на пуши и перехватываем браузерные уведомления
+        sed -i 's|</body>|<script src="cordova.js"></script><script>document.addEventListener("deviceready", function() { var perms = cordova.plugins.permissions; perms.requestPermissions([perms.CAMERA, perms.RECORD_AUDIO, "android.permission.POST_NOTIFICATIONS"], function(){}, function(){}); window.Notification = function(title, options) { if(cordova.plugins && cordova.plugins.notification) { cordova.plugins.notification.local.schedule({ title: title, text: options ? options.body : "", foreground: true }); } return this; }; window.Notification.permission = "granted"; window.Notification.requestPermission = function() { return Promise.resolve("granted"); }; }, false);</script></body>|' www/index.html
         
         cordova platform add android
+        cordova plugin add cordova-plugin-androidx-adapter
         cordova plugin add cordova-plugin-android-permissions
         cordova plugin add cordova-plugin-media-capture
         cordova plugin add cordova-plugin-inappbrowser
+        cordova plugin add cordova-plugin-statusbar
+        cordova plugin add cordova-plugin-local-notification-12
+        
         cordova build android --debug
 
     - name: Upload APK to download link
