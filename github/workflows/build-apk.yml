@@ -1,0 +1,17 @@
+name: Build APK
+​on:
+push:
+branches:
+- main
+​jobs:
+build:
+runs-on: ubuntu-latest
+steps:
+- name: Checkout code
+uses: actions/checkout@v2
+​- name: Set up JDK
+uses: actions/setup-java@v1
+with:
+java-version: '11'
+​- name: Build APK
+run: ./gradlew assembleDebug
