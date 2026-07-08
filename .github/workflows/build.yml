@@ -32,44 +32,39 @@ jobs:
         rm www/index.html
         cp ../index.html www/index.html
         
-        # 1. ИКОНКА И CONFIG.XML (Сеть, StatusBar, Localhost)
+        # 1. ЧИСТИМ СТАРЫЕ ОГРАНИЧЕНИЯ ИЗ ТВОЕГО HTML (Чтобы заработал Cloudinary)
+        sed -i '/Content-Security-Policy/d' www/index.html
+        sed -i '/viewport/d' www/index.html
+        
+        # 2. ИКОНКА И ПРАВИЛЬНАЯ ШТОРКА (false - значит не лезть под часы)
         if [ -f "../icon.png" ]; then
           cp ../icon.png icon.png
           sed -i 's|<widget|<widget xmlns:android="http://schemas.android.com/apk/res/android"|' config.xml
           sed -i 's|</widget>|    <icon src="icon.png" />\n</widget>|' config.xml
         fi
         
-        sed -i 's|</widget>|    <preference name="scheme" value="https" />\n    <preference name="hostname" value="localhost" />\n    <preference name="StatusBarOverlaysWebView" value="true" />\n    <preference name="StatusBarStyle" value="lightcontent" />\n    <access origin="*" />\n    <allow-navigation href="*" />\n    <allow-intent href="*" />\n</widget>|' config.xml
+        sed -i 's|</widget>|    <preference name="scheme" value="https" />\n    <preference name="hostname" value="localhost" />\n    <preference name="StatusBarOverlaysWebView" value="false" />\n    <preference name="StatusBarBackgroundColor" value="#000000" />\n    <preference name="StatusBarStyle" value="lightcontent" />\n    <access origin="*" />\n    <allow-navigation href="*" />\n    <allow-intent href="*" />\n</widget>|' config.xml
         
-        # 2. ИНЪЕКЦИЯ ДЛЯ CLOUDINARY, ШТОРКИ И ПОДКЛЮЧЕНИЯ СКРИПТОВ
-        # Вставляем мета-теги, CSS-фикс для часов и вызовы скриптов прямо в <head>
+        # 3. ИНЪЕКЦИЯ БРОНЕБОЙНОЙ ПОЛИТИКИ СЕТИ И СКРИПТОВ
         cat > www/inject.txt << 'EOF'
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
-        <meta http-equiv="Content-Security-Policy" content="default-src * data: blob: filesystem: about: ws: wss: 'unsafe-inline' 'unsafe-eval'; script-src * data: blob: 'unsafe-inline' 'unsafe-eval'; connect-src * data: blob: 'unsafe-inline'; img-src * data: blob: 'unsafe-inline'; media-src * data: blob: 'unsafe-inline';">
-        <style> body, #root, .app-container { padding-top: env(safe-area-inset-top, 30px) !important; } </style>
+        <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob: file:; connect-src * 'unsafe-inline' 'unsafe-eval' data: blob: file: wss: ws:; img-src * data: blob: file: 'unsafe-inline'; media-src * data: blob: file: 'unsafe-inline';">
         <script src="cordova.js"></script>
         <script src="init.js"></script>
         EOF
         sed -i '/<head>/r www/inject.txt' www/index.html
         
-        # 3. ИНЪЕКЦИЯ INIT.JS (Перехват Firebase Auth, Права на железо, Уведомления)
+        # 4. INIT.JS (Перехват Firebase Auth, Уведомления, Права)
         cat > www/init.js << 'EOF'
         document.addEventListener('deviceready', function() {
-            // ЗАПРОС ПРАВ НА КАМЕРУ И МИКРОФОН
             var perms = cordova.plugins.permissions;
             perms.requestPermissions([perms.CAMERA, perms.RECORD_AUDIO, perms.MODIFY_AUDIO_SETTINGS, "android.permission.POST_NOTIFICATIONS"], function(){}, function(){});
             
-            // ПЕРЕХВАТ УВЕДОМЛЕНИЙ
             window.Notification = function(title, options) {
-                if(cordova.plugins && cordova.plugins.notification) {
-                    cordova.plugins.notification.local.schedule({ title: title, text: options ? options.body : "" });
-                }
+                if(cordova.plugins && cordova.plugins.notification) { cordova.plugins.notification.local.schedule({ title: title, text: options ? options.body : "" }); }
             };
-            window.Notification.permission = "granted";
-            window.Notification.requestPermission = function() { return Promise.resolve("granted"); };
+            window.Notification.permission = "granted"; window.Notification.requestPermission = function() { return Promise.resolve("granted"); };
             
-            // === МАГИЯ: ПЕРЕХВАТ FIREBASE GOOGLE AUTH ===
-            // Ждем, пока твой код загрузит Firebase, и подменяем функцию входа
             let authInterval = setInterval(() => {
                 if (window.firebase && firebase.auth) {
                     clearInterval(authInterval);
@@ -81,14 +76,13 @@ jobs:
                                     'webClientId': '208335236412-jfqtscbj2pkj7mi6pn42e331aiqnira8.apps.googleusercontent.com',
                                     'offline': true
                                 }, function (obj) {
-                                    // Успешный нативный вход -> передаем токен обратно в твой Firebase
                                     const cred = firebase.auth.GoogleAuthProvider.credential(obj.idToken);
                                     firebase.auth().signInWithCredential(cred).then(resolve).catch(reject);
-                                }, function (msg) {
-                                    alert("Ошибка входа: " + msg);
-                                    reject(msg);
-                                });
+                                }, function (msg) { reject(msg); });
                             });
+                        } else if (provider && provider.providerId === 'github.com') {
+                            // GitHub чиним через Redirect
+                            return firebase.auth().signInWithRedirect(provider);
                         }
                         return originalSignIn.apply(this, arguments);
                     };
@@ -97,21 +91,29 @@ jobs:
         }, false);
         EOF
         
-        # 4. ЖЕСТКИЙ ФИКС АНДРОИД МАНИФЕСТА (Для WebRTC)
-        # Добавляем плагины
+        # 5. ПЛАГИНЫ И МАНИФЕСТ
         cordova platform add android
         cordova plugin add cordova-plugin-android-permissions
         cordova plugin add cordova-plugin-media-capture
         cordova plugin add cordova-plugin-statusbar
         cordova plugin add cordova-plugin-local-notification-12
-        
-        # Нативный плагин Google Auth
         cordova plugin add cordova-plugin-googleplus --variable REVERSED_CLIENT_ID=com.googleusercontent.apps.208335236412-jfqtscbj2pkj7mi6pn42e331aiqnira8 --variable WEB_APPLICATION_CLIENT_ID=208335236412-jfqtscbj2pkj7mi6pn42e331aiqnira8.apps.googleusercontent.com
         
         sed -i '/<uses-permission/a \    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.CAMERA" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />\n    <uses-feature android:name="android.hardware.camera" android:required="true" />\n    <uses-feature android:name="android.hardware.microphone" android:required="true" />' platforms/android/app/src/main/AndroidManifest.xml
         
-        # 5. КОМПИЛЯЦИЯ
-        cordova build android --debug
+        # 6. ГЕНЕРАЦИЯ КЛЮЧА И ДОБЫЧА SHA-1
+        keytool -genkey -v -keystore release.keystore -alias nexagram -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=nexagram, OU=app, O=nexagram, L=Moscow, S=Moscow, C=RU" -storepass 123456 -keypass 123456
+        echo "==================================================="
+        echo "ТВОЙ SHA-1 КЛЮЧ ДЛЯ FIREBASE (СКОПИРУЙ ЕГО ИЗ ЛОГОВ):"
+        keytool -list -v -keystore release.keystore -alias nexagram -storepass 123456 -keypass 123456 | grep SHA1
+        echo "==================================================="
+        
+        cat > build.json << 'EOF'
+        { "android": { "debug": { "keystore": "../release.keystore", "storePassword": "123456", "alias": "nexagram", "password" : "123456", "keystoreType": "" } } }
+        EOF
+        
+        # 7. ФИНАЛЬНАЯ СБОРКА
+        cordova build android --debug --buildConfig=build.json
 
     - name: Upload APK to download link
       uses: actions/upload-artifact@v4
