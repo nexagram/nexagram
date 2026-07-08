@@ -303,7 +303,6 @@
 </head>
 <body>
 
-<!-- === ЭКРАН АВТОРИЗАЦИИ NEXAGRAM === -->
 <div class="auth-screen" id="authScreen">
     <div class="auth-card">
         <div class="auth-logo">
@@ -315,7 +314,6 @@
             <div class="auth-tab" data-tab="register" onclick="switchAuthTab('register')">Регистрация</div>
         </div>
         
-        <!-- Форма входа -->
         <div class="auth-form active" id="loginForm">
             <div class="input-group">
                 <label>Логин или Email</label>
@@ -329,7 +327,6 @@
             <div class="auth-switch" onclick="showForgotPassword()">Забыли пароль?</div>
         </div>
         
-        <!-- Форма регистрации -->
         <div class="auth-form" id="registerForm">
             <div class="input-group">
                 <label>Логин (без @) или Email</label>
@@ -350,7 +347,6 @@
             <button class="auth-btn" onclick="doRegister()">Зарегистрироваться →</button>
         </div>
         
-        <!-- Кнопки соцсетей -->
         <div class="social-login-container">
             <button class="social-btn google" onclick="loginWithGoogle()">
                 <svg class="social-icon" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
@@ -634,7 +630,7 @@
     firebase.initializeApp(firebaseConfig);
     const rtdb = firebase.database();
     const googleProvider = new firebase.auth.GoogleAuthProvider();
-    const githubProvider = new firebase.auth.GithubAuthProvider(); // ДОБАВЛЕН ПРОВАЙДЕР GITHUB
+    const githubProvider = new firebase.auth.GithubAuthProvider();
     
     const inRing = document.getElementById('incomingRingtone');
     const outRing = document.getElementById('outgoingRingtone');
@@ -964,7 +960,6 @@
         document.getElementById('secretGroup').classList.toggle('visible', tab==='register');
     }
 
-    // НОВАЯ ФУНКЦИЯ ДЛЯ GITHUB
     async function loginWithGitHub() {
         if (!isDbReady) return alert('Подождите, идет подключение к серверу...'); ensureHelper();
         if ("Notification" in window && Notification.permission === "default") { Notification.requestPermission(); }
@@ -972,45 +967,22 @@
             document.getElementById('loader').style.display = 'flex';
             const result = await firebase.auth().signInWithPopup(githubProvider); 
             const ghUser = result.user;
-
             let user = db.users.find(u => u.githubUid === ghUser.uid || (ghUser.email && u.email === ghUser.email.toLowerCase()));
 
             if (!user) {
-                // Извлекаем никнейм или формируем из почты
                 let rawLogin = result.additionalUserInfo?.username || ghUser.displayName || (ghUser.email ? ghUser.email.split('@')[0] : 'github_user');
                 let baseLogin = rawLogin.toLowerCase().replace(/[^a-z0-9_]/g, '');
                 if (baseLogin.length < 3) baseLogin += 'user';
-                
                 let finalLogin = baseLogin;
-                
-                // Проверка на совпадения: если логин занят (например, через Google или почту), добавляем 4 цифры
                 if (db.users.find(u => u.login === finalLogin)) {
                     finalLogin = baseLogin + Math.floor(1000 + Math.random() * 9000);
-                    // Запасная проверка, чтобы точно было уникально
-                    while(db.users.find(u => u.login === finalLogin)) {
-                        finalLogin = baseLogin + Math.floor(10000 + Math.random() * 90000);
-                    }
+                    while(db.users.find(u => u.login === finalLogin)) { finalLogin = baseLogin + Math.floor(10000 + Math.random() * 90000); }
                 }
-                
-                user = {
-                    id: 'u_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
-                    login: finalLogin,
-                    email: ghUser.email ? ghUser.email.toLowerCase() : '',
-                    name: ghUser.displayName || finalLogin,
-                    avatarType: 'url',
-                    avatarValue: ghUser.photoURL || '',
-                    friends: [], friendRequests: [],
-                    password: hashString('github_auth'), secretWord: hashString('github_auth'),
-                    lastSeen: Date.now(), isBanned: false,
-                    githubUid: ghUser.uid, firebaseUid: ghUser.uid 
-                };
+                user = { id: 'u_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6), login: finalLogin, email: ghUser.email ? ghUser.email.toLowerCase() : '', name: ghUser.displayName || finalLogin, avatarType: 'url', avatarValue: ghUser.photoURL || '', friends: [], friendRequests: [], password: hashString('github_auth'), secretWord: hashString('github_auth'), lastSeen: Date.now(), isBanned: false, githubUid: ghUser.uid, firebaseUid: ghUser.uid };
                 db.users.push(user); await rtdb.ref('/dg_app_data/users').set(db.users);
             }
             document.getElementById('loader').style.display = 'none'; proceedWithLogin(user);
-        } catch (error) { 
-            document.getElementById('loader').style.display = 'none'; console.error(error); 
-            if (error.code !== 'auth/popup-closed-by-user') { alert('Ошибка авторизации GitHub: ' + error.message); } 
-        }
+        } catch (error) { document.getElementById('loader').style.display = 'none'; console.error(error); if (error.code !== 'auth/popup-closed-by-user') { alert('Ошибка авторизации GitHub: ' + error.message); } }
     }
 
     async function loginWithGoogle() {
@@ -1022,17 +994,11 @@
             let user = db.users.find(u => u.googleUid === gUser.uid || u.email === gUser.email.toLowerCase());
 
             if (!user) {
-                const baseLogin = gUser.email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, ''); 
-                let finalLogin = baseLogin;
-                
-                // Проверка на совпадения, такая же, как в GitHub
+                const baseLogin = gUser.email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, ''); let finalLogin = baseLogin;
                 if (db.users.find(u => u.login === finalLogin)) {
                     finalLogin = baseLogin + Math.floor(1000 + Math.random() * 9000);
-                    while(db.users.find(u => u.login === finalLogin)) {
-                        finalLogin = baseLogin + Math.floor(10000 + Math.random() * 90000);
-                    }
+                    while(db.users.find(u => u.login === finalLogin)) { finalLogin = baseLogin + Math.floor(10000 + Math.random() * 90000); }
                 }
-                
                 user = { id: 'u_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6), login: finalLogin, email: gUser.email.toLowerCase(), name: gUser.displayName || finalLogin, avatarType: 'url', avatarValue: gUser.photoURL || '', friends: [], friendRequests: [], password: hashString('google_auth'), secretWord: hashString('google_auth'), lastSeen: Date.now(), isBanned: false, googleUid: gUser.uid, firebaseUid: gUser.uid };
                 db.users.push(user); await rtdb.ref('/dg_app_data/users').set(db.users);
             }
@@ -1045,18 +1011,15 @@
         const loginVal = document.getElementById('loginUsername').value.trim();
         const passwordVal = document.getElementById('loginPassword').value;
         if (!loginVal) return alert('Введите логин или почту');
-        const loginLower = loginVal.toLowerCase();
-        const isEmail = loginLower.includes('@');
+        const loginLower = loginVal.toLowerCase(); const isEmail = loginLower.includes('@');
         
         if (isEmail) {
             try {
                 document.getElementById('loader').style.display = 'flex';
                 const userCred = await firebase.auth().signInWithEmailAndPassword(loginLower, passwordVal);
                 
-                // === ПРОВЕРКА ПОДТВЕРЖДЕНИЯ ПОЧТЫ ===
                 if (!userCred.user.emailVerified) {
-                    document.getElementById('loader').style.display = 'none';
-                    await firebase.auth().signOut(); // Выкидываем обратно, так как почта не подтверждена
+                    document.getElementById('loader').style.display = 'none'; await firebase.auth().signOut();
                     return alert('❌ Ваша почта еще не подтверждена!\n\nПожалуйста, найдите письмо от Firebase в вашем ящике (включая папку Спам) и перейдите по ссылке.');
                 }
 
@@ -1101,7 +1064,6 @@
                 const userCred = await firebase.auth().createUserWithEmailAndPassword(loginLower, passwordVal);
                 const fUser = userCred.user;
                 
-                // === ОТПРАВКА ПИСЬМА ПОДТВЕРЖДЕНИЯ ===
                 await fUser.sendEmailVerification();
                 
                 let user = db.users.find(u => u.email === loginLower);
@@ -1111,7 +1073,7 @@
                 }
                 document.getElementById('loader').style.display = 'none';
                 
-                await firebase.auth().signOut(); // Принудительно выходим, так как почта еще не подтверждена
+                await firebase.auth().signOut(); 
                 alert('✅ Успешно!\n\nНа вашу почту ' + loginLower + ' отправлено письмо.\n\nПожалуйста, перейдите по ссылке в письме для подтверждения, а затем войдите в аккаунт.');
                 switchAuthTab('login');
             } catch (error) { document.getElementById('loader').style.display = 'none'; return alert('Ошибка регистрации: ' + error.message); }
@@ -1428,7 +1390,49 @@
     
     window.addSpecificContact = function(userId) { if (!me) return; const friend = db.users.find(u => u.id === userId); if (!friend) return alert("Пользователь не найден"); if (me.friends.includes(userId)) return alert("Уже в списке контактов"); if (friend.friendRequests && friend.friendRequests.includes(me.id)) return alert("Заявка уже была отправлена!"); if (me.friendRequests && me.friendRequests.includes(userId)) return acceptReq(userId); if (!friend.friendRequests) friend.friendRequests = []; friend.friendRequests.push(me.id); const uIdx = db.users.findIndex(u => u.id === userId); if(uIdx > -1) rtdb.ref(`/dg_app_data/users/${uIdx}/friendRequests`).set(friend.friendRequests); alert("Заявка отправлена!"); closeProfileModal(); }
     
-    // ПРОФИЛЬ
+    // ПРОФИЛЬ И КОНТАКТЫ
+    function addFriend() { if (!me) return; const login = prompt("Введите логин пользователя:").trim(); if (!login) return; if (login.toLowerCase() === me.login) return alert("Нельзя добавить себя"); let friend = db.users.find(u => u.login === login.toLowerCase()); if (!friend) return alert("Пользователь не найден в БД"); if (me.friends.includes(friend.id)) return alert("Уже в списке контактов"); if (friend.friendRequests && friend.friendRequests.includes(me.id)) return alert("Заявка уже была отправлена!"); if (me.friendRequests && me.friendRequests.includes(friend.id)) return acceptReq(friend.id); if (!friend.friendRequests) friend.friendRequests = []; friend.friendRequests.push(me.id); const uIdx = db.users.findIndex(u => u.id === friend.id); rtdb.ref(`/dg_app_data/users/${uIdx}/friendRequests`).set(friend.friendRequests); alert("Заявка отправлена!"); }
+    function filterFriends() { renderFriends(); } 
+    function filterChats() { currentChatsFilter = document.getElementById('search-chats')?.value || ''; renderChats(); }
+    
+    function renderFriends() { 
+        if (!me) return; const reqContainer = document.getElementById('f-requests');
+        if (me.friendRequests && me.friendRequests.length > 0) {
+            reqContainer.innerHTML = '<div class="section-header" style="color:var(--p);">Заявки в друзья</div>' + me.friendRequests.map(id => {
+                const u = db.users.find(x => x.id === id); if(!u) return '';
+                return `<div class="list-item" style="cursor:default;"><div class="av-sm" onclick="startChat('${u.id}')" style="cursor:pointer;">${getAvatarHtml(u.avatarType, u.avatarValue)}</div><div class="list-info" onclick="startChat('${u.id}')" style="cursor:pointer;"><div class="list-name">${escapeHtml(u.name)}</div><div class="list-preview">Хочет добавить вас</div></div><button class="auth-btn" style="padding:6px 12px; margin:0; width:auto; font-size:13px;" onclick="acceptReq('${u.id}')">Принять</button><button class="auth-btn" style="padding:6px 12px; margin:0; width:auto; font-size:13px; background:var(--red); margin-left:6px;" onclick="rejectReq('${u.id}')">✕</button></div>`;
+            }).join('');
+        } else { reqContainer.innerHTML = ''; }
+
+        const filter = document.getElementById('search-friends')?.value || ''; const container = document.getElementById('f-list'); 
+        const friendUsers = me.friends.map(id => db.users.find(u => u && u.id === id)).filter(u => u && u.name.toLowerCase().includes(filter.toLowerCase())); 
+        if (friendUsers.length === 0) { container.innerHTML = '<div class="empty-state"><span>👥</span>Список контактов пуст</div>'; return; } 
+        container.innerHTML = friendUsers.map(u => ` <div class="list-item" onclick="startChat('${u.id}')"> <div class="av-sm">${getAvatarHtml(u.avatarType, u.avatarValue)}</div> <div class="list-info"> <div class="list-name">${escapeHtml(u.name)}</div> <div class="list-preview">${getUserStatus(u)}</div> </div> </div> `).join(''); 
+    }
+
+    async function linkEmail() {
+        if (!me) return; if (me.firebaseUid || me.googleUid || me.email) { return alert("К этому аккаунту уже привязана почта или Google."); }
+        const email = prompt("Введите ваш Email для привязки:"); if (!email || !email.includes('@')) return alert("Некорректный Email");
+        const pass = prompt("Придумайте пароль для входа по Email (минимум 6 символов):"); if (!pass || pass.length < 6) return alert("Пароль слишком короткий");
+        try {
+            document.getElementById('loader').style.display = 'flex'; const cred = await firebase.auth().createUserWithEmailAndPassword(email, pass);
+            const newUid = cred.user.uid || ""; const newEmail = email.toLowerCase() || ""; me.firebaseUid = newUid; me.email = newEmail;
+            const uIdx = db.users.findIndex(u => u.id === me.id); if (uIdx > -1) { await rtdb.ref(`/dg_app_data/users/${uIdx}/firebaseUid`).set(newUid); await rtdb.ref(`/dg_app_data/users/${uIdx}/email`).set(newEmail); }
+            document.getElementById('loader').style.display = 'none'; alert("Почта успешно привязана! Теперь вы можете входить по ней.");
+        } catch (error) { document.getElementById('loader').style.display = 'none'; alert("Ошибка привязки: " + error.message); }
+    }
+
+    async function resetFirebasePassword() { const email = document.getElementById('forgotLogin').value.trim().toLowerCase(); if (!email || !email.includes('@')) return alert('Введите корректный Email в первое поле'); try { await firebase.auth().sendPasswordResetEmail(email); alert('Письмо для сброса пароля отправлено на ' + email + '.\nОбязательно проверьте папку "Спам" или "Рассылки"!'); closeForgotModal(); } catch (error) { alert('Ошибка: ' + error.message); } }
+    function acceptReq(id) { me.friendRequests = me.friendRequests.filter(x => x !== id); if (!me.friends.includes(id)) me.friends.push(id); const friend = db.users.find(u => u.id === id); if (friend && !friend.friends.includes(me.id)) { friend.friends.push(me.id); const fIdx = db.users.findIndex(u => u.id === id); rtdb.ref(`/dg_app_data/users/${fIdx}/friends`).set(friend.friends); } const myIdx = db.users.findIndex(u => u.id === me.id); rtdb.ref(`/dg_app_data/users/${myIdx}/friendRequests`).set(me.friendRequests); rtdb.ref(`/dg_app_data/users/${myIdx}/friends`).set(me.friends); alert(`Пользователь ${friend ? friend.name : ''} добавлен в контакты!`); renderFriends(); }
+    function rejectReq(id) { me.friendRequests = me.friendRequests.filter(x => x !== id); const myIdx = db.users.findIndex(u => u.id === me.id); rtdb.ref(`/dg_app_data/users/${myIdx}/friendRequests`).set(me.friendRequests); renderFriends(); }
+    function removeContact(userId) { if (confirm("Точно удалить?")) { me.friends = me.friends.filter(id => id !== userId); const uIdx = db.users.findIndex(u => u.id === me.id); if (uIdx > -1) rtdb.ref(`/dg_app_data/users/${uIdx}/friends`).set(me.friends); renderFriends(); closeProfileModal(); } }
+    function closeProfileModal() { document.getElementById('profileModal').classList.remove('active'); }
+    function showForgotPassword() { document.getElementById('forgotModal').classList.add('active'); document.getElementById('forgotLogin').value = ''; document.getElementById('forgotSecret').value = ''; }
+    function closeForgotModal() { document.getElementById('forgotModal').classList.remove('active'); }
+    function resetPasswordWithSecret() { const login = document.getElementById('forgotLogin').value.trim().toLowerCase(); const secret = document.getElementById('forgotSecret').value.trim(); if (!login || !secret) return alert('Заполните все поля'); const user = db.users.find(u => u.login === login); if (!user) return alert('Юзер не найден'); if (user.secretWord !== hashString(secret)) return alert('Неверное слово'); const newPass = prompt('Новый пароль (от 4 симв):'); if (!newPass || newPass.length < 4) return alert('Слишком короткий'); user.password = hashString(newPass); rtdb.ref('/dg_app_data/users').set(db.users); alert('Сброшен!'); closeForgotModal(); }
+    function changeSecretWord() { if (!me) return; const oldSecret = prompt('Текущее секретное слово:'); if (!oldSecret || me.secretWord !== hashString(oldSecret)) return alert('Неверное слово'); const newSecret = prompt('Новое слово:'); if (!newSecret || newSecret.length < 3) return; me.secretWord = hashString(newSecret); const uIdx = db.users.findIndex(u => u.id === me.id); if (uIdx > -1) rtdb.ref(`/dg_app_data/users/${uIdx}/secretWord`).set(me.secretWord); alert('Обновлено!'); }
+    function changePassword() { if (!me) return; const oldPass = prompt('Старый пароль:'); if (!oldPass || me.password !== hashString(oldPass)) return alert('Неверный старый'); const newPass = prompt('Новый пароль:'); if (!newPass || newPass.length < 4) return; if (prompt('Подтвердите:') !== newPass) return alert('Не совпадают'); me.password = hashString(newPass); const uIdx = db.users.findIndex(u => u.id === me.id); if (uIdx > -1) rtdb.ref(`/dg_app_data/users/${uIdx}/password`).set(me.password); alert('Изменен!'); }
+
     function editBio() { if (!me) return; const newBio = prompt("О себе (до 100 символов):", me.bio || ''); if (newBio !== null) { me.bio = newBio.trim().substring(0, 100); const uIdx = db.users.findIndex(u => u.id === me.id); if (uIdx > -1) rtdb.ref(`/dg_app_data/users/${uIdx}/bio`).set(me.bio); updUI(); } }
     function editName() { if (!me) return; const newName = prompt("Новое имя:", me.name); if (newName && newName.trim()) { me.name = newName.trim(); const uIdx = db.users.findIndex(u => u.id === me.id); if (uIdx > -1) rtdb.ref(`/dg_app_data/users/${uIdx}/name`).set(me.name); updUI(); renderChats(); renderFriends(); } }
     function changeUsername() { if (!me) return; const newLogin = prompt('Новый логин:', me.login); if (!newLogin || newLogin === me.login) return; const loginLower = newLogin.toLowerCase(); if (loginLower.length < 3) return; if (loginLower === 'helper' || db.users.find(u => u.login === loginLower && u.id !== me.id)) return alert('Логин занят'); me.login = loginLower; const uIdx = db.users.findIndex(u => u.id === me.id); if (uIdx > -1) rtdb.ref(`/dg_app_data/users/${uIdx}/login`).set(me.login); updUI(); alert('Изменён!'); }
