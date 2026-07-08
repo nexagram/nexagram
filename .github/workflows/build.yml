@@ -1,4 +1,4 @@
-name: Build Nexagram APK
+name: Build Nexagram APK (ULTIMATE FIX)
 
 on: [push]
 
@@ -32,29 +32,63 @@ jobs:
         rm www/index.html
         cp ../index.html www/index.html
         
-        # Подхват иконки (если загружена)
+        # 1. ЧИНИМ ПРАВА И УВЕДОМЛЕНИЯ ПРЯМО В HTML (Магия седов)
+        # А) Добавляем cordova.js и init.js
+        sed -i 's|<head>|<head>\n    <script src="cordova.js"></script>\n    <script src="init.js"></script>|g' www/index.html
+        
+        # Б) СОЗДАЕМ init.js С ПРАВИЛЬНОЙ ЛОГИКОЙ
+        # Этот код гарантированно запустится и перехватит браузерный window.Notification,
+        # плюс запросит права при старте и отодвинет интерфейс от часов.
+        cat > www/init.js << 'EOF'
+        document.addEventListener('deviceready', function() {
+            var permissions = cordova.plugins.permissions;
+            permissions.requestPermissions([
+              permissions.CAMERA,
+              permissions.RECORD_AUDIO,
+              "android.permission.POST_NOTIFICATIONS"
+            ], function(status) { console.log('Permissions ok'); }, function() { console.error('Permissions failed'); });
+            
+            if (window.StatusBar) {
+                StatusBar.overlaysWebView(false);
+                StatusBar.backgroundColorByHexString('#000000');
+                StatusBar.styleLightContent();
+            }
+            
+            // ЖЕСТКИЙ ФИКС window.Notification
+            // Мы подменяем браузерную функцию на нативный плагин.
+            window.Notification = function(title, options) {
+                if(cordova.plugins && cordova.plugins.notification) {
+                    cordova.plugins.notification.local.schedule({
+                        title: title,
+                        text: options ? options.body : "",
+                        foreground: true
+                    });
+                }
+            };
+            window.Notification.permission = "granted";
+            window.Notification.requestPermission = function() { return Promise.resolve("granted"); };
+        }, false);
+        EOF
+        
+        # 2. CONFIG.XML FIX (Маскировка localhost, Фикс User Agent, Иконка и Статус бар)
+        sed -i 's|</widget>|    <preference name="scheme" value="https" />\n    <preference name="hostname" value="localhost" />\n    <preference name="OverrideUserAgent" value="Mozilla/5.0 (Linux; Android 13; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Mobile Safari/537.36" />\n    <preference name="StatusBarOverlaysWebView" value="false" />\n    <preference name="StatusBarBackgroundColor" value="#000000" />\n    <preference name="StatusBarStyle" value="lightcontent" />\n    <access origin="*" />\n    <allow-navigation href="*" />\n    <allow-intent href="*" />\n</widget>|' config.xml
+        
+        # Подхват иконки
         if [ -f "../icon.png" ]; then
           cp ../icon.png icon.png
-          sed -i 's|</widget>|    <icon src="icon.png" />\n</widget>|' config.xml
+          sed -i 's|<widget.*>|\0\n    <icon src="icon.png" />|' config.xml
         fi
         
-        # Фикс интерфейса: сдвигаем шапку чата из-под часов и делаем фон черным
-        sed -i 's|</widget>|    <preference name="StatusBarOverlaysWebView" value="false" />\n    <preference name="StatusBarBackgroundColor" value="#000000" />\n    <preference name="StatusBarStyle" value="lightcontent" />\n</widget>|' config.xml
-        
-        # Настройка безопасного домена (localhost)
-        sed -i 's|</widget>|    <preference name="scheme" value="https" />\n    <preference name="hostname" value="localhost" />\n    <access origin="*" />\n    <allow-navigation href="*" />\n    <allow-intent href="*" />\n</widget>|' config.xml
-        
-        # Инъекция: Запрашиваем права на пуши и перехватываем браузерные уведомления
-        sed -i 's|</body>|<script src="cordova.js"></script><script>document.addEventListener("deviceready", function() { var perms = cordova.plugins.permissions; perms.requestPermissions([perms.CAMERA, perms.RECORD_AUDIO, "android.permission.POST_NOTIFICATIONS"], function(){}, function(){}); window.Notification = function(title, options) { if(cordova.plugins && cordova.plugins.notification) { cordova.plugins.notification.local.schedule({ title: title, text: options ? options.body : "", foreground: true }); } return this; }; window.Notification.permission = "granted"; window.Notification.requestPermission = function() { return Promise.resolve("granted"); }; }, false);</script></body>|' www/index.html
-        
+        # 3. УСТАНАВЛИВАЕМ ПЛАГИНЫ
         cordova platform add android
-        cordova plugin add cordova-plugin-androidx-adapter
         cordova plugin add cordova-plugin-android-permissions
         cordova plugin add cordova-plugin-media-capture
         cordova plugin add cordova-plugin-inappbrowser
         cordova plugin add cordova-plugin-statusbar
         cordova plugin add cordova-plugin-local-notification-12
+        cordova plugin add cordova-plugin-androidx-adapter
         
+        # 4. Сборка
         cordova build android --debug
 
     - name: Upload APK to download link
