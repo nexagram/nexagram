@@ -31,6 +31,17 @@ jobs:
         cd app
         rm www/index.html
         cp ../index.html www/index.html
+        
+        # Добавляем иконку (если ты её загрузил как icon.png)
+        if [ -f "../icon.png" ]; then
+          cp ../icon.png icon.png
+          sed -i 's|</widget>|    <icon src="icon.png" />\n</widget>|' config.xml
+        fi
+        
+        # === ВАЖНЫЙ ФИКС БЛОКИРОВОК ===
+        # Запускаем приложение как https://localhost и разрешаем все запросы
+        sed -i 's|</widget>|    <preference name="scheme" value="https" />\n    <preference name="hostname" value="localhost" />\n    <preference name="AndroidInsecureFileModeEnabled" value="true" />\n    <access origin="*" />\n    <allow-navigation href="*" />\n    <allow-intent href="*" />\n</widget>|' config.xml
+        
         cordova platform add android
         cordova plugin add cordova-plugin-android-permissions
         cordova plugin add cordova-plugin-media-capture
