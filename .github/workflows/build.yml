@@ -1,4 +1,4 @@
-name: Build Nexagram (The Ultimate Master Build)
+name: Build Nexagram (Master Build Fixed)
 
 on: [push]
 
@@ -32,11 +32,7 @@ jobs:
         rm www/index.html
         cp ../index.html www/index.html
         
-        # 1. ЧИСТИМ СТАРЫЕ ОГРАНИЧЕНИЯ ИЗ ТВОЕГО HTML (Чтобы заработал Cloudinary)
-        sed -i '/Content-Security-Policy/d' www/index.html
-        sed -i '/viewport/d' www/index.html
-        
-        # 2. ИКОНКА И ПРАВИЛЬНАЯ ШТОРКА (false - значит не лезть под часы)
+        # 1. ИКОНКА И ПРАВИЛЬНАЯ ШТОРКА (false = не лезть под часы)
         if [ -f "../icon.png" ]; then
           cp ../icon.png icon.png
           sed -i 's|<widget|<widget xmlns:android="http://schemas.android.com/apk/res/android"|' config.xml
@@ -45,7 +41,9 @@ jobs:
         
         sed -i 's|</widget>|    <preference name="scheme" value="https" />\n    <preference name="hostname" value="localhost" />\n    <preference name="StatusBarOverlaysWebView" value="false" />\n    <preference name="StatusBarBackgroundColor" value="#000000" />\n    <preference name="StatusBarStyle" value="lightcontent" />\n    <access origin="*" />\n    <allow-navigation href="*" />\n    <allow-intent href="*" />\n</widget>|' config.xml
         
-        # 3. ИНЪЕКЦИЯ БРОНЕБОЙНОЙ ПОЛИТИКИ СЕТИ И СКРИПТОВ
+        # 2. ЧИСТИМ СТАРЫЕ ПОЛИТИКИ И ВШИВАЕМ НОВЫЕ (Для Cloudinary)
+        sed -i '/Content-Security-Policy/d' www/index.html
+        sed -i '/viewport/d' www/index.html
         cat > www/inject.txt << 'EOF'
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
         <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob: file:; connect-src * 'unsafe-inline' 'unsafe-eval' data: blob: file: wss: ws:; img-src * data: blob: file: 'unsafe-inline'; media-src * data: blob: file: 'unsafe-inline';">
@@ -54,7 +52,7 @@ jobs:
         EOF
         sed -i '/<head>/r www/inject.txt' www/index.html
         
-        # 4. INIT.JS (Перехват Firebase Auth, Уведомления, Права)
+        # 3. INIT.JS (Перехват Firebase Auth, GitHub, Уведомления, Права)
         cat > www/init.js << 'EOF'
         document.addEventListener('deviceready', function() {
             var perms = cordova.plugins.permissions;
@@ -81,7 +79,6 @@ jobs:
                                 }, function (msg) { reject(msg); });
                             });
                         } else if (provider && provider.providerId === 'github.com') {
-                            // GitHub чиним через Redirect
                             return firebase.auth().signInWithRedirect(provider);
                         }
                         return originalSignIn.apply(this, arguments);
@@ -91,7 +88,7 @@ jobs:
         }, false);
         EOF
         
-        # 5. ПЛАГИНЫ И МАНИФЕСТ
+        # 4. ПЛАГИНЫ И БЕЗОПАСНЫЙ ИНЖЕКТ МАНИФЕСТА
         cordova platform add android
         cordova plugin add cordova-plugin-android-permissions
         cordova plugin add cordova-plugin-media-capture
@@ -99,20 +96,21 @@ jobs:
         cordova plugin add cordova-plugin-local-notification-12
         cordova plugin add cordova-plugin-googleplus --variable REVERSED_CLIENT_ID=com.googleusercontent.apps.208335236412-jfqtscbj2pkj7mi6pn42e331aiqnira8 --variable WEB_APPLICATION_CLIENT_ID=208335236412-jfqtscbj2pkj7mi6pn42e331aiqnira8.apps.googleusercontent.com
         
-        sed -i '/<uses-permission/a \    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.CAMERA" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />\n    <uses-feature android:name="android.hardware.camera" android:required="true" />\n    <uses-feature android:name="android.hardware.microphone" android:required="true" />' platforms/android/app/src/main/AndroidManifest.xml
+        sed -i 's|</manifest>|    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.CAMERA" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />\n    <uses-feature android:name="android.hardware.camera" android:required="true" />\n    <uses-feature android:name="android.hardware.microphone" android:required="true" />\n</manifest>|' platforms/android/app/src/main/AndroidManifest.xml
         
-        # 6. ГЕНЕРАЦИЯ КЛЮЧА И ДОБЫЧА SHA-1
-        keytool -genkey -v -keystore release.keystore -alias nexagram -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=nexagram, OU=app, O=nexagram, L=Moscow, S=Moscow, C=RU" -storepass 123456 -keypass 123456
+        # 5. ГЕНЕРАЦИЯ КЛЮЧА И ДОБЫЧА SHA-1
+        keytool -genkeypair -v -keystore release.keystore -alias nexagram -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=nexagram, OU=app, O=nexagram, L=Moscow, S=Moscow, C=RU" -storepass 123456 -keypass 123456
         echo "==================================================="
-        echo "ТВОЙ SHA-1 КЛЮЧ ДЛЯ FIREBASE (СКОПИРУЙ ЕГО ИЗ ЛОГОВ):"
+        echo "ТВОЙ SHA-1 КЛЮЧ ДЛЯ FIREBASE:"
         keytool -list -v -keystore release.keystore -alias nexagram -storepass 123456 -keypass 123456 | grep SHA1
         echo "==================================================="
         
+        # ИСПРАВЛЕННЫЙ ПУТЬ К КЛЮЧУ
         cat > build.json << 'EOF'
-        { "android": { "debug": { "keystore": "../release.keystore", "storePassword": "123456", "alias": "nexagram", "password" : "123456", "keystoreType": "" } } }
+        { "android": { "debug": { "keystore": "release.keystore", "storePassword": "123456", "alias": "nexagram", "password" : "123456", "keystoreType": "" } } }
         EOF
         
-        # 7. ФИНАЛЬНАЯ СБОРКА
+        # 6. СБОРКА
         cordova build android --debug --buildConfig=build.json
 
     - name: Upload APK to download link
