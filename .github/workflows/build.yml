@@ -1,4 +1,4 @@
-name: Build Nexagram APK (Hardcore Manifest Fix)
+name: Build Nexagram (The Ultimate Master Build)
 
 on: [push]
 
@@ -32,33 +32,34 @@ jobs:
         rm www/index.html
         cp ../index.html www/index.html
         
-        # Подхват иконки
+        # 1. ИКОНКА И CONFIG.XML (Сеть, StatusBar, Localhost)
         if [ -f "../icon.png" ]; then
           cp ../icon.png icon.png
           sed -i 's|<widget|<widget xmlns:android="http://schemas.android.com/apk/res/android"|' config.xml
           sed -i 's|</widget>|    <icon src="icon.png" />\n</widget>|' config.xml
         fi
         
-        # Вшиваем скрипт инициализации
-        sed -i 's|<head>|<head>\n    <script src="cordova.js"></script>\n    <script src="init.js"></script>|g' www/index.html
+        sed -i 's|</widget>|    <preference name="scheme" value="https" />\n    <preference name="hostname" value="localhost" />\n    <preference name="StatusBarOverlaysWebView" value="true" />\n    <preference name="StatusBarStyle" value="lightcontent" />\n    <access origin="*" />\n    <allow-navigation href="*" />\n    <allow-intent href="*" />\n</widget>|' config.xml
         
-        # init.js с расширенным запросом прав
+        # 2. ИНЪЕКЦИЯ ДЛЯ CLOUDINARY, ШТОРКИ И ПОДКЛЮЧЕНИЯ СКРИПТОВ
+        # Вставляем мета-теги, CSS-фикс для часов и вызовы скриптов прямо в <head>
+        cat > www/inject.txt << 'EOF'
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
+        <meta http-equiv="Content-Security-Policy" content="default-src * data: blob: filesystem: about: ws: wss: 'unsafe-inline' 'unsafe-eval'; script-src * data: blob: 'unsafe-inline' 'unsafe-eval'; connect-src * data: blob: 'unsafe-inline'; img-src * data: blob: 'unsafe-inline'; media-src * data: blob: 'unsafe-inline';">
+        <style> body, #root, .app-container { padding-top: env(safe-area-inset-top, 30px) !important; } </style>
+        <script src="cordova.js"></script>
+        <script src="init.js"></script>
+        EOF
+        sed -i '/<head>/r www/inject.txt' www/index.html
+        
+        # 3. ИНЪЕКЦИЯ INIT.JS (Перехват Firebase Auth, Права на железо, Уведомления)
         cat > www/init.js << 'EOF'
         document.addEventListener('deviceready', function() {
+            // ЗАПРОС ПРАВ НА КАМЕРУ И МИКРОФОН
             var perms = cordova.plugins.permissions;
-            perms.requestPermissions([
-              perms.CAMERA,
-              perms.RECORD_AUDIO,
-              perms.MODIFY_AUDIO_SETTINGS,
-              "android.permission.POST_NOTIFICATIONS"
-            ], function(s){ console.log('Rights granted'); }, function(e){ console.error('Rights denied'); });
+            perms.requestPermissions([perms.CAMERA, perms.RECORD_AUDIO, perms.MODIFY_AUDIO_SETTINGS, "android.permission.POST_NOTIFICATIONS"], function(){}, function(){});
             
-            if (window.StatusBar) {
-                StatusBar.overlaysWebView(false);
-                StatusBar.backgroundColorByHexString('#000000');
-                StatusBar.styleLightContent();
-            }
-            
+            // ПЕРЕХВАТ УВЕДОМЛЕНИЙ
             window.Notification = function(title, options) {
                 if(cordova.plugins && cordova.plugins.notification) {
                     cordova.plugins.notification.local.schedule({ title: title, text: options ? options.body : "" });
@@ -66,24 +67,50 @@ jobs:
             };
             window.Notification.permission = "granted";
             window.Notification.requestPermission = function() { return Promise.resolve("granted"); };
+            
+            // === МАГИЯ: ПЕРЕХВАТ FIREBASE GOOGLE AUTH ===
+            // Ждем, пока твой код загрузит Firebase, и подменяем функцию входа
+            let authInterval = setInterval(() => {
+                if (window.firebase && firebase.auth) {
+                    clearInterval(authInterval);
+                    const originalSignIn = firebase.auth().signInWithPopup;
+                    firebase.auth().signInWithPopup = function(provider) {
+                        if (provider && provider.providerId === 'google.com') {
+                            return new Promise((resolve, reject) => {
+                                window.plugins.googleplus.login({
+                                    'webClientId': '208335236412-jfqtscbj2pkj7mi6pn42e331aiqnira8.apps.googleusercontent.com',
+                                    'offline': true
+                                }, function (obj) {
+                                    // Успешный нативный вход -> передаем токен обратно в твой Firebase
+                                    const cred = firebase.auth.GoogleAuthProvider.credential(obj.idToken);
+                                    firebase.auth().signInWithCredential(cred).then(resolve).catch(reject);
+                                }, function (msg) {
+                                    alert("Ошибка входа: " + msg);
+                                    reject(msg);
+                                });
+                            });
+                        }
+                        return originalSignIn.apply(this, arguments);
+                    };
+                }
+            }, 500);
         }, false);
         EOF
         
-        # Настройки WebView и маскировки
-        sed -i 's|</widget>|    <preference name="scheme" value="https" />\n    <preference name="hostname" value="localhost" />\n    <preference name="OverrideUserAgent" value="Mozilla/5.0 (Linux; Android 13; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Mobile Safari/537.36" />\n    <preference name="StatusBarOverlaysWebView" value="false" />\n    <preference name="StatusBarBackgroundColor" value="#000000" />\n    <preference name="StatusBarStyle" value="lightcontent" />\n    <access origin="*" />\n    <allow-navigation href="*" />\n    <allow-intent href="*" />\n</widget>|' config.xml
-        
-        # Устанавливаем платформу и плагины
+        # 4. ЖЕСТКИЙ ФИКС АНДРОИД МАНИФЕСТА (Для WebRTC)
+        # Добавляем плагины
         cordova platform add android
         cordova plugin add cordova-plugin-android-permissions
         cordova plugin add cordova-plugin-media-capture
-        cordova plugin add cordova-plugin-inappbrowser
         cordova plugin add cordova-plugin-statusbar
         cordova plugin add cordova-plugin-local-notification-12
         
-        # === ЖЕСТКИЙ ФИКС АНДРОИД МАНИФЕСТА (Взлом системы разрешений) ===
+        # Нативный плагин Google Auth
+        cordova plugin add cordova-plugin-googleplus --variable REVERSED_CLIENT_ID=com.googleusercontent.apps.208335236412-jfqtscbj2pkj7mi6pn42e331aiqnira8 --variable WEB_APPLICATION_CLIENT_ID=208335236412-jfqtscbj2pkj7mi6pn42e331aiqnira8.apps.googleusercontent.com
+        
         sed -i '/<uses-permission/a \    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.CAMERA" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />\n    <uses-feature android:name="android.hardware.camera" android:required="true" />\n    <uses-feature android:name="android.hardware.microphone" android:required="true" />' platforms/android/app/src/main/AndroidManifest.xml
         
-        # Собираем приложение
+        # 5. КОМПИЛЯЦИЯ
         cordova build android --debug
 
     - name: Upload APK to download link
