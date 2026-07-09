@@ -1,9 +1,6 @@
-name: Build Nexagram (Icon & Statusbar Fix)
+name: Build Nexagram (Final Safe Build)
 
 on: [push]
-
-permissions:
-  contents: write
 
 jobs:
   build:
@@ -16,16 +13,16 @@ jobs:
       with:
         node-version: '20'
 
-    - name: Handle Permanent Keystore
+    - name: Verify Permanent Keystore
       run: |
         if [ ! -f "release.keystore" ]; then
+          echo "Ключ не найден! Создаю..."
           keytool -genkeypair -v -keystore release.keystore -alias nexagram -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=nexagram, OU=app, O=nexagram, L=Moscow, S=Moscow, C=RU" -storepass 123456 -keypass 123456
-          git config --global user.name "GitHub Action"
-          git config --global user.email "action@github.com"
-          git add release.keystore
-          git commit -m "Save permanent keystore"
-          git push
         fi
+        echo "==================================================="
+        echo "ТВОЙ SHA-1 КЛЮЧ ДЛЯ FIREBASE:"
+        keytool -list -v -keystore release.keystore -alias nexagram -storepass 123456 -keypass 123456 | grep SHA1
+        echo "==================================================="
 
     - name: Install Cordova
       run: npm install -g cordova
@@ -42,37 +39,36 @@ jobs:
     - name: Build Android App
       run: |
         cordova create app com.nexagram.app Nexagram
-        cp release.keystore app/release.keystore
+        cp release.keystore app/release.keystore || true
         cd app
         rm www/index.html
         cp ../index.html www/index.html
         
-        # 1. ФИКС АДАПТИВНОЙ ИКОНКИ (Убираем белые рамки)
+        # 1. ИКОНКА (Безопасный метод)
         if [ -f "../icon.png" ]; then
           cp ../icon.png icon.png
-          sed -i 's|<widget|<widget xmlns:android="http://schemas.android.com/apk/res/android"|' config.xml
-          sed -i 's|</widget>|    <platform name="android">\n        <icon background="#0a0a0a" foreground="icon.png" />\n    </platform>\n</widget>|' config.xml
+          sed -i 's|</widget>|    <icon src="icon.png" />\n</widget>|' config.xml
         fi
         
-        # Отключаем системное наложение и разрешаем Cloudinary
+        # 2. НАСТРОЙКИ СИСТЕМЫ И ОТКЛЮЧЕНИЕ НАЛОЖЕНИЯ
         sed -i 's|</widget>|    <preference name="scheme" value="https" />\n    <preference name="hostname" value="localhost" />\n    <preference name="StatusBarOverlaysWebView" value="false" />\n    <preference name="StatusBarBackgroundColor" value="#000000" />\n    <preference name="StatusBarStyle" value="lightcontent" />\n    <preference name="OverrideUserAgent" value="Mozilla/5.0 (Linux; Android 13; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Mobile Safari/537.36" />\n    <access origin="*" />\n    <allow-navigation href="*" />\n    <allow-intent href="*" />\n    <allow-navigation href="https://api.cloudinary.com/*" />\n    <allow-intent href="https://api.cloudinary.com/*" />\n</widget>|' config.xml
         
-        # 2. ФИКС HTML И ШТОРКИ
+        # 3. ФИКС HTML И ШТОРКИ
         sed -i '/Content-Security-Policy/d' www/index.html
         sed -i '/viewport/d' www/index.html
         cat > www/inject.txt << 'EOF'
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
         <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob: file:; connect-src * 'unsafe-inline' 'unsafe-eval' data: blob: file: wss: ws:; img-src * data: blob: file: 'unsafe-inline'; media-src * data: blob: file: 'unsafe-inline';">
         <style>
-          :root { --safe-top: env(safe-area-inset-top, 35px); }
-          body, #root, #app { padding-top: var(--safe-top) !important; }
+          /* Жесткий отступ для шапки */
+          body, #root, .app-container { padding-top: env(safe-area-inset-top, 35px) !important; }
         </style>
         <script src="cordova.js"></script>
         <script src="init.js"></script>
         EOF
         sed -i '/<head>/r www/inject.txt' www/index.html
         
-        # 3. JS ИНЪЕКЦИЯ (Умная шторка, Firebase, Права)
+        # 4. JS ИНЪЕКЦИЯ
         cat > www/init.js << 'EOF'
         document.addEventListener('deviceready', function() {
             if (window.cordova && window.cordova.InAppBrowser) { window.open = cordova.InAppBrowser.open; }
@@ -84,16 +80,6 @@ jobs:
                 StatusBar.backgroundColorByHexString('#000000');
                 StatusBar.styleLightContent();
             }
-            
-            // Скрипт-ищейка: сдвигает залипшую шапку
-            setTimeout(() => {
-                document.querySelectorAll('*').forEach(el => {
-                    const style = window.getComputedStyle(el);
-                    if ((style.position === 'fixed' || style.position === 'absolute') && style.top === '0px') {
-                        el.style.top = 'env(safe-area-inset-top, 35px)';
-                    }
-                });
-            }, 1000);
             
             window.Notification = function(title, options) { if(cordova.plugins && cordova.plugins.notification) { cordova.plugins.notification.local.schedule({ title: title, text: options ? options.body : "" }); } };
             window.Notification.permission = "granted"; window.Notification.requestPermission = function() { return Promise.resolve("granted"); };
@@ -123,7 +109,7 @@ jobs:
         }, false);
         EOF
         
-        # 4. ПЛАГИНЫ И МАНИФЕСТ
+        # 5. ПЛАГИНЫ И МАНИФЕСТ
         cordova platform add android
         cordova plugin add cordova-plugin-android-permissions
         cordova plugin add cordova-plugin-media-capture
