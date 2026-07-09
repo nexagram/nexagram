@@ -1,4 +1,4 @@
-name: Build Nexagram (Statusbar Ultimate Fix)
+name: Build Nexagram (Icon & Statusbar Fix)
 
 on: [push]
 
@@ -47,24 +47,23 @@ jobs:
         rm www/index.html
         cp ../index.html www/index.html
         
-        # 1. ФИКС ШТОРКИ НА УРОВНЕ CORDOVA
+        # 1. ФИКС АДАПТИВНОЙ ИКОНКИ (Убираем белые рамки)
         if [ -f "../icon.png" ]; then
           cp ../icon.png icon.png
           sed -i 's|<widget|<widget xmlns:android="http://schemas.android.com/apk/res/android"|' config.xml
-          sed -i 's|</widget>|    <icon src="icon.png" />\n</widget>|' config.xml
+          sed -i 's|</widget>|    <platform name="android">\n        <icon background="#0a0a0a" foreground="icon.png" />\n    </platform>\n</widget>|' config.xml
         fi
         
-        # Удаляем лишние параметры и жестко запрещаем наложение
+        # Отключаем системное наложение и разрешаем Cloudinary
         sed -i 's|</widget>|    <preference name="scheme" value="https" />\n    <preference name="hostname" value="localhost" />\n    <preference name="StatusBarOverlaysWebView" value="false" />\n    <preference name="StatusBarBackgroundColor" value="#000000" />\n    <preference name="StatusBarStyle" value="lightcontent" />\n    <preference name="OverrideUserAgent" value="Mozilla/5.0 (Linux; Android 13; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Mobile Safari/537.36" />\n    <access origin="*" />\n    <allow-navigation href="*" />\n    <allow-intent href="*" />\n    <allow-navigation href="https://api.cloudinary.com/*" />\n    <allow-intent href="https://api.cloudinary.com/*" />\n</widget>|' config.xml
         
-        # 2. ФИКС HTML
+        # 2. ФИКС HTML И ШТОРКИ
         sed -i '/Content-Security-Policy/d' www/index.html
         sed -i '/viewport/d' www/index.html
         cat > www/inject.txt << 'EOF'
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
         <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob: file:; connect-src * 'unsafe-inline' 'unsafe-eval' data: blob: file: wss: ws:; img-src * data: blob: file: 'unsafe-inline'; media-src * data: blob: file: 'unsafe-inline';">
         <style>
-          /* Резервный CSS-фикс: если телефон все равно наложит шторку, мы сдвинем всё вниз */
           :root { --safe-top: env(safe-area-inset-top, 35px); }
           body, #root, #app { padding-top: var(--safe-top) !important; }
         </style>
@@ -73,21 +72,20 @@ jobs:
         EOF
         sed -i '/<head>/r www/inject.txt' www/index.html
         
-        # 3. JS ИНЪЕКЦИЯ (Шторка, Firebase, Права)
+        # 3. JS ИНЪЕКЦИЯ (Умная шторка, Firebase, Права)
         cat > www/init.js << 'EOF'
         document.addEventListener('deviceready', function() {
             if (window.cordova && window.cordova.InAppBrowser) { window.open = cordova.InAppBrowser.open; }
             var perms = cordova.plugins.permissions;
             perms.requestPermissions([perms.CAMERA, perms.RECORD_AUDIO, perms.MODIFY_AUDIO_SETTINGS, "android.permission.POST_NOTIFICATIONS"], function(){}, function(){});
             
-            // Жесткая команда плагину на черный фон и запрет наложения
-            if (window.StatusBar) { 
-                StatusBar.overlaysWebView(false); 
-                StatusBar.backgroundColorByHexString('#000000'); 
-                StatusBar.styleLightContent(); 
+            if (window.StatusBar) {
+                StatusBar.overlaysWebView(false);
+                StatusBar.backgroundColorByHexString('#000000');
+                StatusBar.styleLightContent();
             }
             
-            // Умный скрипт: ищет твою шапку чата и отталкивает ее от часов
+            // Скрипт-ищейка: сдвигает залипшую шапку
             setTimeout(() => {
                 document.querySelectorAll('*').forEach(el => {
                     const style = window.getComputedStyle(el);
