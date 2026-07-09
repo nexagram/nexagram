@@ -658,7 +658,7 @@
     let db = { users: [], chats: [], stories: [], callLogs: [] };
     let me = null; let activeChat = null; let currentChatsFilter = ''; let isDbReady = false;
     let mediaRecorder = null; let recordedChunks = []; let isRecordingVoice = false; let isRecordingVideo = false;
-    let replyingTo = null; let forwardingMsg = null; let typingTimeout = null;
+    let replyingTo = null; let forwardingMsg = null; let typingTimeout = null; let redirectCheckStarted = false;
 
     const builtInAvatars = ['😀', '😎', '🦊', '🐱', '🐶', '🦁', '🐼', '🐨', '⭐', '🔥', '🌈', '🎨', '🚀', '💎', '🎮', '🎵', '💪', '🧠', '❤️', '💙', '💚', '💛', '💜', '🖤'];
 
@@ -712,6 +712,35 @@
             
             if (!isInitialLoadDone) isInitialLoadDone = true;
             isDbReady = true; document.getElementById('loader').style.display = 'none';
+
+            // --- БЛОК АВТОРИЗАЦИИ: Обработка возврата после редиректа Google/GitHub ---
+            if (!redirectCheckStarted) {
+                redirectCheckStarted = true;
+                firebase.auth().getRedirectResult().then(async (result) => {
+                    if (result.user) {
+                        document.getElementById('loader').style.display = 'flex';
+                        const fUser = result.user;
+                        const isGoogle = (result.credential && result.credential.providerId === 'google.com') || (fUser.providerData[0] && fUser.providerData[0].providerId === 'google.com');
+                        
+                        let user = db.users.find(u => u.firebaseUid === fUser.uid || u.googleUid === fUser.uid || u.githubUid === fUser.uid || (fUser.email && u.email === fUser.email.toLowerCase()));
+                        
+                        if (!user) {
+                            let rawLogin = fUser.displayName || (fUser.email ? fUser.email.split('@')[0] : 'user');
+                            let baseLogin = rawLogin.toLowerCase().replace(/[^a-z0-9_]/g, '');
+                            if (baseLogin.length < 3) baseLogin += 'usr';
+                            let finalLogin = baseLogin;
+                            while(db.users.find(u => u.login === finalLogin)) { finalLogin = baseLogin + Math.floor(1000 + Math.random() * 9000); }
+                            
+                            user = { id: 'u_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6), login: finalLogin, email: fUser.email ? fUser.email.toLowerCase() : '', name: fUser.displayName || finalLogin, avatarType: 'url', avatarValue: fUser.photoURL || '', friends: [], friendRequests: [], password: hashString('oauth'), secretWord: hashString('oauth'), lastSeen: Date.now(), isBanned: false, googleUid: isGoogle ? fUser.uid : undefined, githubUid: !isGoogle ? fUser.uid : undefined, firebaseUid: fUser.uid };
+                            db.users.push(user); await rtdb.ref('/dg_app_data/users').set(db.users);
+                        }
+                        proceedWithLogin(user);
+                    }
+                }).catch(err => {
+                    console.error("Redirect Auth Error:", err);
+                    document.getElementById('loader').style.display = 'none';
+                });
+            }
 
             const savedSession = localStorage.getItem('Nexagram_Session_UID');
 
@@ -934,15 +963,40 @@
 
     function toggleCallMic() { if (localStream) { isCallMicMuted = !isCallMicMuted; localStream.getAudioTracks().forEach(t => t.enabled = !isCallMicMuted); renderCallControls(); } }
     function toggleCallCam(forceVideo = false) { if (localStream) { if (forceVideo && !currentCallIsVideo) { alert("Включение видео в процессе аудиозвонка в разработке."); } else { isCallCamOff = !isCallCamOff; localStream.getVideoTracks().forEach(t => t.enabled = !isCallCamOff); document.getElementById('localVideo').style.opacity = isCallCamOff ? '0' : '1'; renderCallControls(); } } }
+    
     async function flipCamera() {
-        if (!localStream || !currentCallIsVideo) return; currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+        if (!localStream || !currentCallIsVideo) return;
+        currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+        
         try {
-            const oldVideoTrack = localStream.getVideoTracks()[0]; if (oldVideoTrack) { oldVideoTrack.stop(); localStream.removeTrack(oldVideoTrack); }
-            const newStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: currentFacingMode } }, audio: false });
-            const newVideoTrack = newStream.getVideoTracks()[0]; localStream.addTrack(newVideoTrack);
-            const localVid = document.getElementById('localVideo'); localVid.srcObject = localStream; localVid.style.transform = currentFacingMode === 'user' ? 'scaleX(-1)' : 'none';
-            if (peerConnection) { const sender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'video'); if (sender) sender.replaceTrack(newVideoTrack); }
-        } catch(e) { console.error("Error flipping camera", e); alert("Не удалось переключить камеру: " + e.message); }
+            const oldVideoTrack = localStream.getVideoTracks()[0];
+            if (oldVideoTrack) { 
+                oldVideoTrack.stop(); 
+                localStream.removeTrack(oldVideoTrack); 
+            }
+            
+            let newStream;
+            try {
+                newStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: currentFacingMode } }, audio: false });
+            } catch(exactError) {
+                newStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: currentFacingMode }, audio: false });
+            }
+            
+            const newVideoTrack = newStream.getVideoTracks()[0]; 
+            localStream.addTrack(newVideoTrack);
+            
+            const localVid = document.getElementById('localVideo'); 
+            localVid.srcObject = localStream; 
+            localVid.style.transform = currentFacingMode === 'user' ? 'scaleX(-1)' : 'none';
+            
+            if (peerConnection) { 
+                const sender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'video'); 
+                if (sender) sender.replaceTrack(newVideoTrack); 
+            }
+        } catch(e) { 
+            console.error("Error flipping camera", e); 
+            alert("Не удалось переключить камеру: " + e.message); 
+        }
     }
 
     function toggleCallSpeaker() { isSpeakerOn = !isSpeakerOn; renderCallControls(); const rVid = document.getElementById('remoteVideo'); if (typeof rVid.setSinkId === 'function') { const targetSink = isSpeakerOn ? 'default' : ''; rVid.setSinkId(targetSink).catch(e => console.log(e)); } }
@@ -963,47 +1017,15 @@
     async function loginWithGitHub() {
         if (!isDbReady) return alert('Подождите, идет подключение к серверу...'); ensureHelper();
         if ("Notification" in window && Notification.permission === "default") { Notification.requestPermission(); }
-        try {
-            document.getElementById('loader').style.display = 'flex';
-            const result = await firebase.auth().signInWithPopup(githubProvider); 
-            const ghUser = result.user;
-            let user = db.users.find(u => u.githubUid === ghUser.uid || (ghUser.email && u.email === ghUser.email.toLowerCase()));
-
-            if (!user) {
-                let rawLogin = result.additionalUserInfo?.username || ghUser.displayName || (ghUser.email ? ghUser.email.split('@')[0] : 'github_user');
-                let baseLogin = rawLogin.toLowerCase().replace(/[^a-z0-9_]/g, '');
-                if (baseLogin.length < 3) baseLogin += 'user';
-                let finalLogin = baseLogin;
-                if (db.users.find(u => u.login === finalLogin)) {
-                    finalLogin = baseLogin + Math.floor(1000 + Math.random() * 9000);
-                    while(db.users.find(u => u.login === finalLogin)) { finalLogin = baseLogin + Math.floor(10000 + Math.random() * 90000); }
-                }
-                user = { id: 'u_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6), login: finalLogin, email: ghUser.email ? ghUser.email.toLowerCase() : '', name: ghUser.displayName || finalLogin, avatarType: 'url', avatarValue: ghUser.photoURL || '', friends: [], friendRequests: [], password: hashString('github_auth'), secretWord: hashString('github_auth'), lastSeen: Date.now(), isBanned: false, githubUid: ghUser.uid, firebaseUid: ghUser.uid };
-                db.users.push(user); await rtdb.ref('/dg_app_data/users').set(db.users);
-            }
-            document.getElementById('loader').style.display = 'none'; proceedWithLogin(user);
-        } catch (error) { document.getElementById('loader').style.display = 'none'; console.error(error); if (error.code !== 'auth/popup-closed-by-user') { alert('Ошибка авторизации GitHub: ' + error.message); } }
+        document.getElementById('loader').style.display = 'flex';
+        await firebase.auth().signInWithRedirect(githubProvider); 
     }
 
     async function loginWithGoogle() {
         if (!isDbReady) return alert('Подождите, идет подключение к серверу...'); ensureHelper();
         if ("Notification" in window && Notification.permission === "default") { Notification.requestPermission(); }
-        try {
-            document.getElementById('loader').style.display = 'flex';
-            const result = await firebase.auth().signInWithPopup(googleProvider); const gUser = result.user;
-            let user = db.users.find(u => u.googleUid === gUser.uid || u.email === gUser.email.toLowerCase());
-
-            if (!user) {
-                const baseLogin = gUser.email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, ''); let finalLogin = baseLogin;
-                if (db.users.find(u => u.login === finalLogin)) {
-                    finalLogin = baseLogin + Math.floor(1000 + Math.random() * 9000);
-                    while(db.users.find(u => u.login === finalLogin)) { finalLogin = baseLogin + Math.floor(10000 + Math.random() * 90000); }
-                }
-                user = { id: 'u_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6), login: finalLogin, email: gUser.email.toLowerCase(), name: gUser.displayName || finalLogin, avatarType: 'url', avatarValue: gUser.photoURL || '', friends: [], friendRequests: [], password: hashString('google_auth'), secretWord: hashString('google_auth'), lastSeen: Date.now(), isBanned: false, googleUid: gUser.uid, firebaseUid: gUser.uid };
-                db.users.push(user); await rtdb.ref('/dg_app_data/users').set(db.users);
-            }
-            document.getElementById('loader').style.display = 'none'; proceedWithLogin(user);
-        } catch (error) { document.getElementById('loader').style.display = 'none'; console.error(error); if (error.code !== 'auth/popup-closed-by-user') { alert('Ошибка Google: ' + error.message); } }
+        document.getElementById('loader').style.display = 'flex';
+        await firebase.auth().signInWithRedirect(googleProvider);
     }
 
     async function doLogin() {
