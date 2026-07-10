@@ -631,43 +631,114 @@
     const rtdb = firebase.database();
     const googleProvider = new firebase.auth.GoogleAuthProvider();
     const githubProvider = new firebase.auth.GithubAuthProvider();
-    
-    // --- ОБРАБОТКА ВОЗВРАТА ОТ GOOGLE/GITHUB ---
-    firebase.auth().getRedirectResult().then(async (result) => {
-        if (result && result.user) {
-            document.getElementById('loader').style.display = 'flex';
-            // Ждем пока загрузится база данных
-            let checkDb = setInterval(async () => {
-                if (isDbReady) {
-                    clearInterval(checkDb);
-                    const gUser = result.user;
-                    // Ищем юзера в базе
-                    let user = db.users.find(u => u.firebaseUid === gUser.uid || (gUser.email && u.email === gUser.email.toLowerCase()));
 
-                    // Если новый - регистрируем
-                    if (!user) {
-                        let rawLogin = gUser.email ? gUser.email.split('@')[0] : 'user';
-                        let baseLogin = rawLogin.toLowerCase().replace(/[^a-z0-9_]/g, '');
-                        let finalLogin = baseLogin;
-                        if (baseLogin.length < 3) baseLogin += 'usr';
-                        if (db.users.find(u => u.login === finalLogin)) {
-                            finalLogin = baseLogin + Math.floor(1000 + Math.random() * 9000);
-                        }
-                        user = { id: 'u_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6), login: finalLogin, email: gUser.email ? gUser.email.toLowerCase() : '', name: gUser.displayName || finalLogin, avatarType: 'emoji', avatarValue: '😎', friends: [], friendRequests: [], password: hashString('oauth'), secretWord: hashString('oauth'), lastSeen: Date.now(), isBanned: false, firebaseUid: gUser.uid };
-                        db.users.push(user);
-                        await rtdb.ref('/dg_app_data/users').set(db.users);
-                    }
-                    document.getElementById('loader').style.display = 'none';
-                    // СОХРАНЯЕМ СЕССИЮ И ПУСКАЕМ В ЧАТЫ
-                    proceedWithLogin(user);
-                }
-            }, 200);
-        }
-    }).catch(error => {
+    // =========================================================================
+    // ГЛОБАЛЬНАЯ СИСТЕМА АВТОРИЗАЦИИ (ИСПРАВЛЕННАЯ)
+    // =========================================================================
+    let isFirebaseAuthChecked = false;
+    let currentFirebaseUser = null;
+
+    // Ловим ошибки редиректа браузера (чтобы лоадер не висел)
+    firebase.auth().getRedirectResult().catch(error => {
         document.getElementById('loader').style.display = 'none';
-        alert('Ошибка авторизации: ' + error.message);
+        if (error.code !== 'auth/redirect-cancelled-by-user') {
+            alert('Ошибка входа: ' + error.message);
+        }
     });
 
+    // Единый слушатель: срабатывает, когда Google (шторка или браузер) отдает токен
+    firebase.auth().onAuthStateChanged((fUser) => {
+        currentFirebaseUser = fUser;
+        isFirebaseAuthChecked = true;
+        checkLoginState();
+    });
+
+    async function checkLoginState() {
+        if (!isDbReady || !isFirebaseAuthChecked) return; // Ждем, пока загрузятся и база, и статус Firebase
+
+        const savedSession = localStorage.getItem('Nexagram_Session_UID');
+
+        if (currentFirebaseUser) {
+            const fUser = currentFirebaseUser;
+            // Ищем юзера в нашей базе
+            let user = db.users.find(u => u.firebaseUid === fUser.uid || u.googleUid === fUser.uid || u.githubUid === fUser.uid || (fUser.email && u.email === fUser.email.toLowerCase()));
+            
+            // Если зашел впервые - регистрируем
+            if (!user) {
+                let rawLogin = fUser.displayName || (fUser.email ? fUser.email.split('@')[0] : 'user');
+                let baseLogin = rawLogin.toLowerCase().replace(/[^a-z0-9_]/g, '');
+                if (baseLogin.length < 3) baseLogin += 'usr';
+                let finalLogin = baseLogin;
+                if (db.users.find(u => u.login === finalLogin)) {
+                    finalLogin = baseLogin + Math.floor(1000 + Math.random() * 9000);
+                    while(db.users.find(u => u.login === finalLogin)) { finalLogin = baseLogin + Math.floor(10000 + Math.random() * 90000); }
+                }
+                user = { 
+                    id: 'u_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6), 
+                    login: finalLogin, email: fUser.email ? fUser.email.toLowerCase() : '', 
+                    name: fUser.displayName || finalLogin, avatarType: 'url', avatarValue: fUser.photoURL || '😎', 
+                    friends: [], friendRequests: [], password: hashString('oauth'), secretWord: hashString('oauth'), 
+                    lastSeen: Date.now(), isBanned: false, firebaseUid: fUser.uid, googleUid: fUser.uid 
+                };
+                db.users.push(user);
+                await rtdb.ref('/dg_app_data/users').set(db.users);
+            }
+            
+            if (user.isBanned) { 
+                alert('❌ Ваш аккаунт заблокирован.'); 
+                firebase.auth().signOut(); 
+                logout(); 
+                return; 
+            }
+            
+            if (!me || me.id !== user.id) {
+                proceedWithLogin(user);
+            } else {
+                updateUIForExistingUser();
+            }
+        } 
+        else if (me) {
+            updateUIForExistingUser();
+        } 
+        else if (savedSession) {
+            const user = db.users.find(u => u.id === savedSession);
+            if (user && !user.isBanned) proceedWithLogin(user);
+            else { 
+                localStorage.removeItem('Nexagram_Session_UID'); 
+                document.getElementById('app').style.display = 'none'; 
+                document.getElementById('authScreen').style.display = 'flex'; 
+            }
+        } 
+        else {
+            document.getElementById('app').style.display = 'none'; 
+            document.getElementById('authScreen').style.display = 'flex';
+        }
+    }
+
+    function updateUIForExistingUser() {
+        const updatedMe = db.users.find(u => u.id === me.id);
+        if (updatedMe) {
+            if (updatedMe.isBanned) { alert('❌ Ваш аккаунт заблокирован.'); logout(); return; }
+            me = updatedMe;
+            document.getElementById('app').style.display = 'flex'; document.getElementById('authScreen').style.display = 'none';
+            updUI(); renderFriends(); renderChats(); renderStories(); renderCalls();
+            if (activeChat) document.getElementById('m-area').style.backgroundImage = me.wallpaper ? `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url(${escapeHtml(me.wallpaper)})` : 'none';
+            if (activeChat) { 
+                const freshChat = db.chats.find(c => c.id === activeChat.id);
+                if (freshChat) {
+                    activeChat = freshChat; markChatAsReadLocally(); renderMsgs(); 
+                    if (activeChat.type === 'direct' && activeChat.u1 !== activeChat.u2) {
+                        const otherId = activeChat.u1 === me.id ? activeChat.u2 : activeChat.u1;
+                        const other = db.users.find(u => u.id === otherId);
+                        if (other) { const hStatus = document.getElementById('h-status'); if (hStatus) hStatus.textContent = getUserStatus(other); }
+                    }
+                }
+            }
+        } else logout();
+    }
+    // =========================================================================
+
+    
     const inRing = document.getElementById('incomingRingtone');
     const outRing = document.getElementById('outgoingRingtone');
     
@@ -747,37 +818,12 @@
             }
             
             if (!isInitialLoadDone) isInitialLoadDone = true;
-            isDbReady = true; document.getElementById('loader').style.display = 'none';
+            isDbReady = true; 
+            document.getElementById('loader').style.display = 'none';
 
-            const savedSession = localStorage.getItem('Nexagram_Session_UID');
-
-            if (me) {
-                const updatedMe = db.users.find(u => u.id === me.id);
-                if (updatedMe) {
-                    if (updatedMe.isBanned) { alert('❌ Ваш аккаунт заблокирован.'); logout(); return; }
-                    me = updatedMe;
-                    document.getElementById('app').style.display = 'flex'; document.getElementById('authScreen').style.display = 'none';
-                    updUI(); renderFriends(); renderChats(); renderStories(); renderCalls();
-                    if (activeChat) document.getElementById('m-area').style.backgroundImage = me.wallpaper ? `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url(${escapeHtml(me.wallpaper)})` : 'none';
-                    if (activeChat) { 
-                        const freshChat = db.chats.find(c => c.id === activeChat.id);
-                        if (freshChat) {
-                            activeChat = freshChat; markChatAsReadLocally(); renderMsgs(); 
-                            if (activeChat.type === 'direct' && activeChat.u1 !== activeChat.u2) {
-                                const otherId = activeChat.u1 === me.id ? activeChat.u2 : activeChat.u1;
-                                const other = db.users.find(u => u.id === otherId);
-                                if (other) { const hStatus = document.getElementById('h-status'); if (hStatus) hStatus.textContent = getUserStatus(other); }
-                            }
-                        }
-                    }
-                } else logout();
-            } else if (savedSession) {
-                const user = db.users.find(u => u.id === savedSession);
-                if (user && !user.isBanned) proceedWithLogin(user);
-                else { localStorage.removeItem('Nexagram_Session_UID'); document.getElementById('app').style.display = 'none'; document.getElementById('authScreen').style.display = 'flex'; }
-            } else {
-                document.getElementById('app').style.display = 'none'; document.getElementById('authScreen').style.display = 'flex';
-            }
+            // Передаем эстафету единому обработчику авторизации
+            checkLoginState();
+            
         } catch (err) { document.getElementById('loader').style.display = 'none'; console.error(err); }
     }, (error) => { document.getElementById('loader').style.display = 'none'; alert("Ошибка подключения к серверу: " + error.message); });
 
@@ -1005,7 +1051,14 @@
     async function loginWithGoogle() {
         if (!isDbReady) return alert('Подождите, идет подключение к серверу...'); ensureHelper();
         document.getElementById('loader').style.display = 'flex';
-        firebase.auth().signInWithRedirect(googleProvider);
+        
+        // Магия: Если мы внутри Sketchware-приложения со шторкой
+        if (window.AndroidNative && typeof window.AndroidNative.startNativeGoogle === 'function') {
+            window.AndroidNative.startNativeGoogle();
+        } else {
+            // Если открыто в обычном браузере
+            firebase.auth().signInWithRedirect(googleProvider);
+        }
     }
 
     async function doLogin() {
@@ -1097,6 +1150,7 @@
         if (confirm('Выйти из аккаунта?')) {
             if (presenceRef) { presenceRef.onDisconnect().cancel(); presenceRef.set(Date.now()); } if (connectedRef) connectedRef.off();
             localStorage.removeItem('Nexagram_Session_UID'); me = null; activeChat = null;
+            firebase.auth().signOut(); // Сбрасываем сессию в Firebase
             document.getElementById('app').style.display = 'none'; document.getElementById('authScreen').style.display = 'flex'; document.getElementById('chat-window').classList.remove('active');
             document.getElementById('loginUsername').value = ''; document.getElementById('loginPassword').value = '';
         }
