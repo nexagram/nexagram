@@ -7,6 +7,10 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Nexagram — где рождается общение</title>
+    
+    <link rel="icon" type="image/png" sizes="512x512" href="icon.png">
+    <link rel="apple-touch-icon" href="icon.png">
+
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         :root {
@@ -361,7 +365,21 @@
 </div>
 
 <script>
-    function pwaManifest() { return { "name": "Nexagram", "short_name": "Nexagram", "start_url": ".", "display": "standalone", "background_color": "#000000", "theme_color": "#000000", "icons": [{ "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI1MCIgZmlsbD0iIzMwZDE1OCIvPjx0ZXh0IHg9IjUwIiB5PSI1NSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk5leGFncmFtPC90ZXh0Pjwvc3ZnPg==", "sizes": "512x512", "type": "image/svg+xml" }]}; }
+    // Манифест PWA теперь подтягивает твой локальный icon.png
+    function pwaManifest() { return { 
+        "name": "Nexagram", 
+        "short_name": "Nexagram", 
+        "start_url": ".", 
+        "display": "standalone", 
+        "background_color": "#000000", 
+        "theme_color": "#000000", 
+        "icons": [{ 
+            "src": "icon.png", 
+            "sizes": "512x512", 
+            "type": "image/png",
+            "purpose": "any maskable"
+        }]
+    }; }
     document.head.insertAdjacentHTML('beforeend', `<link rel="manifest" href="data:application/manifest+json;charset=utf-8,${encodeURIComponent(JSON.stringify(pwaManifest()))}">`);
 </script>
 
