@@ -1143,7 +1143,7 @@
     function deleteStory() { if (!confirm('Удалить эту историю?')) return; const now = Date.now(); const userStories = db.stories.filter(s => s.uid === currentStoryUser && now - s.time < 24 * 60 * 60 * 1000); const storyToDelete = userStories[currentStoryIdx]; if (storyToDelete) { db.stories = db.stories.filter(x => x.id !== storyToDelete.id); rtdb.ref('/dg_app_data/stories').set(db.stories); closeStory(); renderStories(); } }
     function nextStory() { currentStoryIdx++; showStoryFrame(); }
     function prevStory() { currentStoryIdx--; showStoryFrame(); }
-    function closeStory() { clearTimeout(storyTimerId); document.getElementById('storyViewer').style.display = 'none'; }
+    function closeStory() { clearTimeout(storyTimerId); document.getElementById('storyViewer').style.display = 'none'; document.querySelectorAll('#storyContent video').forEach(v => { v.pause(); v.removeAttribute('src'); v.load(); }); document.getElementById('storyContent').innerHTML = ''; }
 
     // ================= СООБЩЕНИЯ =================
     function getSafeReplyObj(msg) { if (!msg) return null; let rTxt = msg.txt; if (!rTxt) { if (msg.type === 'voice') rTxt = '🎙️ Аудио'; else if (msg.type === 'video_circle') rTxt = '📹 Кружок'; else if (msg.type === 'image') rTxt = '📷 Фото'; else if (msg.type === 'video') rTxt = '🎥 Видео'; else if (msg.type === 'file') rTxt = '📄 Файл'; else rTxt = 'Медиа'; } return { uid: msg.uid, txt: rTxt, type: msg.type || 'text' }; }
@@ -1338,10 +1338,12 @@
         const speedBtn = document.createElement('button'); speedBtn.className = 'voice-speed-btn'; speedBtn.textContent = '1x'; speedBtn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); let currentSpeed = audio.playbackRate; if (currentSpeed === 1) { audio.playbackRate = 1.5; speedBtn.textContent = '1.5x'; } else if (currentSpeed === 1.5) { audio.playbackRate = 2.0; speedBtn.textContent = '2x'; } else { audio.playbackRate = 1.0; speedBtn.textContent = '1x'; } };
         container.append(playBtn, wave, timeSpan, speedBtn); let isPlaying = false; let animationId;
         function animateWave() { wave.querySelectorAll('.voice-bar').forEach(bar => { bar.style.height = isPlaying ? (4 + Math.random() * 16) + 'px' : '4px'; }); if (isPlaying) animationId = requestAnimationFrame(animateWave); }
-        playBtn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); if (isPlaying) { audio.pause(); playBtn.innerHTML = '▶'; isPlaying = false; } else { audio.play(); playBtn.innerHTML = '⏸'; isPlaying = true; animateWave(); } }; audio.onended = () => { playBtn.innerHTML = '▶'; isPlaying = false; }; audio.ontimeupdate = () => { if (audio.duration && !isNaN(audio.duration)) { const secs = Math.floor(audio.currentTime % 60); const mins = Math.floor(audio.currentTime / 60); timeSpan.textContent = `${mins}:${secs.toString().padStart(2, '0')}`; } }; audio.onloadedmetadata = () => { if (audio.duration && !isNaN(audio.duration)) { const secs = Math.floor(audio.duration % 60); const mins = Math.floor(audio.duration / 60); timeSpan.textContent = `${mins}:${secs.toString().padStart(2, '0')}`; } };
+        playBtn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); if (isPlaying) { audio.pause(); playBtn.innerHTML = '▶'; isPlaying = false; } else { if (window.currentActiveAudio && window.currentActiveAudio.audio !== audio) { window.currentActiveAudio.audio.pause(); window.currentActiveAudio.btn.innerHTML = '▶'; } window.currentActiveAudio = { audio: audio, btn: playBtn }; audio.play(); playBtn.innerHTML = '⏸'; isPlaying = true; animateWave(); } }; audio.onended = () => { playBtn.innerHTML = '▶'; isPlaying = false; }; audio.ontimeupdate = () => { if (audio.duration && !isNaN(audio.duration)) { const secs = Math.floor(audio.currentTime % 60); const mins = Math.floor(audio.currentTime / 60); timeSpan.textContent = `${mins}:${secs.toString().padStart(2, '0')}`; } }; audio.onloadedmetadata = () => { if (audio.duration && !isNaN(audio.duration)) { const secs = Math.floor(audio.duration % 60); const mins = Math.floor(audio.duration / 60); timeSpan.textContent = `${mins}:${secs.toString().padStart(2, '0')}`; } };
         return container;
     }
     
+    function closeChat() { document.getElementById('chat-window').classList.remove('active'); activeChat = null; document.getElementById('chat-search-bar').style.display = 'none'; document.querySelectorAll('#m-area video').forEach(v => { v.pause(); v.removeAttribute('src'); v.load(); }); if (window.currentActiveAudio) { window.currentActiveAudio.audio.pause(); window.currentActiveAudio = null; } const area = document.getElementById('m-area'); if (area) area.innerHTML = ''; renderChats(); }
+
     function openAdminPanel() { if (!isSuperAdmin(me)) return; renderAdminPanel(); document.getElementById('adminModal').classList.add('active'); }
     function closeAdminPanel() { document.getElementById('adminModal').classList.remove('active'); }
     
@@ -1380,7 +1382,6 @@
     
     function deleteChat() { if (!confirm('Точно удалить для всех?')) return; db.chats = db.chats.filter(c => c.id !== activeChat.id); rtdb.ref('/dg_app_data/chats').set(db.chats); closeProfileModal(); closeChat(); }
     function leaveChat() { if (!confirm('Покинуть чат?')) return; activeChat.members = activeChat.members.filter(id => id !== me.id); const chatIndex = db.chats.findIndex(c => c.id === activeChat.id); if(chatIndex > -1) rtdb.ref(`/dg_app_data/chats/${chatIndex}/members`).set(db.chats[chatIndex].members); closeProfileModal(); closeChat(); }
-    function closeChat() { document.getElementById('chat-window').classList.remove('active'); activeChat = null; document.getElementById('chat-search-bar').style.display = 'none'; renderChats(); }
     
     function applyTheme(t) { localSettings.theme = t; localStorage.setItem('Nexagram_Settings', JSON.stringify(localSettings)); const colors = { blue: '#007aff', purple: '#a855f7', green: '#30d158', ghost: '#8e8e8e' }; document.documentElement.style.setProperty('--p', colors[t] || '#30d158'); document.querySelectorAll('.t-dot').forEach(d => d.classList.remove('active')); const dot = document.getElementById('dot-' + t); if (dot) dot.classList.add('active'); }
     function toggleLightMode() { localSettings.lightMode = !localSettings.lightMode; localStorage.setItem('Nexagram_Settings', JSON.stringify(localSettings)); if (localSettings.lightMode) { document.documentElement.setAttribute('data-theme', 'light'); document.getElementById('themeIcon').textContent = '🌙'; } else { document.documentElement.removeAttribute('data-theme'); document.getElementById('themeIcon').textContent = '☀️'; } }
@@ -1445,4 +1446,4 @@
     function resetAllData() { if (confirm("Внимание! Это очистит только твои локальные настройки. База останется на сервере.")) { localStorage.removeItem('Nexagram_Settings'); localStorage.removeItem('Nexagram_Session_UID'); localStorage.removeItem('Nexagram_Drafts'); location.reload(); } }
 </script>
 </body>
-    </html>
+</html>
