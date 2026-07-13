@@ -974,7 +974,7 @@
     function cleanupCall() { clearInterval(callInterval); if (localStream) localStream.getTracks().forEach(t => t.stop()); if (peerConnection) peerConnection.close(); peerConnection = null; localStream = null; if (callRef) callRef.off(); currentCallId = null; hideCallUI(); }
 
     // === ЯНДЕКС АВТОРИЗАЦИЯ ===
-    const YANDEX_CLIENT_ID = '3b92dc6e3527486381b9a7ba026fbd04';
+    const YANDEX_CLIENT_ID = '786ed0ca85094cd194c6c28bc59745ce';
 
     function loginWithYandex() {
         if (!isDbReady) return alert('Подождите, идет подключение к серверу...');
