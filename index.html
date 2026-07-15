@@ -556,8 +556,15 @@
 <div id="forgotModal" class="modal">
     <div class="modal-content">
         <h3>Восстановление</h3>
-        <input type="text" id="forgotLogin" class="auth-input" placeholder="Ваш логин или Email" style="margin-top: 16px;">
-        <input type="text" id="forgotSecret" class="auth-input" placeholder="Секретное слово (для логина)">
+        
+        <div class="input-group" style="margin-top: 16px;">
+            <input type="text" id="forgotLogin" placeholder="Ваш логин или Email">
+        </div>
+        
+        <div class="input-group">
+            <input type="text" id="forgotSecret" placeholder="Секретное слово (для логина)">
+        </div>
+        
         <button class="auth-btn" onclick="resetPasswordWithSecret()">Сбросить локальный пароль</button>
         <button class="auth-btn" style="background: var(--online); margin-top: 12px; color: #000;" onclick="resetFirebasePassword()">Сбросить по Email</button>
         <button class="auth-btn" style="background: var(--in); color: var(--txt); margin-top: 12px;" onclick="closeForgotModal()">Отмена</button>
@@ -1014,7 +1021,15 @@
                 db.users.push(user); await rtdb.ref('/dg_app_data/users').set(db.users);
             }
             document.getElementById('loader').style.display = 'none'; proceedWithLogin(user);
-        } catch (error) { document.getElementById('loader').style.display = 'none'; console.error(error); if (error.code !== 'auth/popup-closed-by-user') { alert('Ошибка авторизации GitHub: ' + error.message); } }
+        } catch (error) { 
+            document.getElementById('loader').style.display = 'none'; 
+            console.error(error); 
+            if (error.code === 'auth/account-exists-with-different-credential') {
+                alert('⚠️ Этот Email уже используется. Пожалуйста, войдите тем способом, которым регистрировались изначально (например, через Google или по паролю).');
+            } else if (error.code !== 'auth/popup-closed-by-user') { 
+                alert('Ошибка авторизации GitHub: ' + error.message); 
+            } 
+        }
     }
 
     async function loginWithGoogle() {
