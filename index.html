@@ -110,10 +110,11 @@
         .list-name { font-weight: 600; font-size: 16px; margin-bottom: 4px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
         .list-preview { color: var(--mut); font-size: 14px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
         
+        /* НОВЫЙ ДИЗАЙН НИЖНЕГО МЕНЮ */
         .nav { position: fixed; bottom: 0; width: 100%; height: calc(64px + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom); background: rgba(var(--card), 0.95); backdrop-filter: blur(10px); border-top: 1px solid var(--brd); display: flex; justify-content: space-around; z-index: 100; align-items: center; }
         .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--mut); gap: 4px; cursor: pointer; height: 100%; }
         .nav-icon-wrap { position: relative; width: 56px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 16px; transition: 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); font-size: 22px; z-index: 1; }
-        .nav-icon-wrap::before { content: ''; position: absolute; inset: 0; border-radius: 16px; background: var(--p); opacity: 0; transition: opacity 0.3s; z-index: -1; transform: scale(0.5); }
+        .nav-icon-wrap::before { content: ''; position: absolute; inset: 0; border-radius: 16px; background: var(--p); opacity: 0; transition: opacity 0.3s; z-index: -1; transform: scale(0.5); transition: all 0.3s; }
         .nav-text { font-size: 11px; font-weight: 600; transition: color 0.3s; }
         .nav-btn.active .nav-icon-wrap::before { opacity: 0.15; transform: scale(1); }
         .nav-btn.active .nav-icon-wrap { color: var(--p); transform: translateY(-2px); }
@@ -384,21 +385,17 @@
             #app, .auth-screen { 
                 width: 100%; max-width: 1100px; height: 90vh !important; max-height: 850px; 
                 border-radius: 20px; box-shadow: 0 25px 80px rgba(0,0,0,0.6); 
-                transform: translateZ(0); /* Магия: привязывает fixed элементы к этому блоку */
-                border: 1px solid #2a2a2a; margin: auto; position: relative;
+                transform: translateZ(0); 
+                border: 1px solid #2a2a2a; margin: auto; position: relative; overflow: hidden;
             }
-            
-            /* Двухколоночный интерфейс */
             .content { width: 350px; border-right: 1px solid var(--brd); height: 100%; padding-bottom: 64px; }
             .nav { width: 350px; position: absolute; left: 0; bottom: 0; border-top: 1px solid var(--brd); border-radius: 0 0 0 20px; }
             
-            /* Чат всегда справа */
             #chat-window { 
                 position: absolute; top: 0; right: 0; bottom: 0; left: 350px; 
                 transform: none !important; visibility: visible !important; display: flex !important;
                 border-radius: 0 20px 20px 0; background: var(--bg); border-left: 1px solid var(--brd);
             }
-            /* Заглушка, когда чат не выбран */
             #chat-window::before { 
                 content: 'Выберите чат для общения'; position: absolute; inset: 0; 
                 display: flex; align-items: center; justify-content: center; 
@@ -409,13 +406,11 @@
             #chat-window.active::before { opacity: 0; pointer-events: none; }
             .back-btn { display: none !important; }
             
-            /* Профиль тоже открывается справа поверх чата */
             #profile-view-screen { 
                 position: absolute; top: 0; right: 0; bottom: 0; left: 350px; 
                 border-left: 1px solid var(--brd); border-radius: 0 20px 20px 0;
             }
             
-            /* Окна и модалки на всю площадь приложения */
             #callOverlay, .modal, #storyViewer { position: absolute; border-radius: 20px; }
             .chat-input-area { padding-bottom: 12px !important; }
         }
@@ -424,7 +419,7 @@
 <body>
 
 <!-- Умная плашка для разблокировки звука -->
-<div id="audio-unlock-toast" onclick="forceUnlockAudio()">🔊 Нажмите, чтобы включить звук</div>
+<div id="audio-unlock-toast" onclick="forceUnlockAudio()">🔊 Нажмите, чтобы включить звук звонка</div>
 
 <div class="auth-screen" id="authScreen">
     <div class="auth-card">
@@ -492,8 +487,9 @@
     document.head.insertAdjacentHTML('beforeend', `<link rel="manifest" href="data:application/manifest+json;charset=utf-8,${encodeURIComponent(JSON.stringify(pwaManifest()))}">`);
 </script>
 
+<!-- Обновлены стандартные аудио-ссылки на более стабильные -->
 <audio id="incomingRingtone" preload="auto" loop></audio>
-<audio id="outgoingRingtone" preload="auto" loop src="https://upload.wikimedia.org/wikipedia/commons/f/fc/Ringback_tone_%28North_America%29.ogg"></audio>
+<audio id="outgoingRingtone" preload="auto" loop src="https://actions.google.com/sounds/v1/alarms/phone_ringing.ogg"></audio>
 <audio id="notificationSound" preload="auto"></audio>
 
 <div id="minimizedCallBar" onclick="expandCall()">
@@ -671,9 +667,9 @@
         <div class="input-group" style="margin-top: 16px;">
             <label>Рингтон входящего вызова</label>
             <select id="ringtoneSelect" class="auth-input" onchange="previewRingtone()">
-                <option value="https://upload.wikimedia.org/wikipedia/commons/c/c4/Telephone_ringing.ogg">Стандартный телефон</option>
-                <option value="https://actions.google.com/sounds/v1/alarms/phone_ringing.ogg">Цифровой звонок</option>
+                <option value="https://actions.google.com/sounds/v1/alarms/phone_ringing.ogg">Стандартный телефон</option>
                 <option value="https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg">Классический будильник</option>
+                <option value="https://upload.wikimedia.org/wikipedia/commons/c/c4/Telephone_ringing.ogg">Звонок ретро</option>
                 <option value="custom">Своя ссылка...</option>
             </select>
         </div>
@@ -810,7 +806,7 @@
         const playPromise = audioElement.play();
         if (playPromise !== undefined) {
             playPromise.catch(error => {
-                console.warn("Audio autoplay blocked:", error);
+                console.warn("Audio autoplay blocked by browser policy:", error);
                 const toast = document.getElementById('audio-unlock-toast');
                 if(toast) {
                     toast.style.display = 'block';
@@ -825,44 +821,16 @@
         document.getElementById('audio-unlock-toast').style.display = 'none';
         
         if (window.pendingRingtone) {
-            window.pendingRingtone.play().catch(()=>{});
+            window.pendingRingtone.play().catch(e => console.error("Still blocked:", e));
             window.pendingRingtone = null;
         } else {
+            // Разблокируем всё остальное в фоне
             const out = document.getElementById('outgoingRingtone');
             if (out && out.src) out.play().then(()=>out.pause()).catch(()=>{});
             const notif = document.getElementById('notificationSound');
             if (notif && notif.src) notif.play().then(()=>notif.pause()).catch(()=>{});
         }
-        audioUnlocked = true;
     }
-
-    // Тихий прогрев аудио при самом первом касании страницы
-    let audioUnlocked = false;
-    function globalAudioUnlocker() {
-        if (audioUnlocked) return;
-        ['incomingRingtone', 'outgoingRingtone', 'notificationSound'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el && el.src) {
-                const origVol = el.volume;
-                el.volume = 0;
-                const p = el.play();
-                if (p !== undefined) {
-                    p.then(() => {
-                        if (id === 'incomingRingtone' && document.getElementById('callOverlay').classList.contains('active')) {
-                            el.volume = 1; 
-                        } else {
-                            el.pause(); el.currentTime = 0; el.volume = origVol;
-                        }
-                    }).catch(()=>{});
-                }
-            }
-        });
-        audioUnlocked = true;
-        document.removeEventListener('click', globalAudioUnlocker);
-        document.removeEventListener('touchstart', globalAudioUnlocker);
-    }
-    document.addEventListener('click', globalAudioUnlocker);
-    document.addEventListener('touchstart', globalAudioUnlocker);
 
     function hashString(str) { return btoa(unescape(encodeURIComponent(str))); }
 
@@ -906,7 +874,7 @@
     
     let localSettings = JSON.parse(localStorage.getItem('Nexagram_Settings')) || { theme: 'green', lightMode: false };
     
-    let currentRingtone = localSettings.ringtone || "https://upload.wikimedia.org/wikipedia/commons/c/c4/Telephone_ringing.ogg";
+    let currentRingtone = localSettings.ringtone || "https://actions.google.com/sounds/v1/alarms/phone_ringing.ogg";
     let currentNotif = localSettings.notifSound || "https://actions.google.com/sounds/v1/cartoon/pop.ogg";
 
     function applySounds() {
@@ -1574,7 +1542,7 @@
     function createChannel() { if (!me) return; const name = prompt('Введите название канала:'); if (!name) return; const chat = { id: 'ch_' + Date.now(), type: 'channel', name: name, desc: '', avatarType: 'emoji', avatarValue: '📢', admin: me.id, admins: [me.id], members: [me.id], msgs: [] }; db.chats.push(chat); rtdb.ref('/dg_app_data/chats').set(db.chats); openChat(chat.id); }
 
     function addMemberToCurrentChat() {
-        if (!activeChat || activeChat.type === 'direct') return; const isChatAdmin = activeChat.admin === me.id || (activeChat.admins && activeChat.admins.includes(me.id)); if (!isChatAdmin) return showToast('Только администратор может добавлять участника');
+        if (!activeChat || activeChat.type === 'direct') return; const isChatAdmin = activeChat.admin === me.id || (activeChat.admins && activeChat.admins.includes(me.id)); if (!isChatAdmin) return showToast('Только администратор может добавлять участников');
         const login = prompt('Введите логин пользователя:'); if (!login) return; const user = db.users.find(u => u.login === login.toLowerCase()); if (!user) return showToast('Пользователь не найден'); if (activeChat.members.includes(user.id)) return showToast('Уже состоит в чате');
         const chatIndex = db.chats.findIndex(c => c.id === activeChat.id);
         if(chatIndex > -1) { db.chats[chatIndex].members.push(user.id); if (!db.chats[chatIndex].msgs) db.chats[chatIndex].msgs = []; db.chats[chatIndex].msgs.push({ uid: 'system', txt: `Пользователь ${user.name} добавлен`, time: Date.now() }); rtdb.ref(`/dg_app_data/chats/${chatIndex}`).set(db.chats[chatIndex]); showToast('Успешно добавлен!'); }
@@ -1745,6 +1713,7 @@
             const otherId = activeChat.u1 === me.id ? activeChat.u2 : activeChat.u1; 
             const contact = db.users.find(u => u.id === otherId);
             const isFriend = me.friends.includes(contact.id);
+            const starHtml = isSuperAdmin(contact) ? ' <span style="color: #30d158; font-size: 18px;">★</span>' : '';
             
             let addBtnHtml = '';
             if (activeChat.u1 !== activeChat.u2) {
@@ -1761,7 +1730,7 @@
                     <span style="cursor:pointer; padding: 4px;">⋮</span>
                 </div>
                 <div class="mp-av-wrap">${getAvatarHtml(contact.avatarType, contact.avatarValue)}</div>
-                <div class="mp-name">${escapeHtml(contact.name)} <span style="color: #30d158; font-size: 18px;">★</span></div>
+                <div class="mp-name">${escapeHtml(contact.name)}${starHtml}</div>
                 <div class="mp-status">${getUserStatus(contact)}</div>
                 
                 <div class="mp-actions">
@@ -1895,6 +1864,7 @@
 
     async function resetFirebasePassword() { const email = document.getElementById('forgotLogin').value.trim().toLowerCase(); if (!email || !email.includes('@')) return showToast('Введите корректный Email в первое поле'); try { await firebase.auth().sendPasswordResetEmail(email); alert('Письмо для сброса пароля отправлено на ' + email + '.\nОбязательно проверьте папку "Спам" или "Рассылки"!'); closeForgotModal(); } catch (error) { showToast('Ошибка: ' + error.message); } }
     
+    // ИСПРАВЛЕНИЕ: Симметричное добавление без лишних кликов
     function acceptReq(id) { 
         const myIdx = db.users.findIndex(u => u.id === me.id);
         const fIdx = db.users.findIndex(u => u.id === id);
@@ -2002,4 +1972,4 @@
     }
 </script>
 </body>
-    </html>
+        </html>
