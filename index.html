@@ -26,55 +26,60 @@
         }
         body { background: var(--bg); color: var(--txt); height: 100vh; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', Roboto, Arial, sans-serif; }
         
+        /* === АНИМАЦИИ И ГЛОБАЛЬНЫЕ ТРАНЗИШЕНЫ === */
+        button, .list-item, .chat-action-btn, .nav-btn, .t-dot { transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1); }
+        
         /* === ЭКРАН АВТОРИЗАЦИИ === */
-        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(40px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
         .auth-screen { position: fixed; inset: 0; background: linear-gradient(135deg, #050505, #0a1a0f); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .auth-card { width: 100%; max-width: 320px; background: rgba(17,17,17,0.95); backdrop-filter: blur(10px); border-radius: 32px; padding: 30px 20px; border: 1px solid rgba(48,209,88,0.2); box-shadow: 0 0 40px rgba(48,209,88,0.1); animation: slideUp 0.3s ease; }
+        .auth-card { width: 100%; max-width: 320px; background: rgba(17,17,17,0.95); backdrop-filter: blur(10px); border-radius: 32px; padding: 30px 20px; border: 1px solid rgba(48,209,88,0.2); box-shadow: 0 0 40px rgba(48,209,88,0.1); animation: slideUp 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); }
         .auth-logo { text-align: center; margin-bottom: 24px; }
         .logo-text { font-size: 32px; font-weight: 800; background: linear-gradient(135deg, var(--p), #4ade80); -webkit-background-clip: text; background-clip: text; color: transparent; letter-spacing: -1px; }
         .auth-logo small { font-size: 13px; color: var(--mut); display: block; margin-top: 6px; }
         .auth-tabs { display: flex; gap: 8px; margin-bottom: 20px; background: #1a1a1a; border-radius: 30px; padding: 4px; }
-        .auth-tab { flex: 1; text-align: center; padding: 10px; border-radius: 26px; cursor: pointer; color: var(--mut); font-weight: 500; transition: all 0.2s; font-size: 14px; }
+        .auth-tab { flex: 1; text-align: center; padding: 10px; border-radius: 26px; cursor: pointer; color: var(--mut); font-weight: 500; font-size: 14px; }
         .auth-tab.active { background: linear-gradient(135deg, var(--p), #4ade80); color: #000; font-weight: 600; }
-        .auth-form { display: none; }
-        .auth-form.active { display: block; }
-        
+        .auth-form { display: none; opacity: 0; transition: opacity 0.3s ease; }
+        .auth-form.active { display: block; opacity: 1; animation: fadeInForm 0.4s ease forwards; }
+        @keyframes fadeInForm { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
         .input-group { margin-bottom: 16px; text-align: left; }
         .input-group label { display: block; margin-bottom: 6px; color: var(--mut); font-size: 12px; }
-        .input-group input, .input-group select { width: 100%; padding: 12px; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px; color: #fff; font-size: 14px; transition: border 0.2s; outline: none; box-sizing: border-box; }
-        .input-group input:focus, .input-group select:focus { border-color: var(--p); }
+        .input-group input, .input-group select { width: 100%; padding: 12px; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px; color: #fff; font-size: 14px; outline: none; box-sizing: border-box; transition: all 0.3s ease; }
+        .input-group input:focus, .input-group select:focus { border-color: var(--p); background: #222; box-shadow: 0 0 10px rgba(48,209,88,0.1); }
         select.auth-input option { background: var(--card); color: var(--txt); }
 
-        .auth-btn { width: 100%; padding: 12px; background: linear-gradient(135deg, var(--p), #4ade80); border: none; border-radius: 12px; color: #000; font-weight: 700; font-size: 15px; cursor: pointer; transition: transform 0.1s, opacity 0.1s; margin-top: 4px; }
+        .auth-btn { width: 100%; padding: 12px; background: linear-gradient(135deg, var(--p), #4ade80); border: none; border-radius: 12px; color: #000; font-weight: 700; font-size: 15px; cursor: pointer; margin-top: 4px; }
         .auth-btn:active { transform: scale(0.96); opacity: 0.8; }
-        .auth-switch { text-align: center; margin-top: 14px; font-size: 13px; color: var(--mut); cursor: pointer; }
+        .auth-switch { text-align: center; margin-top: 14px; font-size: 13px; color: var(--mut); cursor: pointer; transition: color 0.2s; }
         .auth-switch:hover { color: var(--txt); }
         
         .social-login-container { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--brd); display: flex; flex-direction: column; gap: 12px; }
-        .social-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 12px; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; transition: transform 0.1s, opacity 0.1s; border: none; }
+        .social-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 12px; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; }
         .social-btn:active { transform: scale(0.96); opacity: 0.8; }
         .social-btn.google { background: #fff; color: #000; }
         .social-btn.github { background: #24292e; color: #fff; border: 1px solid #444; }
         .social-icon { width: 18px; height: 18px; }
 
         /* === ОСТАЛЬНОЙ ИНТЕРФЕЙС === */
-        #app { display: none; width: 100%; height: 100%; flex-direction: column; }
-        .content { flex: 1; overflow-y: auto; padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
+        #app { display: none; width: 100%; height: 100%; flex-direction: column; opacity: 0; animation: appFadeIn 0.5s ease forwards; }
+        @keyframes appFadeIn { to { opacity: 1; } }
+        .content { flex: 1; overflow-y: auto; padding-bottom: calc(80px + env(safe-area-inset-bottom)); scroll-behavior: smooth; }
         .head { height: 56px; padding: 0 16px; display: flex; align-items: center; border-bottom: 1px solid var(--brd); background: rgba(var(--bg), 0.95); backdrop-filter: blur(10px); font-size: 19px; font-weight: 700; position: sticky; top: 0; z-index: 10; padding-top: env(safe-area-inset-top); }
         
         .chat-actions { margin-left: auto; display: flex; gap: 12px; font-size: 14px; font-weight: 600; color: var(--p); align-items: center; }
-        .chat-action-btn { cursor: pointer; padding: 4px 8px; background: var(--in); border-radius: 8px; transition: 0.2s; white-space: nowrap; }
-        .chat-action-btn:active { transform: scale(0.95); background: var(--brd); }
+        .chat-action-btn { cursor: pointer; padding: 4px 8px; background: var(--in); border-radius: 8px; white-space: nowrap; }
+        .chat-action-btn:active { transform: scale(0.92); background: var(--brd); }
 
         .search-bar { padding: 12px 16px; background: var(--bg); position: sticky; top: 56px; z-index: 9; border-bottom: 1px solid var(--brd); }
-        .search-input { width: 100%; padding: 11px 16px; background: var(--in); border: none; border-radius: 12px; color: var(--txt); font-size: 16px; outline: none; transition: background 0.2s; }
+        .search-input { width: 100%; padding: 11px 16px; background: var(--in); border: none; border-radius: 12px; color: var(--txt); font-size: 16px; outline: none; transition: all 0.3s ease; }
         .search-input:focus { background: var(--card); box-shadow: 0 0 0 1px var(--p); }
         .search-input::placeholder { color: var(--mut); }
         
         .stories-container { display: flex; gap: 14px; padding: 12px 16px; overflow-x: auto; background: var(--bg); border-bottom: 1px solid var(--brd); scroll-behavior: smooth; }
         .stories-container::-webkit-scrollbar { display: none; }
-        .story-item { display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; flex-shrink: 0; width: 64px; position: relative; }
-        .story-item:active { opacity: 0.8; }
+        .story-item { display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; flex-shrink: 0; width: 64px; position: relative; transition: transform 0.2s; }
+        .story-item:active { transform: scale(0.9); opacity: 0.8; }
         .story-av-wrap { width: 60px; height: 60px; border-radius: 50%; padding: 2px; border: 2px solid var(--p); display: flex; align-items: center; justify-content: center; position: relative; }
         .story-av-wrap.seen { border-color: var(--mut); }
         .story-av-wrap.none { border-color: transparent; }
@@ -83,39 +88,41 @@
         .story-name { font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; text-align: center; }
 
         .prof-top { padding: 32px 16px 24px; text-align: center; }
-        .av-big { width: 100px; height: 100px; border-radius: 50%; margin: 0 auto 14px; background: var(--in); display: flex; align-items: center; justify-content: center; font-size: 38px; font-weight: bold; overflow: hidden; position: relative; cursor: pointer; transition: transform 0.2s; }
-        .av-big:active { transform: scale(0.95); }
+        .av-big { width: 100px; height: 100px; border-radius: 50%; margin: 0 auto 14px; background: var(--in); display: flex; align-items: center; justify-content: center; font-size: 38px; font-weight: bold; overflow: hidden; position: relative; cursor: pointer; }
+        .av-big:active { transform: scale(0.92); }
         .av-big img { width: 100%; height: 100%; object-fit: cover; }
         .sett-box { margin: 12px 16px 24px; border-radius: 16px; background: var(--card); border: 1px solid var(--brd); overflow: hidden; }
-        .sett-row { padding: 17px 18px; display: flex; align-items: center; gap: 14px; cursor: pointer; border-bottom: 1px solid var(--brd); font-size: 17px; transition: background 0.2s; }
+        .sett-row { padding: 17px 18px; display: flex; align-items: center; gap: 14px; cursor: pointer; border-bottom: 1px solid var(--brd); font-size: 17px; }
         .sett-row:last-child { border-bottom: none; }
         .sett-row:active { background: rgba(128, 128, 128, 0.1); }
         .theme-grid { display: flex; gap: 18px; padding: 20px; justify-content: center; }
-        .t-dot { width: 48px; height: 48px; border-radius: 50%; cursor: pointer; border: 4px solid transparent; transition: transform 0.25s, border-color 0.25s; }
+        .t-dot { width: 48px; height: 48px; border-radius: 50%; cursor: pointer; border: 4px solid transparent; }
         .t-dot.active { border-color: var(--txt); transform: scale(1.15); }
-        .list-item { padding: 12px 16px; display: flex; align-items: center; gap: 14px; border-bottom: 1px solid var(--brd); cursor: pointer; transition: background 0.2s; }
-        .list-item:active { background: var(--in); }
+        
+        .list-item { padding: 12px 16px; display: flex; align-items: center; gap: 14px; border-bottom: 1px solid var(--brd); cursor: pointer; }
+        .list-item:active { background: var(--in); transform: scale(0.98); border-radius: 12px; border-bottom-color: transparent;}
         .av-sm { width: 52px; height: 52px; border-radius: 50%; background: var(--in); display: flex; align-items: center; justify-content: center; font-size: 21px; font-weight: bold; overflow: hidden; flex-shrink: 0; }
         .av-sm img { width: 100%; height: 100%; object-fit: cover; }
         .list-info { flex: 1; overflow: hidden; }
         .list-name { font-weight: 600; font-size: 16px; margin-bottom: 4px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
         .list-preview { color: var(--mut); font-size: 14px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
-        .nav { position: fixed; bottom: 0; width: 100%; height: calc(64px + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom); background: rgba(var(--card), 0.95); backdrop-filter: blur(10px); border-top: 1px solid var(--brd); display: flex; justify-content: space-around; z-index: 100; }
-        .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--mut); font-size: 12px; font-weight: 600; gap: 4px; cursor: pointer; transition: color 0.2s; }
-        .nav-btn.active { color: var(--p); }
-        .screen { display: none; animation: fadeIn 0.3s ease; }
-        .screen.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         
-        #chat-window { position: fixed; inset: 0; background: var(--bg); z-index: 500; display: none; flex-direction: column; }
-        #chat-window.active { display: flex; animation: slideIn 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); }
-        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+        .nav { position: fixed; bottom: 0; width: 100%; height: calc(64px + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom); background: rgba(var(--card), 0.95); backdrop-filter: blur(10px); border-top: 1px solid var(--brd); display: flex; justify-content: space-around; z-index: 100; }
+        .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--mut); font-size: 12px; font-weight: 600; gap: 4px; cursor: pointer; }
+        .nav-btn.active { color: var(--p); transform: translateY(-3px); }
+        .screen { display: none; opacity: 0; transform: translateY(15px); transition: opacity 0.4s ease, transform 0.4s ease; }
+        .screen.active { display: block; opacity: 1; transform: translateY(0); }
+        
+        /* === ЧАТ === */
+        #chat-window { position: fixed; inset: 0; background: var(--bg); z-index: 500; display: none; flex-direction: column; transform: translateX(100%); transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); }
+        #chat-window.active { display: flex; transform: translateX(0); }
+        
         .msgs { flex: 1; overflow-y: auto; padding: 20px 16px; display: flex; flex-direction: column; gap: 10px; scroll-behavior: smooth; background-size: cover; background-position: center; background-attachment: fixed; }
         
-        .m-body { cursor: pointer; padding: 10px 14px; border-radius: 18px; max-width: 85%; font-size: 16px; line-height: 1.4; position: relative; word-wrap: break-word; animation: msgPop 0.2s ease-out; transition: opacity 0.2s; display: flex; flex-direction: column; -webkit-user-select: none; user-select: none; box-shadow: 0 1px 2px rgba(0,0,0,0.15); }
-        .m-body:active { opacity: 0.8; }
+        .m-body { cursor: pointer; padding: 10px 14px; border-radius: 18px; max-width: 85%; font-size: 16px; line-height: 1.4; position: relative; word-wrap: break-word; animation: msgPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex; flex-direction: column; -webkit-user-select: none; user-select: none; box-shadow: 0 1px 2px rgba(0,0,0,0.15); transition: transform 0.1s, opacity 0.2s;}
+        .m-body:active { transform: scale(0.97); opacity: 0.9; }
         
-        @keyframes msgPop { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+        @keyframes msgPop { from { opacity: 0; transform: scale(0.8) translateY(15px); } to { opacity: 1; transform: scale(1) translateY(0); } }
         .sent { align-self: flex-end; background: var(--p); color: #000; font-weight: 500; border-bottom-right-radius: 4px; }
         .received { align-self: flex-start; background: var(--card); border: 1px solid var(--brd); border-bottom-left-radius: 4px; }
         
@@ -123,13 +130,13 @@
         .msg-reactions { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
         .reaction-badge { display: flex; align-items: center; gap: 4px; padding: 4px 8px; background: rgba(0,0,0,0.2); border-radius: 12px; font-size: 13px; font-weight: 500; cursor: pointer; transition: 0.2s; border: 1px solid transparent; }
         .received .reaction-badge { background: var(--in); }
-        .reaction-badge.active { background: rgba(255,255,255,0.3); border-color: rgba(255,255,255,0.6); }
+        .reaction-badge.active { background: rgba(255,255,255,0.3); border-color: rgba(255,255,255,0.6); transform: scale(1.05); }
         .received .reaction-badge.active { background: rgba(48, 209, 88, 0.15); border-color: var(--p); color: var(--p); }
 
         .msg-author { font-size: 12px; font-weight: 600; color: var(--p); margin-bottom: 4px; }
         .sent .msg-author { display: none; } 
         .msg-time { font-size: 11px; opacity: 0.7; margin-top: 4px; text-align: right; align-self: flex-end; display: flex; align-items: center; gap: 4px; justify-content: flex-end; }
-        .read-receipt { font-size: 12px; margin-left: 2px; color: rgba(0,0,0,0.6); }
+        .read-receipt { font-size: 12px; margin-left: 2px; color: rgba(0,0,0,0.6); transition: color 0.3s ease; }
         .read-receipt.read { color: #000; font-weight: bold; }
         
         .media-content { max-width: 100%; border-radius: 12px; margin-top: 4px; overflow: hidden; display: flex; justify-content: center; align-items: center; }
@@ -148,9 +155,9 @@
         .sent .voice-player { background: rgba(0, 0, 0, 0.1); }
         .voice-play-btn { width: 36px; height: 36px; border-radius: 50%; background: var(--p); border: none; color: #000; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.2s; flex-shrink: 0; }
         .sent .voice-play-btn { background: #000; color: var(--p); }
-        .voice-play-btn:active { transform: scale(0.9); }
+        .voice-play-btn:active { transform: scale(0.85); }
         .voice-wave { flex: 1; display: flex; align-items: center; gap: 3px; height: 32px; overflow: hidden; }
-        .voice-bar { width: 3px; background: var(--p); border-radius: 2px; transition: height 0.1s; }
+        .voice-bar { width: 3px; background: var(--p); border-radius: 2px; transition: height 0.1s ease; }
         .sent .voice-bar { background: #000; }
         .voice-time { font-size: 13px; min-width: 35px; text-align: right; font-weight: 500; flex-shrink: 0; }
         
@@ -167,36 +174,41 @@
         .input-actions { display: flex; gap: 4px; align-items: center; margin-right: 4px; }
         .icon-btn { background: none; border: none; color: var(--mut); font-size: 22px; cursor: pointer; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: all 0.2s; flex-shrink: 0; }
         .icon-btn.send-btn { color: var(--p); }
-        .icon-btn:active { background: var(--in); transform: scale(0.9); }
+        .icon-btn:active { background: var(--in); transform: scale(0.85); }
         
         .recording-pulse { color: var(--red) !important; animation: pulse 1s infinite; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.15); } 100% { transform: scale(1); } }
 
-        .back-btn { background: none; border: none; color: var(--p); font-size: 28px; cursor: pointer; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; margin-right: 4px; flex-shrink: 0;}
+        .back-btn { background: none; border: none; color: var(--p); font-size: 28px; cursor: pointer; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; margin-right: 4px; flex-shrink: 0; transition: transform 0.2s;}
+        .back-btn:active { transform: translateX(-5px); }
         
-        #loader { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 3000; display: none; align-items: center; justify-content: center; flex-direction: column; gap: 16px; }
+        #loader { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 3000; display: none; align-items: center; justify-content: center; flex-direction: column; gap: 16px; opacity: 0; transition: opacity 0.3s;}
         .spinner { width: 40px; height: 40px; border: 4px solid var(--in); border-top: 4px solid var(--p); border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        .add-friend-btn { width: calc(100% - 32px); margin: 16px; padding: 16px; background: var(--p); color: #000; border: none; border-radius: 16px; cursor: pointer; font-size: 16px; font-weight: 700; transition: transform 0.2s; }
-        .add-friend-btn:active { transform: scale(0.97); }
+        .add-friend-btn { width: calc(100% - 32px); margin: 16px; padding: 16px; background: var(--p); color: #000; border: none; border-radius: 16px; cursor: pointer; font-size: 16px; font-weight: 700; transition: transform 0.2s, box-shadow 0.2s; }
+        .add-friend-btn:active { transform: scale(0.97); box-shadow: 0 0 15px rgba(48,209,88,0.3); }
         .section-header { margin: 16px 20px 8px; font-size: 13px; font-weight: 600; color: var(--mut); text-transform: uppercase; letter-spacing: 0.5px; }
         .logout-btn { color: var(--red) !important; }
         
-        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); z-index: 2000; display: none; align-items: center; justify-content: center; padding: 20px; opacity: 0; transition: opacity 0.3s; }
+        /* === ПЛАВНЫЕ МОДАЛЬНЫЕ ОКНА === */
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); z-index: 2000; display: none; align-items: center; justify-content: center; padding: 20px; opacity: 0; transition: opacity 0.3s ease; }
         .modal.active { display: flex; opacity: 1; }
-        .modal-content { background: var(--card); border-radius: 24px; padding: 24px; max-width: 380px; width: 100%; max-height: 85vh; overflow-y: auto; transform: translateY(20px); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); border: 1px solid var(--brd); display: flex; flex-direction: column;}
-        .modal.active .modal-content { transform: translateY(0); }
+        .modal-content { background: var(--card); border-radius: 24px; padding: 24px; max-width: 380px; width: 100%; max-height: 85vh; overflow-y: auto; transform: scale(0.9) translateY(20px); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); border: 1px solid var(--brd); display: flex; flex-direction: column; opacity: 0; }
+        .modal.active .modal-content { transform: scale(1) translateY(0); opacity: 1; }
         
-        .bottom-sheet { margin-top: auto; border-bottom-left-radius: 0; border-bottom-right-radius: 0; padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+        .bottom-sheet { margin-top: auto; border-bottom-left-radius: 0; border-bottom-right-radius: 0; padding-bottom: calc(24px + env(safe-area-inset-bottom)); transform: translateY(100%) scale(1); }
+        .modal.active .bottom-sheet { transform: translateY(0) scale(1); }
+
         .reaction-picker { display: flex; justify-content: space-between; background: var(--in); padding: 14px 20px; border-radius: 20px; margin-bottom: 20px; font-size: 32px; }
         .reaction-picker span { cursor: pointer; transition: transform 0.2s; }
-        .reaction-picker span:active { transform: scale(1.3); }
+        .reaction-picker span:hover { transform: scale(1.2) translateY(-5px); }
+        .reaction-picker span:active { transform: scale(0.9); }
 
         .modal-content h3 { text-align: center; margin-bottom: 20px; font-size: 20px; }
         .avatar-list { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
         .avatar-option { aspect-ratio: 1; border-radius: 50%; cursor: pointer; border: 3px solid transparent; transition: all 0.2s; display: flex; align-items: center; justify-content: center; font-size: 32px; background: var(--in); }
-        .avatar-option.selected, .avatar-option:active { border-color: var(--p); transform: scale(1.05); }
+        .avatar-option.selected, .avatar-option:active { border-color: var(--p); transform: scale(1.1); }
         .profile-view { text-align: center; }
         .profile-view .name { font-size: 24px; font-weight: 700; margin-bottom: 6px; }
         .profile-view .login { color: var(--mut); font-size: 16px; margin-bottom: 16px; }
@@ -204,26 +216,29 @@
         .profile-view .status.online { color: var(--online); background: rgba(48, 209, 88, 0.15); }
         .profile-view .status.offline { color: var(--mut); background: var(--in); }
         .accounts-list { max-height: 300px; overflow-y: auto; }
-        .account-item { display: flex; align-items: center; gap: 14px; padding: 12px; cursor: pointer; border-radius: 16px; transition: background 0.2s; border: 1px solid transparent; }
-        .account-item:active { background: var(--in); border-color: var(--brd); }
+        .account-item { display: flex; align-items: center; gap: 14px; padding: 12px; cursor: pointer; border-radius: 16px; transition: background 0.2s, transform 0.1s; border: 1px solid transparent; }
+        .account-item:active { background: var(--in); border-color: var(--brd); transform: scale(0.97); }
         .account-avatar { width: 48px; height: 48px; border-radius: 50%; background: var(--in); display: flex; align-items: center; justify-content: center; font-size: 20px; overflow: hidden; }
         .account-info { flex: 1; text-align: left; }
         .account-name { font-weight: 600; font-size: 16px; }
         .account-login { font-size: 13px; color: var(--mut); margin-top: 2px; }
-        .chat-header-clickable { cursor: pointer; flex: 1; padding-left: 8px; overflow: hidden; }
+        .chat-header-clickable { cursor: pointer; flex: 1; padding-left: 8px; overflow: hidden; transition: opacity 0.2s;}
+        .chat-header-clickable:active { opacity: 0.6; }
         .chat-header-clickable div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .empty-state { padding: 40px 20px; text-align: center; color: var(--mut); font-size: 16px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+        .empty-state { padding: 40px 20px; text-align: center; color: var(--mut); font-size: 16px; display: flex; flex-direction: column; align-items: center; gap: 12px; animation: fadeIn 0.6s ease; }
         .empty-state span { font-size: 48px; }
         
         .editable-avatar { cursor: pointer; position: relative; }
-        .editable-avatar::after { content: '✏️'; position: absolute; bottom: 0; right: 0; background: var(--card); border-radius: 50%; font-size: 16px; padding: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+        .editable-avatar::after { content: '✏️'; position: absolute; bottom: 0; right: 0; background: var(--card); border-radius: 50%; font-size: 16px; padding: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.5); transition: transform 0.2s;}
+        .editable-avatar:active::after { transform: scale(0.8); }
         
         /* Модалка для медиа */
         #mediaModal { z-index: 3000; padding: 0; background: rgba(0,0,0,0.95); }
         .media-close-btn { position: absolute; top: env(safe-area-inset-top, 20px); right: 20px; color: white; z-index: 3001; font-size: 24px; padding: 10px; }
 
         /* ИНТЕРФЕЙС ИСТОРИЙ */
-        #storyViewer { position: fixed; inset: 0; background: #000; z-index: 4000; display: none; flex-direction: column; }
+        #storyViewer { position: fixed; inset: 0; background: #000; z-index: 4000; display: none; flex-direction: column; opacity: 0; transition: opacity 0.3s ease; transform: scale(0.95); }
+        #storyViewer.active { display: flex; opacity: 1; transform: scale(1); }
         .story-bars { display: flex; gap: 4px; padding: 10px; padding-top: calc(10px + env(safe-area-inset-top)); position: absolute; top: 0; left: 0; width: 100%; z-index: 4001; }
         .story-bar { flex: 1; height: 3px; background: rgba(255,255,255,0.3); border-radius: 3px; overflow: hidden; }
         .story-bar-fill { height: 100%; background: #fff; width: 0%; }
@@ -233,9 +248,12 @@
         .story-nav-area { position: absolute; top: 70px; bottom: 0; left: 0; width: 100%; display: flex; z-index: 4000; }
         .story-nav-area div { flex: 1; cursor: pointer; }
 
-        /* ЭКРАН ЗВОНКА И ВИДЕОСВЯЗИ */
-        #callOverlay { z-index: 9000; flex-direction: column; position: fixed; inset: 0; transition: background 0.3s ease; opacity: 0; display: none; }
-        #callOverlay.active { display: flex; opacity: 1; }
+        /* === ЭКРАН ЗВОНКА И ВИДЕОСВЯЗИ С АНИМАЦИЯМИ === */
+        #callOverlay { z-index: 9000; flex-direction: column; position: fixed; inset: 0; transition: opacity 0.4s ease, transform 0.4s ease, visibility 0.4s; opacity: 0; visibility: hidden; transform: scale(1.05); }
+        #callOverlay.active { opacity: 1; visibility: visible; transform: scale(1); display: flex !important; }
+        
+        /* Плавное закрытие звонка */
+        #callOverlay.closing { opacity: 0; transform: translateY(40px) scale(0.95); visibility: hidden; pointer-events: none; }
         
         @keyframes iridescentGradient { 0% { background-position: 0% 0%; } 50% { background-position: 100% 100%; } 100% { background-position: 0% 0%; } }
 
@@ -270,23 +288,23 @@
         .call-btn-group { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 70px; }
         .call-btn-circle {
             width: 60px; height: 60px; border-radius: 50%; border: none; cursor: pointer;
-            display: flex; align-items: center; justify-content: center; font-size: 24px; transition: transform 0.2s, background 0.2s;
+            display: flex; align-items: center; justify-content: center; font-size: 24px; transition: transform 0.2s cubic-bezier(0.25, 0.8, 0.25, 1.5), background 0.2s;
         }
-        .call-btn-circle:active { transform: scale(0.9); }
+        .call-btn-circle:hover { transform: scale(1.05); }
+        .call-btn-circle:active { transform: scale(0.85); }
         .call-btn-circle.translucent { background: rgba(255,255,255,0.25); color: white; backdrop-filter: blur(10px); }
         .call-btn-circle.white { background: white; color: #111; }
         .call-btn-circle.dark { background: rgba(0,0,0,0.5); color: white; backdrop-filter: blur(10px); }
         .call-btn-circle.red { background: var(--red); color: white; }
         .call-btn-label { font-size: 13px; color: white; opacity: 0.9; text-shadow: 0 1px 2px rgba(0,0,0,0.3); white-space: nowrap; text-align: center;}
 
-        #remoteVideo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+        #remoteVideo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; opacity: 0; transition: opacity 0.5s ease; pointer-events: none; }
         #remoteVideo.active-video { opacity: 1; pointer-events: auto; }
-        #localVideo { position: absolute; top: calc(20px + env(safe-area-inset-top)); right: 20px; width: 100px; height: 140px; border-radius: 12px; object-fit: cover; border: 2px solid rgba(255,255,255,0.5); z-index: 10; display: none; background: #000; transform: scaleX(-1); box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+        #localVideo { position: absolute; top: calc(20px + env(safe-area-inset-top)); right: 20px; width: 100px; height: 140px; border-radius: 12px; object-fit: cover; border: 2px solid rgba(255,255,255,0.5); z-index: 10; display: none; background: #000; transform: scaleX(-1); box-shadow: 0 4px 12px rgba(0,0,0,0.4); transition: transform 0.3s;}
 
-        /* ИСПРАВЛЕННЫЙ СВЕРНУТЫЙ ЗВОНОК (ПЛАВАЮЩАЯ ПЛАШКА) */
         #minimizedCallBar {
             position: fixed; 
-            top: calc(64px + env(safe-area-inset-top)); /* Смещено под шапку чата, чтобы не перекрывать кнопку Назад */
+            top: calc(64px + env(safe-area-inset-top));
             left: 5%; 
             width: 90%; 
             height: 52px;
@@ -299,32 +317,38 @@
             padding: 0 16px; 
             box-shadow: 0 4px 16px rgba(0,0,0,0.4);
             cursor: pointer; 
-            animation: popDown 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            animation: popDown 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition: transform 0.2s;
         }
+        #minimizedCallBar:active { transform: scale(0.97); }
         @keyframes popDown { 
-            from { opacity: 0; transform: translateY(-20px) scale(0.95); } 
+            from { opacity: 0; transform: translateY(-30px) scale(0.9); } 
             to { opacity: 1; transform: translateY(0) scale(1); } 
         }
         #minimizedCallBar .min-call-info { color: white; font-weight: 600; font-size: 14px; flex: 1; text-align: center; }
         #minimizedCallBar .icon-btn-min { width: 36px; height: 36px; border-radius: 50%; border: none; display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; transition: transform 0.2s; }
-        #minimizedCallBar .icon-btn-min:active { transform: scale(0.9); }
+        #minimizedCallBar .icon-btn-min:active { transform: scale(0.85); }
         #minimizedCallBar .mic-btn { background: rgba(255,255,255,0.2); color: white; }
         #minimizedCallBar .mic-btn.muted { background: white; color: #115930; }
         #minimizedCallBar .end-btn { background: var(--red); color: white; }
 
-        /* ПЕЧАТАЕТ... */
         #typing-indicator { font-size: 12px; color: var(--p); padding: 4px 16px; background: rgba(var(--bg), 0.9); display: none; border-bottom: 1px solid var(--brd); position: sticky; top: 56px; z-index: 9; }
         
-        /* ОТВЕТ НА СООБЩЕНИЕ */
-        #replyBox { display: none; background: var(--in); border-radius: 12px; padding: 8px 12px; margin-bottom: 8px; justify-content: space-between; align-items: center; border-left: 3px solid var(--p); }
+        #replyBox { display: none; background: var(--in); border-radius: 12px; padding: 8px 12px; margin-bottom: 8px; justify-content: space-between; align-items: center; border-left: 3px solid var(--p); animation: fadeInForm 0.2s ease; }
         .reply-text-preview { font-size: 13px; color: var(--mut); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 85%; }
         
-        /* ЦИТАТА */
         .msg-quote { border-left: 2px solid rgba(255,255,255,0.5); padding-left: 8px; margin-bottom: 4px; font-size: 13px; opacity: 0.8; background: rgba(0,0,0,0.1); border-radius: 4px; padding: 4px 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .sent .msg-quote { background: rgba(0,0,0,0.15); border-color: #000; }
+
+        /* ПЛАШКА ДЛЯ РАЗБЛОКИРОВКИ ЗВУКА */
+        #audio-unlock-toast { position: fixed; top: calc(20px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); background: var(--card); border: 2px solid var(--p); color: var(--txt); padding: 12px 24px; border-radius: 25px; font-weight: 700; z-index: 9999; display: none; box-shadow: 0 10px 30px rgba(48,209,88,0.2); cursor: pointer; animation: popDownToast 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); transition: transform 0.2s; }
+        #audio-unlock-toast:active { transform: translateX(-50%) scale(0.95); }
+        @keyframes popDownToast { from { opacity: 0; transform: translate(-50%, -40px); } to { opacity: 1; transform: translate(-50%, 0); } }
     </style>
 </head>
 <body>
+
+<div id="audio-unlock-toast" onclick="forceUnlockAudio()">🔊 Включить звук</div>
 
 <div class="auth-screen" id="authScreen">
     <div class="auth-card">
@@ -384,25 +408,14 @@
 </div>
 
 <script>
-    // Генерация манифеста PWA на лету. В head также добавлен тег link rel="manifest" для поддержки стандартов.
     function pwaManifest() { return { 
-        "name": "Nexagram", 
-        "short_name": "Nexagram", 
-        "start_url": ".", 
-        "display": "standalone", 
-        "background_color": "#000000", 
-        "theme_color": "#000000", 
-        "icons": [{ 
-            "src": "icon.png", 
-            "sizes": "512x512", 
-            "type": "image/png",
-            "purpose": "any maskable"
-        }]
+        "name": "Nexagram", "short_name": "Nexagram", "start_url": ".", "display": "standalone", 
+        "background_color": "#000000", "theme_color": "#000000", 
+        "icons": [{ "src": "icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }]
     }; }
     document.head.insertAdjacentHTML('beforeend', `<link rel="manifest" href="data:application/manifest+json;charset=utf-8,${encodeURIComponent(JSON.stringify(pwaManifest()))}">`);
 </script>
 
-<!-- Аудио элементы теперь обновляются через JS из настроек -->
 <audio id="incomingRingtone" loop></audio>
 <audio id="outgoingRingtone" loop src="https://upload.wikimedia.org/wikipedia/commons/f/fc/Ringback_tone_%28North_America%29.ogg"></audio>
 <audio id="notificationSound"></audio>
@@ -557,11 +570,9 @@
     </div>
 </div>
 
-<!-- Модальное окно настроек звука -->
 <div id="soundModal" class="modal">
     <div class="modal-content">
         <h3>Звуки и рингтоны</h3>
-        
         <div class="input-group" style="margin-top: 16px;">
             <label>Рингтон входящего вызова</label>
             <select id="ringtoneSelect" class="auth-input" onchange="previewRingtone()">
@@ -571,7 +582,6 @@
                 <option value="custom">Своя ссылка...</option>
             </select>
         </div>
-        
         <div class="input-group">
             <label>Звук нового сообщения</label>
             <select id="notifSelect" class="auth-input" onchange="previewNotif()">
@@ -580,7 +590,6 @@
                 <option value="none">Без звука</option>
             </select>
         </div>
-        
         <button class="auth-btn" onclick="saveSoundSettings()">Сохранить настройки</button>
         <button class="auth-btn" style="background: var(--in); color: var(--txt); margin-top: 12px;" onclick="closeSoundModal()">Отмена</button>
     </div>
@@ -593,15 +602,8 @@
 <div id="forgotModal" class="modal">
     <div class="modal-content">
         <h3>Восстановление</h3>
-        
-        <div class="input-group" style="margin-top: 16px;">
-            <input type="text" id="forgotLogin" placeholder="Ваш логин или Email">
-        </div>
-        
-        <div class="input-group">
-            <input type="text" id="forgotSecret" placeholder="Секретное слово (для логина)">
-        </div>
-        
+        <div class="input-group" style="margin-top: 16px;"><input type="text" id="forgotLogin" placeholder="Ваш логин или Email"></div>
+        <div class="input-group"><input type="text" id="forgotSecret" placeholder="Секретное слово (для логина)"></div>
         <button class="auth-btn" onclick="resetPasswordWithSecret()">Сбросить локальный пароль</button>
         <button class="auth-btn" style="background: var(--online); margin-top: 12px; color: #000;" onclick="resetFirebasePassword()">Сбросить по Email</button>
         <button class="auth-btn" style="background: var(--in); color: var(--txt); margin-top: 12px;" onclick="closeForgotModal()">Отмена</button>
@@ -654,7 +656,7 @@
     </div>
 </div>
 
-<div id="callOverlay" class="modal">
+<div id="callOverlay">
     <video id="remoteVideo" autoplay playsinline></video>
     <video id="localVideo" autoplay playsinline muted></video>
 
@@ -680,13 +682,43 @@
     <div class="call-actions-row" id="callControls"></div>
 </div>
 
-<audio id="remoteAudio" autoplay playsinline></audio>
-
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 
 <script>
+    // === ГЕНЕРАТОР SERVICE WORKER ДЛЯ УВЕДОМЛЕНИЙ ===
+    let swRegistration = null;
+    if ('serviceWorker' in navigator) {
+        // Создаем мини-воркер прямо из кода, чтобы Android пускал пуши
+        const swBlob = new Blob(["self.addEventListener('notificationclick', function(event) { event.notification.close(); });"], {type: 'application/javascript'});
+        navigator.serviceWorker.register(URL.createObjectURL(swBlob))
+            .then(reg => { swRegistration = reg; })
+            .catch(err => { console.log('SW fallback mode', err); });
+    }
+
+    // === УМНАЯ СИСТЕМА ВОСПРОИЗВЕДЕНИЯ ЗВУКА ===
+    function safePlayAudio(audioElement) {
+        if (!audioElement.src || audioElement.src.includes('none')) return;
+        const playPromise = audioElement.play();
+        if (playPromise !== undefined) {
+            playPromise.catch(error => {
+                if (error.name === 'NotAllowedError') {
+                    // Если браузер заблокировал звук, показываем кнопку
+                    document.getElementById('audio-unlock-toast').style.display = 'block';
+                }
+            });
+        }
+    }
+
+    function forceUnlockAudio() {
+        document.getElementById('audio-unlock-toast').style.display = 'none';
+        ['incomingRingtone', 'outgoingRingtone', 'notificationSound'].forEach(id => {
+            const el = document.getElementById(id);
+            if(el && el.src) { el.play().then(() => el.pause()).catch(()=>{}); }
+        });
+    }
+
     function hashString(str) { return btoa(unescape(encodeURIComponent(str))); }
 
     let currentStoryUser = null; let currentStoryIdx = 0; let storyTimerId = null;
@@ -710,6 +742,7 @@
     
     const inRing = document.getElementById('incomingRingtone');
     const outRing = document.getElementById('outgoingRingtone');
+    const notifSound = document.getElementById('notificationSound');
     
     const ensureArray = (data) => {
         if (data === null || data === undefined) return [];
@@ -728,22 +761,14 @@
     
     let localSettings = JSON.parse(localStorage.getItem('Nexagram_Settings')) || { theme: 'green', lightMode: false };
     
-    // ПЕРЕМЕННЫЕ ЗВУКА
     let currentRingtone = localSettings.ringtone || "https://upload.wikimedia.org/wikipedia/commons/c/c4/Telephone_ringing.ogg";
     let currentNotif = localSettings.notifSound || "https://actions.google.com/sounds/v1/cartoon/pop.ogg";
 
     function applySounds() {
-        const inRingEl = document.getElementById('incomingRingtone');
-        if (inRingEl.src !== currentRingtone) inRingEl.src = currentRingtone;
-        
-        const notifEl = document.getElementById('notificationSound');
-        if (currentNotif === 'none') {
-            notifEl.removeAttribute('src');
-        } else {
-            if (notifEl.src !== currentNotif) notifEl.src = currentNotif;
-        }
+        if (inRing.src !== currentRingtone) inRing.src = currentRingtone;
+        if (currentNotif === 'none') { notifSound.removeAttribute('src'); } 
+        else { if (notifSound.src !== currentNotif) notifSound.src = currentNotif; }
     }
-    // Применяем сразу при загрузке страницы
     applySounds();
 
     let drafts = JSON.parse(localStorage.getItem('Nexagram_Drafts')) || {};
@@ -772,6 +797,7 @@
     function isSuperAdmin(user) { if (!user) return false; return ['helper', 'demo', 'admin'].includes(user.login.toLowerCase()) || user.isGlobalAdmin; }
 
     document.getElementById('loader').style.display = 'flex';
+    document.getElementById('loader').style.opacity = '1';
     
     rtdb.ref('/dg_app_data').on('value', (snapshot) => {
         try {
@@ -796,15 +822,18 @@
                         const lastMsg = c.msgs[currentCount - 1];
                         if (lastMsg.uid !== me.id && lastMsg.uid !== 'system' && (document.hidden || !activeChat || activeChat.id !== c.id)) {
                             
-                            // === ВОСПРОИЗВЕДЕНИЕ ЗВУКА УВЕДОМЛЕНИЯ ===
-                            const nSound = document.getElementById('notificationSound');
-                            if (currentNotif !== 'none' && nSound.src) {
-                                nSound.play().catch(e => console.warn('Уведомление заблокировано браузером:', e));
-                            }
+                            safePlayAudio(notifSound); // Безопасное проигрывание звука
 
+                            // Продвинутые уведомления с поддержкой Android
                             if ("Notification" in window && Notification.permission === "granted") {
                                 let senderName = "Nexagram"; const sender = db.users.find(u => u.id === lastMsg.uid);
-                                if (sender) senderName = sender.name; new Notification(senderName, { body: lastMsg.txt || 'Медиа сообщение' });
+                                if (sender) senderName = sender.name; 
+                                
+                                if (swRegistration) {
+                                    swRegistration.showNotification(senderName, { body: lastMsg.txt || 'Новое сообщение', icon: 'icon.png' });
+                                } else {
+                                    new Notification(senderName, { body: lastMsg.txt || 'Новое сообщение', icon: 'icon.png' });
+                                }
                             }
                         }
                     }
@@ -813,7 +842,10 @@
             }
             
             if (!isInitialLoadDone) isInitialLoadDone = true;
-            isDbReady = true; document.getElementById('loader').style.display = 'none';
+            isDbReady = true; 
+            const loader = document.getElementById('loader');
+            loader.style.opacity = '0';
+            setTimeout(() => loader.style.display = 'none', 300);
 
             const savedSession = localStorage.getItem('Nexagram_Session_UID');
 
@@ -844,10 +876,19 @@
             } else {
                 document.getElementById('app').style.display = 'none'; document.getElementById('authScreen').style.display = 'flex';
             }
-        } catch (err) { document.getElementById('loader').style.display = 'none'; console.error(err); }
-    }, (error) => { document.getElementById('loader').style.display = 'none'; alert("Ошибка подключения к серверу: " + error.message); });
+        } catch (err) { console.error(err); }
+    }, (error) => { alert("Ошибка подключения: " + error.message); });
 
-    function requestNotifications() { if (!("Notification" in window)) { alert("Ваш браузер не поддерживает уведомления."); return; } Notification.requestPermission().then(permission => { if (permission === "granted") { new Notification("Nexagram", { body: "Уведомления успешно включены!" }); } else { alert("Уведомления отклонены."); } }); }
+    function requestNotifications() { 
+        if (!("Notification" in window)) { alert("Ваш браузер не поддерживает уведомления."); return; } 
+        Notification.requestPermission().then(permission => { 
+            if (permission === "granted") { 
+                if (swRegistration) { swRegistration.showNotification("Nexagram", { body: "Уведомления включены!", icon: 'icon.png' }); }
+                else { new Notification("Nexagram", { body: "Уведомления включены!", icon: 'icon.png' }); }
+            } else { alert("Уведомления отклонены."); } 
+        }); 
+    }
+
     function markChatAsReadLocally() { if (!activeChat || !me) return; const chatIndex = db.chats.findIndex(c => c.id === activeChat.id); if (chatIndex > -1) { const currentRead = (activeChat.lastRead && activeChat.lastRead[me.id]) || 0; const lastMsg = activeChat.msgs && activeChat.msgs.length > 0 ? activeChat.msgs[activeChat.msgs.length - 1] : null; if (!lastMsg || currentRead >= lastMsg.time) return; rtdb.ref(`/dg_app_data/chats/${chatIndex}/lastRead/${me.id}`).set(Date.now()); } }
 
     let presenceRef = null; let connectedRef = null;
@@ -873,21 +914,22 @@
     function ensureHelper() { let helper = db.users.find(u => u.login === 'helper'); if (!helper) { helper = { id: 'helper_1', login: 'helper', name: 'Админ Nexagram', avatarType: 'emoji', avatarValue: '🤖', friends: [], password: hashString('maskimru'), secretWord: hashString('admin123'), lastSeen: Date.now(), isBanned: false }; db.users.push(helper); rtdb.ref('/dg_app_data').set({ users: db.users, chats: db.chats, stories: db.stories }); } return helper; }
 
     async function uploadToCloud(file) {
-        document.getElementById('loader').style.display = 'flex'; const loaderText = document.querySelector('#loader div:nth-child(2)'); if(loaderText) loaderText.textContent = 'Отправка...';
+        const loader = document.getElementById('loader'); loader.style.display = 'flex'; loader.style.opacity = '1';
+        const loaderText = document.querySelector('#loader div:nth-child(2)'); if(loaderText) loaderText.textContent = 'Отправка...';
         const formData = new FormData(); formData.append('file', file); formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
         let resType = 'auto'; const type = getFileType(file); if (type === 'image') resType = 'image'; else if (type === 'video' || type === 'audio') resType = 'video'; else resType = 'raw'; 
         try {
             const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${resType}/upload`, { method: 'POST', body: formData });
             const data = await res.json(); if (data.error) throw new Error(data.error.message);
-            document.getElementById('loader').style.display = 'none'; if(loaderText) loaderText.textContent = 'Синхронизация...';
+            loader.style.opacity = '0'; setTimeout(()=>loader.style.display='none', 300); if(loaderText) loaderText.textContent = 'Синхронизация...';
             return data.secure_url; 
-        } catch (error) { document.getElementById('loader').style.display = 'none'; if(loaderText) loaderText.textContent = 'Синхронизация...'; alert('Ошибка загрузки: ' + error.message); return null; }
+        } catch (error) { loader.style.opacity = '0'; setTimeout(()=>loader.style.display='none', 300); if(loaderText) loaderText.textContent = 'Синхронизация...'; alert('Ошибка: ' + error.message); return null; }
     }
 
     function uploadGlobalWallpaper() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = async e => { if(e.target.files[0]) { const url = await uploadToCloud(e.target.files[0]); if (url) { me.wallpaper = url; const uIdx = db.users.findIndex(u => u.id === me.id); if (uIdx > -1) rtdb.ref(`/dg_app_data/users/${uIdx}/wallpaper`).set(url); alert('Обои успешно установлены!'); } } }; input.click(); }
     function clearGlobalWallpaper() { if(confirm('Сбросить обои чатов на стандартные?')) { me.wallpaper = null; const uIdx = db.users.findIndex(u => u.id === me.id); if (uIdx > -1) rtdb.ref(`/dg_app_data/users/${uIdx}/wallpaper`).remove(); alert('Обои сброшены.'); } }
 
-    // ================= ЗВОНКИ =================
+    // ================= ЗВОНКИ И АНИМАЦИИ =================
     function setCallStatusText(text) { document.getElementById('callStatus').textContent = text; document.getElementById('callStatusSmall').textContent = text; }
     function applyCallBackground() { const overlay = document.getElementById('callOverlay'); if (me && me.wallpaper) { overlay.style.background = `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('${escapeHtml(me.wallpaper)}')`; overlay.style.backgroundSize = 'cover'; overlay.style.backgroundPosition = 'center'; overlay.style.animation = 'none'; overlay.style.backgroundBlendMode = 'normal'; } else { overlay.style.background = `linear-gradient(135deg, rgba(0,0,0,0.1), rgba(255,255,255,0.25), rgba(0,0,0,0.4)), var(--p)`; overlay.style.backgroundSize = '200% 200%'; overlay.style.backgroundBlendMode = 'hard-light'; overlay.style.animation = 'iridescentGradient 8s ease infinite'; } }
 
@@ -927,23 +969,50 @@
         applyCallBackground(); 
         document.getElementById('callAvatar').innerHTML = getAvatarHtml(caller.avatarType, caller.avatarValue); document.getElementById('callName').textContent = caller.name; document.getElementById('callNameSmall').textContent = caller.name; document.getElementById('minCallInfo').textContent = `${caller.name} · Ожидание...`;
         setCallStatusText('Входящий вызов...'); isCallMicMuted = false; isCallCamOff = false; isSpeakerOn = true;
-        const overlay = document.getElementById('callOverlay'); overlay.classList.add('active'); overlay.style.display = 'flex'; document.getElementById('minimizedCallBar').style.display = 'none';
+        const overlay = document.getElementById('callOverlay'); 
+        overlay.classList.remove('closing');
+        overlay.classList.add('active'); 
+        document.getElementById('minimizedCallBar').style.display = 'none';
         document.getElementById('callCenterArea').style.display = 'flex'; document.getElementById('callTopCenter').style.display = 'none';
         document.getElementById('callControls').innerHTML = `
             <div class="call-btn-group"><button class="call-btn-circle" style="background: var(--online); color: white;" onclick="acceptCall(${currentCallIsVideo})">${currentCallIsVideo ? '📹' : '📞'}</button><div class="call-btn-label">Принять</div></div>
             <div class="call-btn-group"><button class="call-btn-circle red" onclick="endCall()">⛔</button><div class="call-btn-label">Отклонить</div></div>
         `;
         document.getElementById('localVideo').style.display = 'none'; document.getElementById('remoteVideo').classList.remove('active-video');
-        inRing.play().catch(e => console.warn('Автовоспроизведение заблокировано', e));
-        if ("Notification" in window && Notification.permission === "granted" && document.hidden) { new Notification('Входящий вызов', { body: `Звонит ${caller.name}` }); }
+        safePlayAudio(inRing);
+        
+        if ("Notification" in window && Notification.permission === "granted" && document.hidden) { 
+            if(swRegistration) swRegistration.showNotification('Входящий вызов', { body: `Звонит ${caller.name}`, icon: 'icon.png' });
+            else new Notification('Входящий вызов', { body: `Звонит ${caller.name}` }); 
+        }
     }
 
-    function minimizeCall() { document.getElementById('callOverlay').style.display = 'none'; document.getElementById('minimizedCallBar').style.display = 'flex'; }
-    function expandCall() { document.getElementById('callOverlay').style.display = ''; document.getElementById('minimizedCallBar').style.display = 'none'; }
+    function minimizeCall() { 
+        document.getElementById('callOverlay').classList.remove('active');
+        setTimeout(() => { document.getElementById('minimizedCallBar').style.display = 'flex'; }, 300);
+    }
+    
+    function expandCall() { 
+        document.getElementById('callOverlay').classList.add('active'); 
+        document.getElementById('minimizedCallBar').style.display = 'none'; 
+    }
+    
+    // Функция скрытия звонка с плавной анимацией
     function hideCallUI() {
-        document.getElementById('callOverlay').classList.remove('active'); document.getElementById('callOverlay').style.display = ''; document.getElementById('minimizedCallBar').style.display = 'none';
-        document.getElementById('localVideo').style.display = 'none'; document.getElementById('remoteVideo').classList.remove('active-video'); document.getElementById('remoteVideo').srcObject = null;
-        document.getElementById('callTopCenter').style.display = 'none'; document.getElementById('callCenterArea').style.display = 'flex';
+        const overlay = document.getElementById('callOverlay');
+        overlay.classList.remove('active');
+        overlay.classList.add('closing');
+        document.getElementById('minimizedCallBar').style.display = 'none';
+        
+        setTimeout(() => {
+            overlay.classList.remove('closing');
+            document.getElementById('localVideo').style.display = 'none'; 
+            document.getElementById('remoteVideo').classList.remove('active-video'); 
+            document.getElementById('remoteVideo').srcObject = null;
+            document.getElementById('callTopCenter').style.display = 'none'; 
+            document.getElementById('callCenterArea').style.display = 'flex';
+        }, 400); // Ждем пока CSS анимация закончится
+
         inRing.pause(); inRing.currentTime = 0; outRing.pause(); outRing.currentTime = 0;
     }
 
@@ -966,9 +1035,12 @@
         applyCallBackground(); 
         document.getElementById('callAvatar').innerHTML = getAvatarHtml(targetUser.avatarType, targetUser.avatarValue); document.getElementById('callName').textContent = targetUser.name; document.getElementById('callNameSmall').textContent = targetUser.name; document.getElementById('minCallInfo').textContent = `${targetUser.name} · Ожидание...`;
         setCallStatusText('Запрос . .'); isCallMicMuted = false; isCallCamOff = false; isSpeakerOn = true;
-        document.getElementById('callOverlay').classList.add('active'); document.getElementById('callOverlay').style.display = 'flex'; document.getElementById('minimizedCallBar').style.display = 'none';
+        const overlay = document.getElementById('callOverlay');
+        overlay.classList.remove('closing');
+        overlay.classList.add('active');
+        document.getElementById('minimizedCallBar').style.display = 'none';
         document.getElementById('callCenterArea').style.display = 'flex'; document.getElementById('callTopCenter').style.display = 'none';
-        renderCallControls(); outRing.play().catch(e => console.warn('Автовоспроизведение заблокировано', e));
+        renderCallControls(); safePlayAudio(outRing);
 
         try {
             localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: isVideo ? { facingMode: currentFacingMode } : false });
@@ -1044,7 +1116,7 @@
             const newVideoTrack = newStream.getVideoTracks()[0]; localStream.addTrack(newVideoTrack);
             const localVid = document.getElementById('localVideo'); localVid.srcObject = localStream; localVid.style.transform = currentFacingMode === 'user' ? 'scaleX(-1)' : 'none';
             if (peerConnection) { const sender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'video'); if (sender) sender.replaceTrack(newVideoTrack); }
-        } catch(e) { console.error("Error flipping camera", e); alert("Не удалось переключить камеру: " + e.message); }
+        } catch(e) { console.error("Error", e); alert("Не удалось переключить камеру: " + e.message); }
     }
 
     function toggleCallSpeaker() { isSpeakerOn = !isSpeakerOn; renderCallControls(); const rVid = document.getElementById('remoteVideo'); if (typeof rVid.setSinkId === 'function') { const targetSink = isSpeakerOn ? 'default' : ''; rVid.setSinkId(targetSink).catch(e => console.log(e)); } }
@@ -1057,16 +1129,23 @@
 
     function switchAuthTab(tab) {
         document.querySelectorAll('.auth-tab').forEach(t => t.classList.toggle('active', t.dataset.tab===tab));
-        document.getElementById('loginForm').classList.toggle('active', tab==='login');
-        document.getElementById('registerForm').classList.toggle('active', tab==='register');
+        const lForm = document.getElementById('loginForm');
+        const rForm = document.getElementById('registerForm');
+        
+        if(tab === 'login') {
+            rForm.classList.remove('active');
+            setTimeout(() => { rForm.style.display = 'none'; lForm.style.display = 'block'; setTimeout(()=>lForm.classList.add('active'), 50); }, 300);
+        } else {
+            lForm.classList.remove('active');
+            setTimeout(() => { lForm.style.display = 'none'; rForm.style.display = 'block'; setTimeout(()=>rForm.classList.add('active'), 50); }, 300);
+        }
         document.getElementById('secretGroup').classList.toggle('visible', tab==='register');
     }
 
     async function loginWithGitHub() {
         if (!isDbReady) return alert('Подождите, идет подключение к серверу...'); ensureHelper();
-        if ("Notification" in window && Notification.permission === "default") { Notification.requestPermission(); }
         try {
-            document.getElementById('loader').style.display = 'flex';
+            document.getElementById('loader').style.display = 'flex'; setTimeout(()=>document.getElementById('loader').style.opacity = '1', 50);
             const result = await firebase.auth().signInWithPopup(githubProvider); 
             const ghUser = result.user;
             let user = db.users.find(u => u.githubUid === ghUser.uid || (ghUser.email && u.email === ghUser.email.toLowerCase()));
@@ -1083,23 +1162,18 @@
                 user = { id: 'u_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6), login: finalLogin, email: ghUser.email ? ghUser.email.toLowerCase() : '', name: ghUser.displayName || finalLogin, avatarType: 'url', avatarValue: ghUser.photoURL || '', friends: [], friendRequests: [], password: hashString('github_auth'), secretWord: hashString('github_auth'), lastSeen: Date.now(), isBanned: false, githubUid: ghUser.uid, firebaseUid: ghUser.uid };
                 db.users.push(user); await rtdb.ref('/dg_app_data/users').set(db.users);
             }
-            document.getElementById('loader').style.display = 'none'; proceedWithLogin(user);
+            document.getElementById('loader').style.opacity = '0'; setTimeout(()=>document.getElementById('loader').style.display='none', 300); proceedWithLogin(user);
         } catch (error) { 
-            document.getElementById('loader').style.display = 'none'; 
-            console.error(error); 
-            if (error.code === 'auth/account-exists-with-different-credential') {
-                alert('⚠️ Этот Email уже используется. Пожалуйста, войдите тем способом, которым регистрировались изначально (например, через Google или по паролю).');
-            } else if (error.code !== 'auth/popup-closed-by-user') { 
-                alert('Ошибка авторизации GitHub: ' + error.message); 
-            } 
+            document.getElementById('loader').style.opacity = '0'; setTimeout(()=>document.getElementById('loader').style.display='none', 300);
+            if (error.code === 'auth/account-exists-with-different-credential') { alert('⚠️ Этот Email уже используется. Пожалуйста, войдите тем способом, которым регистрировались изначально.'); } 
+            else if (error.code !== 'auth/popup-closed-by-user') { alert('Ошибка авторизации: ' + error.message); } 
         }
     }
 
     async function loginWithGoogle() {
         if (!isDbReady) return alert('Подождите, идет подключение к серверу...'); ensureHelper();
-        if ("Notification" in window && Notification.permission === "default") { Notification.requestPermission(); }
         try {
-            document.getElementById('loader').style.display = 'flex';
+            document.getElementById('loader').style.display = 'flex'; setTimeout(()=>document.getElementById('loader').style.opacity = '1', 50);
             const result = await firebase.auth().signInWithPopup(googleProvider); const gUser = result.user;
             let user = db.users.find(u => u.googleUid === gUser.uid || u.email === gUser.email.toLowerCase());
 
@@ -1112,8 +1186,8 @@
                 user = { id: 'u_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6), login: finalLogin, email: gUser.email.toLowerCase(), name: gUser.displayName || finalLogin, avatarType: 'url', avatarValue: gUser.photoURL || '', friends: [], friendRequests: [], password: hashString('google_auth'), secretWord: hashString('google_auth'), lastSeen: Date.now(), isBanned: false, googleUid: gUser.uid, firebaseUid: gUser.uid };
                 db.users.push(user); await rtdb.ref('/dg_app_data/users').set(db.users);
             }
-            document.getElementById('loader').style.display = 'none'; proceedWithLogin(user);
-        } catch (error) { document.getElementById('loader').style.display = 'none'; console.error(error); if (error.code !== 'auth/popup-closed-by-user') { alert('Ошибка Google: ' + error.message); } }
+            document.getElementById('loader').style.opacity = '0'; setTimeout(()=>document.getElementById('loader').style.display='none', 300); proceedWithLogin(user);
+        } catch (error) { document.getElementById('loader').style.opacity = '0'; setTimeout(()=>document.getElementById('loader').style.display='none', 300); if (error.code !== 'auth/popup-closed-by-user') { alert('Ошибка Google: ' + error.message); } }
     }
 
     async function doLogin() {
@@ -1125,19 +1199,19 @@
         
         if (isEmail) {
             try {
-                document.getElementById('loader').style.display = 'flex';
+                document.getElementById('loader').style.display = 'flex'; setTimeout(()=>document.getElementById('loader').style.opacity = '1', 50);
                 const userCred = await firebase.auth().signInWithEmailAndPassword(loginLower, passwordVal);
                 
                 if (!userCred.user.emailVerified) {
-                    document.getElementById('loader').style.display = 'none'; await firebase.auth().signOut();
-                    return alert('❌ Ваша почта еще не подтверждена!\n\nПожалуйста, найдите письмо от Firebase в вашем ящике (включая папку Спам) и перейдите по ссылке.');
+                    document.getElementById('loader').style.opacity = '0'; setTimeout(()=>document.getElementById('loader').style.display='none', 300); await firebase.auth().signOut();
+                    return alert('❌ Ваша почта еще не подтверждена!\n\nПроверьте папку Спам и перейдите по ссылке в письме от Firebase.');
                 }
 
                 let user = db.users.find(u => u.email === loginLower || u.firebaseUid === userCred.user.uid);
-                if (!user) { document.getElementById('loader').style.display = 'none'; return alert('Пользователь не найден в базе'); }
-                if (user.isBanned) { document.getElementById('loader').style.display = 'none'; return alert('❌ Аккаунт заблокирован.'); }
-                document.getElementById('loader').style.display = 'none'; proceedWithLogin(user);
-            } catch (error) { document.getElementById('loader').style.display = 'none'; return alert('Ошибка входа по почте: ' + (error.code === 'auth/wrong-password' ? 'Неверный пароль' : error.message)); }
+                if (!user) { document.getElementById('loader').style.opacity = '0'; setTimeout(()=>document.getElementById('loader').style.display='none', 300); return alert('Пользователь не найден в базе'); }
+                if (user.isBanned) { document.getElementById('loader').style.opacity = '0'; setTimeout(()=>document.getElementById('loader').style.display='none', 300); return alert('❌ Аккаунт заблокирован.'); }
+                document.getElementById('loader').style.opacity = '0'; setTimeout(()=>document.getElementById('loader').style.display='none', 300); proceedWithLogin(user);
+            } catch (error) { document.getElementById('loader').style.opacity = '0'; setTimeout(()=>document.getElementById('loader').style.display='none', 300); return alert('Ошибка входа: ' + (error.code === 'auth/wrong-password' ? 'Неверный пароль' : error.message)); }
         } else {
             const user = db.users.find(u => u.login === loginLower);
             if (!user) return alert('Аккаунт не найден');
@@ -1164,13 +1238,13 @@
         if (!isEmail && db.users.find(u => u.login === loginLower)) return alert('Логин занят');
         
         if (isEmail) {
-            let customLogin = prompt("Для удобного поиска добавьте уникальный логин (без @):");
-            if (!customLogin || customLogin.trim().length < 3 || customLogin.includes('@')) { return alert('Некорректный логин. Минимум 3 символа, без @.'); }
+            let customLogin = prompt("Уникальный логин (без @):");
+            if (!customLogin || customLogin.trim().length < 3 || customLogin.includes('@')) { return alert('Некорректный логин.'); }
             customLogin = customLogin.trim().toLowerCase();
-            if (db.users.find(u => u.login === customLogin)) { return alert('Этот логин уже занят другим пользователем.'); }
+            if (db.users.find(u => u.login === customLogin)) { return alert('Этот логин занят.'); }
 
             try {
-                document.getElementById('loader').style.display = 'flex';
+                document.getElementById('loader').style.display = 'flex'; setTimeout(()=>document.getElementById('loader').style.opacity = '1', 50);
                 const userCred = await firebase.auth().createUserWithEmailAndPassword(loginLower, passwordVal);
                 const fUser = userCred.user;
                 
@@ -1181,12 +1255,12 @@
                     user = { id: 'u_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6), login: customLogin, email: loginLower, name: customLogin, avatarType: 'emoji', avatarValue: builtInAvatars[Math.floor(Math.random() * builtInAvatars.length)], friends: [], friendRequests: [], password: hashString('firebase_auth'), secretWord: hashString(secretVal || 'firebase_auth'), lastSeen: Date.now(), isBanned: false, firebaseUid: fUser.uid };
                     db.users.push(user); await rtdb.ref('/dg_app_data/users').set(db.users);
                 }
-                document.getElementById('loader').style.display = 'none';
+                document.getElementById('loader').style.opacity = '0'; setTimeout(()=>document.getElementById('loader').style.display='none', 300);
                 
                 await firebase.auth().signOut(); 
-                alert('✅ Успешно!\n\nНа вашу почту ' + loginLower + ' отправлено письмо.\n\nПожалуйста, перейдите по ссылке в письме для подтверждения, а затем войдите в аккаунт.');
+                alert('✅ Успешно!\nПисьмо отправлено на почту. Подтвердите и войдите.');
                 switchAuthTab('login');
-            } catch (error) { document.getElementById('loader').style.display = 'none'; return alert('Ошибка регистрации: ' + error.message); }
+            } catch (error) { document.getElementById('loader').style.opacity = '0'; setTimeout(()=>document.getElementById('loader').style.display='none', 300); return alert('Ошибка: ' + error.message); }
         } else {
             me = { id: 'u_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6), login: loginLower, name: loginVal, avatarType: 'emoji', avatarValue: builtInAvatars[Math.floor(Math.random() * builtInAvatars.length)], friends: [], friendRequests: [], password: hashString(passwordVal), secretWord: hashString(secretVal), lastSeen: Date.now(), isBanned: false };
             db.users.push(me); rtdb.ref('/dg_app_data/users').set(db.users); proceedWithLogin(me);
@@ -1195,17 +1269,25 @@
     
     function proceedWithLogin(user) {
         me = user; localStorage.setItem('Nexagram_Session_UID', me.id);
-        document.getElementById('authScreen').style.display = 'none'; document.getElementById('app').style.display = 'flex';
-        if (localSettings.lightMode) { document.documentElement.setAttribute('data-theme', 'light'); document.getElementById('themeIcon').textContent = '🌙'; } else { document.documentElement.removeAttribute('data-theme'); document.getElementById('themeIcon').textContent = '☀️'; }
-        applyTheme(localSettings.theme || 'green'); updUI(); renderFriends(); renderChats(); renderStories(); renderCalls(); setupPresence(); listenForIncomingCalls(); 
-        document.getElementById('loginPassword').value = ''; document.getElementById('regPassword').value = ''; document.getElementById('regConfirm').value = '';
+        const authScr = document.getElementById('authScreen');
+        authScr.style.opacity = '0';
+        setTimeout(() => {
+            authScr.style.display = 'none'; 
+            document.getElementById('app').style.display = 'flex';
+            if (localSettings.lightMode) { document.documentElement.setAttribute('data-theme', 'light'); document.getElementById('themeIcon').textContent = '🌙'; } else { document.documentElement.removeAttribute('data-theme'); document.getElementById('themeIcon').textContent = '☀️'; }
+            applyTheme(localSettings.theme || 'green'); updUI(); renderFriends(); renderChats(); renderStories(); renderCalls(); setupPresence(); listenForIncomingCalls(); 
+            document.getElementById('loginPassword').value = ''; document.getElementById('regPassword').value = ''; document.getElementById('regConfirm').value = '';
+        }, 300);
     }
 
     function logout() {
         if (confirm('Выйти из аккаунта?')) {
             if (presenceRef) { presenceRef.onDisconnect().cancel(); presenceRef.set(Date.now()); } if (connectedRef) connectedRef.off();
             localStorage.removeItem('Nexagram_Session_UID'); me = null; activeChat = null;
-            document.getElementById('app').style.display = 'none'; document.getElementById('authScreen').style.display = 'flex'; document.getElementById('chat-window').classList.remove('active');
+            document.getElementById('app').style.display = 'none'; 
+            const authScr = document.getElementById('authScreen');
+            authScr.style.display = 'flex'; setTimeout(()=>authScr.style.opacity='1', 50);
+            document.getElementById('chat-window').classList.remove('active');
             document.getElementById('loginUsername').value = ''; document.getElementById('loginPassword').value = '';
         }
     }
@@ -1229,7 +1311,10 @@
 
     function viewStory(uid) {
         const now = Date.now(); const userStories = db.stories.filter(s => s.uid === uid && now - s.time < 24 * 60 * 60 * 1000); if (userStories.length === 0) return;
-        currentStoryUser = uid; currentStoryIdx = 0; document.getElementById('storyViewer').style.display = 'flex'; showStoryFrame();
+        currentStoryUser = uid; currentStoryIdx = 0; 
+        const viewer = document.getElementById('storyViewer');
+        viewer.style.display = 'flex'; setTimeout(()=>viewer.classList.add('active'), 10);
+        showStoryFrame();
     }
 
     function showStoryFrame() {
@@ -1253,7 +1338,7 @@
     function deleteStory() { if (!confirm('Удалить эту историю?')) return; const now = Date.now(); const userStories = db.stories.filter(s => s.uid === currentStoryUser && now - s.time < 24 * 60 * 60 * 1000); const storyToDelete = userStories[currentStoryIdx]; if (storyToDelete) { db.stories = db.stories.filter(x => x.id !== storyToDelete.id); rtdb.ref('/dg_app_data/stories').set(db.stories); closeStory(); renderStories(); } }
     function nextStory() { currentStoryIdx++; showStoryFrame(); }
     function prevStory() { currentStoryIdx--; showStoryFrame(); }
-    function closeStory() { clearTimeout(storyTimerId); document.getElementById('storyViewer').style.display = 'none'; document.querySelectorAll('#storyContent video').forEach(v => { v.pause(); v.removeAttribute('src'); v.load(); }); document.getElementById('storyContent').innerHTML = ''; }
+    function closeStory() { clearTimeout(storyTimerId); const viewer = document.getElementById('storyViewer'); viewer.classList.remove('active'); setTimeout(()=>{ viewer.style.display = 'none'; document.querySelectorAll('#storyContent video').forEach(v => { v.pause(); v.removeAttribute('src'); v.load(); }); document.getElementById('storyContent').innerHTML = ''; }, 300); }
 
     // ================= СООБЩЕНИЯ =================
     function getSafeReplyObj(msg) { if (!msg) return null; let rTxt = msg.txt; if (!rTxt) { if (msg.type === 'voice') rTxt = '🎙️ Аудио'; else if (msg.type === 'video_circle') rTxt = '📹 Кружок'; else if (msg.type === 'image') rTxt = '📷 Фото'; else if (msg.type === 'video') rTxt = '🎥 Видео'; else if (msg.type === 'file') rTxt = '📄 Файл'; else rTxt = 'Медиа'; } return { uid: msg.uid, txt: rTxt, type: msg.type || 'text' }; }
@@ -1612,34 +1697,6 @@
         document.getElementById('soundModal').classList.remove('active');
         alert("Настройки звука сохранены!");
     }
-
-    // === СЕКРЕТНЫЙ ТРЮК (AUDIO UNLOCKER) ===
-    // Тихо "прогревает" все аудио-элементы при первом касании экрана, 
-    // чтобы браузер снял блокировку с автовоспроизведения звуков в фоне.
-    let audioUnlocked = false;
-    function unlockAudio() {
-        if (audioUnlocked) return;
-        ['incomingRingtone', 'outgoingRingtone', 'notificationSound'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el && (el.src || el.currentSrc)) {
-                const playPromise = el.play();
-                if (playPromise !== undefined) {
-                    playPromise.then(() => {
-                        el.pause();
-                        el.currentTime = 0;
-                    }).catch(e => { /* Игнорируем ошибку AbortError от браузера */ });
-                }
-            }
-        });
-        audioUnlocked = true;
-        document.body.removeEventListener('click', unlockAudio);
-        document.body.removeEventListener('touchstart', unlockAudio);
-    }
-    
-    // Вешаем слушатель на самый первый клик или тап по экрану
-    document.body.addEventListener('click', unlockAudio);
-    document.body.addEventListener('touchstart', unlockAudio);
-
 </script>
 </body>
-                </html>
+    </html>
