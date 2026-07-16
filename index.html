@@ -38,10 +38,13 @@
         .auth-tab.active { background: linear-gradient(135deg, var(--p), #4ade80); color: #000; font-weight: 600; }
         .auth-form { display: none; }
         .auth-form.active { display: block; }
+        
         .input-group { margin-bottom: 16px; text-align: left; }
         .input-group label { display: block; margin-bottom: 6px; color: var(--mut); font-size: 12px; }
-        .input-group input { width: 100%; padding: 12px; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px; color: #fff; font-size: 14px; transition: border 0.2s; outline: none; }
-        .input-group input:focus { border-color: var(--p); }
+        .input-group input, .input-group select { width: 100%; padding: 12px; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px; color: #fff; font-size: 14px; transition: border 0.2s; outline: none; box-sizing: border-box; }
+        .input-group input:focus, .input-group select:focus { border-color: var(--p); }
+        select.auth-input option { background: var(--card); color: var(--txt); }
+
         .auth-btn { width: 100%; padding: 12px; background: linear-gradient(135deg, var(--p), #4ade80); border: none; border-radius: 12px; color: #000; font-weight: 700; font-size: 15px; cursor: pointer; transition: transform 0.1s, opacity 0.1s; margin-top: 4px; }
         .auth-btn:active { transform: scale(0.96); opacity: 0.8; }
         .auth-switch { text-align: center; margin-top: 14px; font-size: 13px; color: var(--mut); cursor: pointer; }
@@ -399,8 +402,10 @@
     document.head.insertAdjacentHTML('beforeend', `<link rel="manifest" href="data:application/manifest+json;charset=utf-8,${encodeURIComponent(JSON.stringify(pwaManifest()))}">`);
 </script>
 
-<audio id="incomingRingtone" loop src="https://upload.wikimedia.org/wikipedia/commons/c/c4/Telephone_ringing.ogg"></audio>
+<!-- Аудио элементы теперь обновляются через JS из настроек -->
+<audio id="incomingRingtone" loop></audio>
 <audio id="outgoingRingtone" loop src="https://upload.wikimedia.org/wikipedia/commons/f/fc/Ringback_tone_%28North_America%29.ogg"></audio>
+<audio id="notificationSound"></audio>
 
 <div id="minimizedCallBar" onclick="expandCall()">
     <button class="icon-btn-min mic-btn" id="minCallMicBtn" onclick="event.stopPropagation(); toggleCallMic();">🎤</button>
@@ -483,6 +488,7 @@
 
             <div class="section-header">Система</div>
             <div class="sett-box">
+                <div class="sett-row" onclick="openSoundSettings()"><span style="font-size:20px;">🎵</span> Настройки звука</div>
                 <div class="sett-row" onclick="requestNotifications()">🔔 Включить уведомления</div>
                 <div class="sett-row" onclick="openSupportChat()">💬 Чат с поддержкой</div>
                 <div class="sett-row" id="admin-switch-btn" style="display: none;" onclick="switchAccount()">🔄 Сменить аккаунт (Админ)</div>
@@ -548,6 +554,35 @@
         <div id="channel-readonly-msg" style="display: none; padding: 16px; text-align: center; color: var(--mut); background: var(--bg); border-top: 1px solid var(--brd);">
             Только администратор может писать в этот канал
         </div>
+    </div>
+</div>
+
+<!-- Модальное окно настроек звука -->
+<div id="soundModal" class="modal">
+    <div class="modal-content">
+        <h3>Звуки и рингтоны</h3>
+        
+        <div class="input-group" style="margin-top: 16px;">
+            <label>Рингтон входящего вызова</label>
+            <select id="ringtoneSelect" class="auth-input" onchange="previewRingtone()">
+                <option value="https://upload.wikimedia.org/wikipedia/commons/c/c4/Telephone_ringing.ogg">Стандартный телефон</option>
+                <option value="https://actions.google.com/sounds/v1/alarms/phone_ringing.ogg">Цифровой звонок</option>
+                <option value="https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg">Классический будильник</option>
+                <option value="custom">Своя ссылка...</option>
+            </select>
+        </div>
+        
+        <div class="input-group">
+            <label>Звук нового сообщения</label>
+            <select id="notifSelect" class="auth-input" onchange="previewNotif()">
+                <option value="https://actions.google.com/sounds/v1/cartoon/pop.ogg">Легкий Pop</option>
+                <option value="https://actions.google.com/sounds/v1/communications/incoming_message.ogg">Системное уведомление</option>
+                <option value="none">Без звука</option>
+            </select>
+        </div>
+        
+        <button class="auth-btn" onclick="saveSoundSettings()">Сохранить настройки</button>
+        <button class="auth-btn" style="background: var(--in); color: var(--txt); margin-top: 12px;" onclick="closeSoundModal()">Отмена</button>
     </div>
 </div>
 
@@ -692,6 +727,25 @@
     }
     
     let localSettings = JSON.parse(localStorage.getItem('Nexagram_Settings')) || { theme: 'green', lightMode: false };
+    
+    // ПЕРЕМЕННЫЕ ЗВУКА
+    let currentRingtone = localSettings.ringtone || "https://upload.wikimedia.org/wikipedia/commons/c/c4/Telephone_ringing.ogg";
+    let currentNotif = localSettings.notifSound || "https://actions.google.com/sounds/v1/cartoon/pop.ogg";
+
+    function applySounds() {
+        const inRingEl = document.getElementById('incomingRingtone');
+        if (inRingEl.src !== currentRingtone) inRingEl.src = currentRingtone;
+        
+        const notifEl = document.getElementById('notificationSound');
+        if (currentNotif === 'none') {
+            notifEl.removeAttribute('src');
+        } else {
+            if (notifEl.src !== currentNotif) notifEl.src = currentNotif;
+        }
+    }
+    // Применяем сразу при загрузке страницы
+    applySounds();
+
     let drafts = JSON.parse(localStorage.getItem('Nexagram_Drafts')) || {};
     let lastKnownMsgCounts = {}; 
     let isInitialLoadDone = false; 
@@ -741,6 +795,13 @@
                     if (isInitialLoadDone && currentCount > prevCount) {
                         const lastMsg = c.msgs[currentCount - 1];
                         if (lastMsg.uid !== me.id && lastMsg.uid !== 'system' && (document.hidden || !activeChat || activeChat.id !== c.id)) {
+                            
+                            // === ВОСПРОИЗВЕДЕНИЕ ЗВУКА УВЕДОМЛЕНИЯ ===
+                            const nSound = document.getElementById('notificationSound');
+                            if (currentNotif !== 'none' && nSound.src) {
+                                nSound.play().catch(e => console.warn('Уведомление заблокировано браузером:', e));
+                            }
+
                             if ("Notification" in window && Notification.permission === "granted") {
                                 let senderName = "Nexagram"; const sender = db.users.find(u => u.id === lastMsg.uid);
                                 if (sender) senderName = sender.name; new Notification(senderName, { body: lastMsg.txt || 'Медиа сообщение' });
@@ -1493,6 +1554,92 @@
     function selectAvatarFromUrl() { const url = prompt('Прямая ссылка:'); if (url && url.trim()) selectAvatar('url', url.trim()); }
     function closeAvatarModal() { document.getElementById('avatarModal').classList.remove('active'); }
     function resetAllData() { if (confirm("Внимание! Это очистит только твои локальные настройки. База останется на сервере.")) { localStorage.removeItem('Nexagram_Settings'); localStorage.removeItem('Nexagram_Session_UID'); localStorage.removeItem('Nexagram_Drafts'); location.reload(); } }
+
+    // === ЛОГИКА ОКНА НАСТРОЕК ЗВУКА ===
+    function openSoundSettings() {
+        document.getElementById('ringtoneSelect').value = currentRingtone;
+        document.getElementById('notifSelect').value = currentNotif;
+        document.getElementById('soundModal').classList.add('active');
+    }
+
+    function closeSoundModal() {
+        document.getElementById('incomingRingtone').pause();
+        document.getElementById('notificationSound').pause();
+        document.getElementById('incomingRingtone').currentTime = 0;
+        document.getElementById('notificationSound').currentTime = 0;
+        applySounds(); // Возвращаем реальные звуки, если человек нажал Отмена
+        document.getElementById('soundModal').classList.remove('active');
+    }
+
+    function previewRingtone() {
+        let val = document.getElementById('ringtoneSelect').value;
+        if (val === 'custom') {
+            val = prompt("Введите прямую ссылку на аудиофайл (mp3, ogg):");
+            if (val && val.trim()) {
+                let opt = document.createElement('option');
+                opt.value = val.trim();
+                opt.text = "Свой рингтон";
+                document.getElementById('ringtoneSelect').add(opt);
+                document.getElementById('ringtoneSelect').value = val.trim();
+            } else {
+                document.getElementById('ringtoneSelect').value = currentRingtone;
+                return;
+            }
+        }
+        let audio = document.getElementById('incomingRingtone');
+        audio.src = val;
+        audio.play().catch(e => console.warn('Preview blocked:', e));
+    }
+
+    function previewNotif() {
+        let val = document.getElementById('notifSelect').value;
+        let audio = document.getElementById('notificationSound');
+        if (val === 'none') {
+            audio.pause();
+            return;
+        }
+        audio.src = val;
+        audio.play().catch(e => console.warn('Preview blocked:', e));
+    }
+
+    function saveSoundSettings() {
+        currentRingtone = document.getElementById('ringtoneSelect').value;
+        currentNotif = document.getElementById('notifSelect').value;
+        localSettings.ringtone = currentRingtone;
+        localSettings.notifSound = currentNotif;
+        localStorage.setItem('Nexagram_Settings', JSON.stringify(localSettings));
+        applySounds();
+        document.getElementById('soundModal').classList.remove('active');
+        alert("Настройки звука сохранены!");
+    }
+
+    // === СЕКРЕТНЫЙ ТРЮК (AUDIO UNLOCKER) ===
+    // Тихо "прогревает" все аудио-элементы при первом касании экрана, 
+    // чтобы браузер снял блокировку с автовоспроизведения звуков в фоне.
+    let audioUnlocked = false;
+    function unlockAudio() {
+        if (audioUnlocked) return;
+        ['incomingRingtone', 'outgoingRingtone', 'notificationSound'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el && (el.src || el.currentSrc)) {
+                const playPromise = el.play();
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        el.pause();
+                        el.currentTime = 0;
+                    }).catch(e => { /* Игнорируем ошибку AbortError от браузера */ });
+                }
+            }
+        });
+        audioUnlocked = true;
+        document.body.removeEventListener('click', unlockAudio);
+        document.body.removeEventListener('touchstart', unlockAudio);
+    }
+    
+    // Вешаем слушатель на самый первый клик или тап по экрану
+    document.body.addEventListener('click', unlockAudio);
+    document.body.addEventListener('touchstart', unlockAudio);
+
 </script>
 </body>
-</html>
+                </html>
