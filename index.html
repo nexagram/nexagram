@@ -64,7 +64,7 @@
         #app { display: none; width: 100%; height: 100%; flex-direction: column; opacity: 0; animation: appFadeIn 0.5s ease forwards; }
         @keyframes appFadeIn { to { opacity: 1; } }
         
-        .content { flex: 1; position: relative; overflow: hidden; background: var(--bg); }
+        .content { flex: 1; position: relative; overflow-y: auto; overflow-x: hidden; background: var(--bg); }
         .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow-y: auto; padding-bottom: calc(80px + env(safe-area-inset-bottom)); visibility: hidden; opacity: 0; transform: scale(0.98); transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); scroll-behavior: smooth; }
         .screen.active { visibility: visible; opacity: 1; transform: scale(1); z-index: 2; }
         
@@ -110,11 +110,10 @@
         .list-name { font-weight: 600; font-size: 16px; margin-bottom: 4px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
         .list-preview { color: var(--mut); font-size: 14px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
         
-        /* НОВЫЙ ДИЗАЙН НИЖНЕГО МЕНЮ */
         .nav { position: fixed; bottom: 0; width: 100%; height: calc(64px + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom); background: rgba(var(--card), 0.95); backdrop-filter: blur(10px); border-top: 1px solid var(--brd); display: flex; justify-content: space-around; z-index: 100; align-items: center; }
         .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--mut); gap: 4px; cursor: pointer; height: 100%; }
         .nav-icon-wrap { position: relative; width: 56px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 16px; transition: 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); font-size: 22px; z-index: 1; }
-        .nav-icon-wrap::before { content: ''; position: absolute; inset: 0; border-radius: 16px; background: var(--p); opacity: 0; transition: opacity 0.3s; z-index: -1; transform: scale(0.5); transition: all 0.3s; }
+        .nav-icon-wrap::before { content: ''; position: absolute; inset: 0; border-radius: 16px; background: var(--p); opacity: 0; transition: opacity 0.3s; z-index: -1; transform: scale(0.5); }
         .nav-text { font-size: 11px; font-weight: 600; transition: color 0.3s; }
         .nav-btn.active .nav-icon-wrap::before { opacity: 0.15; transform: scale(1); }
         .nav-btn.active .nav-icon-wrap { color: var(--p); transform: translateY(-2px); }
@@ -342,9 +341,17 @@
         .sent .msg-quote { background: rgba(0,0,0,0.15); border-color: #000; }
 
         /* ПЛАШКА ДЛЯ РАЗБЛОКИРОВКИ ЗВУКА */
-        #audio-unlock-toast { position: fixed; top: calc(20px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); background: var(--card); border: 2px solid var(--p); color: var(--txt); padding: 12px 24px; border-radius: 25px; font-weight: 700; z-index: 9999; display: none; box-shadow: 0 10px 30px rgba(48,209,88,0.2); cursor: pointer; animation: popDownToast 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); transition: transform 0.2s; }
+        #audio-unlock-toast { 
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%); 
+            background: #ff3b30; color: #fff; padding: 14px 28px; border-radius: 30px; 
+            font-weight: 800; font-size: 15px; z-index: 9999; display: none; 
+            box-shadow: 0 10px 30px rgba(255,59,48,0.4); cursor: pointer; 
+            animation: dropDownToast 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
         #audio-unlock-toast:active { transform: translateX(-50%) scale(0.95); }
-        @keyframes popDownToast { from { opacity: 0; transform: translate(-50%, -40px); } to { opacity: 1; transform: translate(-50%, 0); } }
+        @keyframes dropDownToast { from { top: -50px; } to { top: 20px; } }
+        @keyframes shake { 0%, 100% {transform: translateX(-50%);} 25% {transform: translateX(-55%);} 75% {transform: translateX(-45%);} }
+        .shake { animation: shake 0.4s ease; }
 
         /* НОВЫЙ СОВРЕМЕННЫЙ ПРОФИЛЬ ТИПА TELEGRAM */
         #profile-view-screen { position: fixed; inset: 0; background: var(--bg); z-index: 600; display: flex; flex-direction: column; overflow-y: auto; visibility: hidden; transform: translateX(100%); transition: all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1); }
@@ -367,12 +374,57 @@
         .mp-info-icon { font-size: 24px; color: var(--p); opacity: 0.8; }
         .mp-action-row { background: var(--card); border-radius: 20px; margin: 0 16px 16px; padding: 16px; text-align: center; font-size: 16px; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; border: 1px solid var(--brd); transition: 0.2s;}
         .mp-action-row:active { transform: scale(0.98); background: var(--in); }
+
+        /* ================= ДЕСКТОП ВЕРСИЯ (PC) ================= */
+        @media (min-width: 768px) {
+            body { 
+                display: flex; justify-content: center; align-items: center; 
+                background-color: #0f0f11; background-image: radial-gradient(circle at center, #1a1a20 0%, #000 100%); 
+            }
+            #app, .auth-screen { 
+                width: 100%; max-width: 1100px; height: 90vh !important; max-height: 850px; 
+                border-radius: 20px; box-shadow: 0 25px 80px rgba(0,0,0,0.6); 
+                transform: translateZ(0); /* Магия: привязывает fixed элементы к этому блоку */
+                border: 1px solid #2a2a2a; margin: auto; position: relative;
+            }
+            
+            /* Двухколоночный интерфейс */
+            .content { width: 350px; border-right: 1px solid var(--brd); height: 100%; padding-bottom: 64px; }
+            .nav { width: 350px; position: absolute; left: 0; bottom: 0; border-top: 1px solid var(--brd); border-radius: 0 0 0 20px; }
+            
+            /* Чат всегда справа */
+            #chat-window { 
+                position: absolute; top: 0; right: 0; bottom: 0; left: 350px; 
+                transform: none !important; visibility: visible !important; display: flex !important;
+                border-radius: 0 20px 20px 0; background: var(--bg); border-left: 1px solid var(--brd);
+            }
+            /* Заглушка, когда чат не выбран */
+            #chat-window::before { 
+                content: 'Выберите чат для общения'; position: absolute; inset: 0; 
+                display: flex; align-items: center; justify-content: center; 
+                background: var(--bg); color: var(--mut); z-index: 1000; 
+                font-size: 16px; font-weight: 500; transition: opacity 0.3s ease; 
+                border-radius: 0 20px 20px 0;
+            }
+            #chat-window.active::before { opacity: 0; pointer-events: none; }
+            .back-btn { display: none !important; }
+            
+            /* Профиль тоже открывается справа поверх чата */
+            #profile-view-screen { 
+                position: absolute; top: 0; right: 0; bottom: 0; left: 350px; 
+                border-left: 1px solid var(--brd); border-radius: 0 20px 20px 0;
+            }
+            
+            /* Окна и модалки на всю площадь приложения */
+            #callOverlay, .modal, #storyViewer { position: absolute; border-radius: 20px; }
+            .chat-input-area { padding-bottom: 12px !important; }
+        }
     </style>
 </head>
 <body>
 
 <!-- Умная плашка для разблокировки звука -->
-<div id="audio-unlock-toast" onclick="forceUnlockAudio()">🔊 Включить звук</div>
+<div id="audio-unlock-toast" onclick="forceUnlockAudio()">🔊 Нажмите, чтобы включить звук</div>
 
 <div class="auth-screen" id="authScreen">
     <div class="auth-card">
@@ -440,9 +492,9 @@
     document.head.insertAdjacentHTML('beforeend', `<link rel="manifest" href="data:application/manifest+json;charset=utf-8,${encodeURIComponent(JSON.stringify(pwaManifest()))}">`);
 </script>
 
-<audio id="incomingRingtone" loop></audio>
-<audio id="outgoingRingtone" loop src="https://upload.wikimedia.org/wikipedia/commons/f/fc/Ringback_tone_%28North_America%29.ogg"></audio>
-<audio id="notificationSound"></audio>
+<audio id="incomingRingtone" preload="auto" loop></audio>
+<audio id="outgoingRingtone" preload="auto" loop src="https://upload.wikimedia.org/wikipedia/commons/f/fc/Ringback_tone_%28North_America%29.ogg"></audio>
+<audio id="notificationSound" preload="auto"></audio>
 
 <div id="minimizedCallBar" onclick="expandCall()">
     <button class="icon-btn-min mic-btn" id="minCallMicBtn" onclick="event.stopPropagation(); toggleCallMic();">🎤</button>
@@ -750,14 +802,21 @@
 
     // === УМНАЯ СИСТЕМА ВОСПРОИЗВЕДЕНИЯ ЗВУКА ===
     function safePlayAudio(audioElement, isRingtone = false) {
-        if (!audioElement.src || audioElement.src.includes('none')) return;
+        if (!audioElement || !audioElement.src || audioElement.src.includes('none')) return;
+        audioElement.loop = isRingtone;
+        audioElement.volume = 1;
+        audioElement.currentTime = 0;
+        
         const playPromise = audioElement.play();
         if (playPromise !== undefined) {
             playPromise.catch(error => {
-                if (error.name === 'NotAllowedError') {
-                    document.getElementById('audio-unlock-toast').style.display = 'block';
-                    if (isRingtone) window.pendingRingtone = audioElement;
+                console.warn("Audio autoplay blocked:", error);
+                const toast = document.getElementById('audio-unlock-toast');
+                if(toast) {
+                    toast.style.display = 'block';
+                    toast.classList.add('shake');
                 }
+                if (isRingtone) window.pendingRingtone = audioElement;
             });
         }
     }
@@ -777,7 +836,7 @@
         audioUnlocked = true;
     }
 
-    // Секретный разблокировщик (глобальный) для первого тапа
+    // Тихий прогрев аудио при самом первом касании страницы
     let audioUnlocked = false;
     function globalAudioUnlocker() {
         if (audioUnlocked) return;
@@ -786,13 +845,16 @@
             if (el && el.src) {
                 const origVol = el.volume;
                 el.volume = 0;
-                el.play().then(() => {
-                    if (id === 'incomingRingtone' && document.getElementById('callOverlay').classList.contains('active')) {
-                        el.volume = 1; 
-                    } else {
-                        el.pause(); el.currentTime = 0; el.volume = origVol;
-                    }
-                }).catch(()=>{});
+                const p = el.play();
+                if (p !== undefined) {
+                    p.then(() => {
+                        if (id === 'incomingRingtone' && document.getElementById('callOverlay').classList.contains('active')) {
+                            el.volume = 1; 
+                        } else {
+                            el.pause(); el.currentTime = 0; el.volume = origVol;
+                        }
+                    }).catch(()=>{});
+                }
             }
         });
         audioUnlocked = true;
@@ -941,7 +1003,7 @@
                         const lastMsg = c.msgs[currentCount - 1];
                         if (lastMsg.uid !== me.id && lastMsg.uid !== 'system' && (document.hidden || !activeChat || activeChat.id !== c.id)) {
                             
-                            safePlayAudio(notifSound);
+                            safePlayAudio(notifSound, false);
 
                             if ("Notification" in window && Notification.permission === "granted") {
                                 let senderName = "Nexagram"; const sender = db.users.find(u => u.id === lastMsg.uid);
@@ -1154,7 +1216,7 @@
         overlay.classList.add('active');
         document.getElementById('minimizedCallBar').style.display = 'none';
         document.getElementById('callCenterArea').style.display = 'flex'; document.getElementById('callTopCenter').style.display = 'none';
-        renderCallControls(); safePlayAudio(outRing);
+        renderCallControls(); safePlayAudio(outRing, true);
 
         try {
             localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: isVideo ? { facingMode: currentFacingMode } : false });
@@ -1512,7 +1574,7 @@
     function createChannel() { if (!me) return; const name = prompt('Введите название канала:'); if (!name) return; const chat = { id: 'ch_' + Date.now(), type: 'channel', name: name, desc: '', avatarType: 'emoji', avatarValue: '📢', admin: me.id, admins: [me.id], members: [me.id], msgs: [] }; db.chats.push(chat); rtdb.ref('/dg_app_data/chats').set(db.chats); openChat(chat.id); }
 
     function addMemberToCurrentChat() {
-        if (!activeChat || activeChat.type === 'direct') return; const isChatAdmin = activeChat.admin === me.id || (activeChat.admins && activeChat.admins.includes(me.id)); if (!isChatAdmin) return showToast('Только администратор может добавлять участников');
+        if (!activeChat || activeChat.type === 'direct') return; const isChatAdmin = activeChat.admin === me.id || (activeChat.admins && activeChat.admins.includes(me.id)); if (!isChatAdmin) return showToast('Только администратор может добавлять участника');
         const login = prompt('Введите логин пользователя:'); if (!login) return; const user = db.users.find(u => u.login === login.toLowerCase()); if (!user) return showToast('Пользователь не найден'); if (activeChat.members.includes(user.id)) return showToast('Уже состоит в чате');
         const chatIndex = db.chats.findIndex(c => c.id === activeChat.id);
         if(chatIndex > -1) { db.chats[chatIndex].members.push(user.id); if (!db.chats[chatIndex].msgs) db.chats[chatIndex].msgs = []; db.chats[chatIndex].msgs.push({ uid: 'system', txt: `Пользователь ${user.name} добавлен`, time: Date.now() }); rtdb.ref(`/dg_app_data/chats/${chatIndex}`).set(db.chats[chatIndex]); showToast('Успешно добавлен!'); }
@@ -1712,7 +1774,7 @@
                     <div class="mp-info-row">
                         <div class="mp-info-text">
                             <div class="mp-info-title">@${escapeHtml(contact.login)}</div>
-                            <div class="mp-info-sub">Имя пользователя</div>
+                            <div class="mp-info-sub">Логин</div>
                         </div>
                     </div>
                     <div class="mp-info-row">
@@ -1833,7 +1895,6 @@
 
     async function resetFirebasePassword() { const email = document.getElementById('forgotLogin').value.trim().toLowerCase(); if (!email || !email.includes('@')) return showToast('Введите корректный Email в первое поле'); try { await firebase.auth().sendPasswordResetEmail(email); alert('Письмо для сброса пароля отправлено на ' + email + '.\nОбязательно проверьте папку "Спам" или "Рассылки"!'); closeForgotModal(); } catch (error) { showToast('Ошибка: ' + error.message); } }
     
-    // ИСПРАВЛЕНИЕ: Симметричное добавление без лишних кликов
     function acceptReq(id) { 
         const myIdx = db.users.findIndex(u => u.id === me.id);
         const fIdx = db.users.findIndex(u => u.id === id);
@@ -1941,4 +2002,4 @@
     }
 </script>
 </body>
-                </html>
+    </html>
