@@ -341,7 +341,7 @@
         .msg-quote { border-left: 2px solid rgba(255,255,255,0.5); padding-left: 8px; margin-bottom: 4px; font-size: 13px; opacity: 0.8; background: rgba(0,0,0,0.1); border-radius: 4px; padding: 4px 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .sent .msg-quote { background: rgba(0,0,0,0.15); border-color: #000; }
 
-        /* ПЛАШКА ДЛЯ РАЗБЛОКИРОВКИ ЗВУКА */
+        /* ПЛАШКА ДЛЯ РАЗБЛОКИРОВКИ ЗВУКА (С перехватчиком) */
         #audio-unlock-toast { 
             position: fixed; top: 20px; left: 50%; transform: translateX(-50%); 
             background: #ff3b30; color: #fff; padding: 14px 28px; border-radius: 30px; 
@@ -418,7 +418,7 @@
 </head>
 <body>
 
-<!-- Умная плашка для разблокировки звука -->
+<!-- Умная плашка для разблокировки звука звонка -->
 <div id="audio-unlock-toast" onclick="forceUnlockAudio()">🔊 Нажмите, чтобы включить звук звонка</div>
 
 <div class="auth-screen" id="authScreen">
@@ -487,10 +487,10 @@
     document.head.insertAdjacentHTML('beforeend', `<link rel="manifest" href="data:application/manifest+json;charset=utf-8,${encodeURIComponent(JSON.stringify(pwaManifest()))}">`);
 </script>
 
-<!-- Обновлены стандартные аудио-ссылки на более стабильные -->
-<audio id="incomingRingtone" preload="auto" loop></audio>
-<audio id="outgoingRingtone" preload="auto" loop src="https://actions.google.com/sounds/v1/alarms/phone_ringing.ogg"></audio>
-<audio id="notificationSound" preload="auto"></audio>
+<!-- Обновлены стандартные аудио-ссылки на надежный формат MP3, чтобы работало на iOS -->
+<audio id="incomingRingtone" preload="auto" playsinline loop></audio>
+<audio id="outgoingRingtone" preload="auto" playsinline loop src="https://assets.mixkit.co/active_storage/sfx/1114/1114-preview.mp3"></audio>
+<audio id="notificationSound" preload="auto" playsinline></audio>
 
 <div id="minimizedCallBar" onclick="expandCall()">
     <button class="icon-btn-min mic-btn" id="minCallMicBtn" onclick="event.stopPropagation(); toggleCallMic();">🎤</button>
@@ -667,17 +667,18 @@
         <div class="input-group" style="margin-top: 16px;">
             <label>Рингтон входящего вызова</label>
             <select id="ringtoneSelect" class="auth-input" onchange="previewRingtone()">
-                <option value="https://actions.google.com/sounds/v1/alarms/phone_ringing.ogg">Стандартный телефон</option>
-                <option value="https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg">Классический будильник</option>
-                <option value="https://upload.wikimedia.org/wikipedia/commons/c/c4/Telephone_ringing.ogg">Звонок ретро</option>
-                <option value="custom">Своя ссылка...</option>
+                <option value="https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3">Классический телефон</option>
+                <option value="https://assets.mixkit.co/active_storage/sfx/2873/2873-preview.mp3">Современный звонок</option>
+                <option value="https://assets.mixkit.co/active_storage/sfx/1005/1005-preview.mp3">Мягкий сигнал</option>
+                <option value="custom">Своя ссылка (MP3)...</option>
             </select>
         </div>
         <div class="input-group">
             <label>Звук нового сообщения</label>
             <select id="notifSelect" class="auth-input" onchange="previewNotif()">
-                <option value="https://actions.google.com/sounds/v1/cartoon/pop.ogg">Легкий Pop</option>
-                <option value="https://actions.google.com/sounds/v1/communications/incoming_message.ogg">Системное уведомление</option>
+                <option value="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3">Легкий Pop</option>
+                <option value="https://assets.mixkit.co/active_storage/sfx/1114/1114-preview.mp3">Системное уведомление</option>
+                <option value="https://assets.mixkit.co/active_storage/sfx/2361/2361-preview.mp3">Короткий звон</option>
                 <option value="none">Без звука</option>
             </select>
         </div>
@@ -824,7 +825,6 @@
             window.pendingRingtone.play().catch(e => console.error("Still blocked:", e));
             window.pendingRingtone = null;
         } else {
-            // Разблокируем всё остальное в фоне
             const out = document.getElementById('outgoingRingtone');
             if (out && out.src) out.play().then(()=>out.pause()).catch(()=>{});
             const notif = document.getElementById('notificationSound');
@@ -874,8 +874,8 @@
     
     let localSettings = JSON.parse(localStorage.getItem('Nexagram_Settings')) || { theme: 'green', lightMode: false };
     
-    let currentRingtone = localSettings.ringtone || "https://actions.google.com/sounds/v1/alarms/phone_ringing.ogg";
-    let currentNotif = localSettings.notifSound || "https://actions.google.com/sounds/v1/cartoon/pop.ogg";
+    let currentRingtone = localSettings.ringtone || "https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3";
+    let currentNotif = localSettings.notifSound || "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3";
 
     function applySounds() {
         if (inRing.src !== currentRingtone) inRing.src = currentRingtone;
@@ -1864,7 +1864,6 @@
 
     async function resetFirebasePassword() { const email = document.getElementById('forgotLogin').value.trim().toLowerCase(); if (!email || !email.includes('@')) return showToast('Введите корректный Email в первое поле'); try { await firebase.auth().sendPasswordResetEmail(email); alert('Письмо для сброса пароля отправлено на ' + email + '.\nОбязательно проверьте папку "Спам" или "Рассылки"!'); closeForgotModal(); } catch (error) { showToast('Ошибка: ' + error.message); } }
     
-    // ИСПРАВЛЕНИЕ: Симметричное добавление без лишних кликов
     function acceptReq(id) { 
         const myIdx = db.users.findIndex(u => u.id === me.id);
         const fIdx = db.users.findIndex(u => u.id === id);
@@ -1972,4 +1971,4 @@
     }
 </script>
 </body>
-        </html>
+                                                                 </html>
