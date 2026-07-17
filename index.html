@@ -359,7 +359,11 @@
         #profile-view-screen.active { visibility: visible; transform: translateX(0); }
         
         .mp-head { display: flex; justify-content: space-between; padding: 16px; font-size: 24px; position: sticky; top: 0; z-index: 10; background: rgba(var(--bg), 0.8); backdrop-filter: blur(15px); }
-        .mp-av-wrap { margin: 20px auto; width: 130px; height: 130px; border-radius: 50%; overflow: hidden; background: var(--in); display: flex; align-items: center; justify-content: center; font-size: 50px; }
+        
+        /* КВАДРАТНАЯ АВАТАРКА В ПРОФИЛЕ */
+        .mp-av-wrap { margin: 20px auto; width: 140px; height: 140px; border-radius: 24px; overflow: hidden; background: var(--in); display: flex; align-items: center; justify-content: center; font-size: 50px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); transition: transform 0.2s; }
+        .mp-av-wrap:active { transform: scale(0.95); }
+        
         .mp-name { text-align: center; font-size: 24px; font-weight: 700; margin-bottom: 4px; display: flex; align-items: center; justify-content: center; gap: 6px; }
         .mp-status { text-align: center; color: var(--mut); font-size: 14px; margin-bottom: 24px; }
         .mp-actions { display: flex; justify-content: center; gap: 12px; margin-bottom: 24px; padding: 0 16px; }
@@ -418,7 +422,6 @@
 </head>
 <body>
 
-<!-- Умная плашка для разблокировки звука звонка -->
 <div id="audio-unlock-toast" onclick="forceUnlockAudio()">🔊 Нажмите, чтобы включить звук звонка</div>
 
 <div class="auth-screen" id="authScreen">
@@ -487,10 +490,12 @@
     document.head.insertAdjacentHTML('beforeend', `<link rel="manifest" href="data:application/manifest+json;charset=utf-8,${encodeURIComponent(JSON.stringify(pwaManifest()))}">`);
 </script>
 
-<!-- Обновлены стандартные аудио-ссылки на надежный формат MP3, чтобы работало на iOS -->
-<audio id="incomingRingtone" preload="auto" playsinline loop></audio>
-<audio id="outgoingRingtone" preload="auto" playsinline loop src="https://assets.mixkit.co/active_storage/sfx/1114/1114-preview.mp3"></audio>
+<audio id="incomingRingtone" preload="auto" playsinline loop src="https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3"></audio>
+<audio id="outgoingRingtone" preload="auto" playsinline loop src="https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3"></audio>
 <audio id="notificationSound" preload="auto" playsinline></audio>
+
+<!-- Специальный скрытый аудиоплеер для голоса собеседника -->
+<audio id="remoteAudio" autoplay playsinline></audio>
 
 <div id="minimizedCallBar" onclick="expandCall()">
     <button class="icon-btn-min mic-btn" id="minCallMicBtn" onclick="event.stopPropagation(); toggleCallMic();">🎤</button>
@@ -661,24 +666,15 @@
    <div id="profile-view-content" style="padding-bottom: 40px;"></div>
 </div>
 
+<!-- МОДАЛКА НАСТРОЕК ЗВУКА -->
 <div id="soundModal" class="modal">
     <div class="modal-content">
-        <h3>Звуки и рингтоны</h3>
+        <h3>Звуки и уведомления</h3>
         <div class="input-group" style="margin-top: 16px;">
-            <label>Рингтон входящего вызова</label>
-            <select id="ringtoneSelect" class="auth-input" onchange="previewRingtone()">
-                <option value="https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3">Классический телефон</option>
-                <option value="https://assets.mixkit.co/active_storage/sfx/2873/2873-preview.mp3">Современный звонок</option>
-                <option value="https://assets.mixkit.co/active_storage/sfx/1005/1005-preview.mp3">Мягкий сигнал</option>
-                <option value="custom">Своя ссылка (MP3)...</option>
-            </select>
-        </div>
-        <div class="input-group">
             <label>Звук нового сообщения</label>
             <select id="notifSelect" class="auth-input" onchange="previewNotif()">
                 <option value="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3">Легкий Pop</option>
                 <option value="https://assets.mixkit.co/active_storage/sfx/1114/1114-preview.mp3">Системное уведомление</option>
-                <option value="https://assets.mixkit.co/active_storage/sfx/2361/2361-preview.mp3">Короткий звон</option>
                 <option value="none">Без звука</option>
             </select>
         </div>
@@ -792,27 +788,21 @@
     let swRegistration = null;
     if ('serviceWorker' in navigator) {
         const swBlob = new Blob(["self.addEventListener('notificationclick', function(event) { event.notification.close(); });"], {type: 'application/javascript'});
-        navigator.serviceWorker.register(URL.createObjectURL(swBlob))
-            .then(reg => { swRegistration = reg; })
-            .catch(err => { console.log('SW fallback mode', err); });
+        navigator.serviceWorker.register(URL.createObjectURL(swBlob)).then(reg => { swRegistration = reg; }).catch(err => {});
     }
 
     // === УМНАЯ СИСТЕМА ВОСПРОИЗВЕДЕНИЯ ЗВУКА ===
     function safePlayAudio(audioElement, isRingtone = false) {
         if (!audioElement || !audioElement.src || audioElement.src.includes('none')) return;
         audioElement.loop = isRingtone;
-        audioElement.volume = 1;
         audioElement.currentTime = 0;
         
         const playPromise = audioElement.play();
         if (playPromise !== undefined) {
             playPromise.catch(error => {
-                console.warn("Audio autoplay blocked by browser policy:", error);
+                console.warn("Браузер заблокировал звук:", error);
                 const toast = document.getElementById('audio-unlock-toast');
-                if(toast) {
-                    toast.style.display = 'block';
-                    toast.classList.add('shake');
-                }
+                if(toast) { toast.style.display = 'block'; toast.classList.add('shake'); }
                 if (isRingtone) window.pendingRingtone = audioElement;
             });
         }
@@ -820,17 +810,11 @@
 
     function forceUnlockAudio() {
         document.getElementById('audio-unlock-toast').style.display = 'none';
-        
-        if (window.pendingRingtone) {
-            window.pendingRingtone.play().catch(e => console.error("Still blocked:", e));
-            window.pendingRingtone = null;
-        } else {
-            const out = document.getElementById('outgoingRingtone');
-            if (out && out.src) out.play().then(()=>out.pause()).catch(()=>{});
-            const notif = document.getElementById('notificationSound');
-            if (notif && notif.src) notif.play().then(()=>notif.pause()).catch(()=>{});
-        }
+        if (window.pendingRingtone) { window.pendingRingtone.play().catch(e => console.error(e)); window.pendingRingtone = null; }
     }
+
+    // Понижаем громкость исходящих гудков, чтобы не резало уши
+    document.getElementById('outgoingRingtone').volume = 0.2;
 
     function hashString(str) { return btoa(unescape(encodeURIComponent(str))); }
 
@@ -874,11 +858,9 @@
     
     let localSettings = JSON.parse(localStorage.getItem('Nexagram_Settings')) || { theme: 'green', lightMode: false };
     
-    let currentRingtone = localSettings.ringtone || "https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3";
     let currentNotif = localSettings.notifSound || "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3";
 
     function applySounds() {
-        if (inRing.src !== currentRingtone) inRing.src = currentRingtone;
         if (currentNotif === 'none') { notifSound.removeAttribute('src'); } 
         else { if (notifSound.src !== currentNotif) notifSound.src = currentNotif; }
     }
@@ -912,35 +894,24 @@
     document.getElementById('loader').style.display = 'flex';
     document.getElementById('loader').style.opacity = '1';
     
-    // === СИСТЕМА БЕЙДЖЕЙ (УВЕДОМЛЕНИЙ В НАВБАРЕ) ===
     function updateNavBadges() {
         if (!me) return;
-        
         let unreadChats = 0;
         db.chats.forEach(chat => {
             if (chat.type === 'direct' && chat.u1 !== chat.u2) { if (chat.u1 !== me.id && chat.u2 !== me.id) return; } 
             else if (chat.type !== 'direct') { if (!chat.members || !chat.members.includes(me.id)) return; } 
             else return; 
-            
             const lastMsg = chat.msgs && chat.msgs.length ? chat.msgs[chat.msgs.length - 1] : null;
             if (lastMsg && lastMsg.uid !== me.id) { 
                 const myReadTime = (chat.lastRead && chat.lastRead[me.id]) ? chat.lastRead[me.id] : 0; 
                 if (lastMsg.time > myReadTime) unreadChats++; 
             }
         });
-        
         const chatBadge = document.getElementById('chats-badge');
-        if(chatBadge) {
-            chatBadge.style.display = unreadChats > 0 ? 'block' : 'none';
-            chatBadge.textContent = unreadChats > 99 ? '99+' : unreadChats;
-        }
+        if(chatBadge) { chatBadge.style.display = unreadChats > 0 ? 'block' : 'none'; chatBadge.textContent = unreadChats > 99 ? '99+' : unreadChats; }
 
         const friendBadge = document.getElementById('friends-badge');
-        if(friendBadge) {
-            const reqCount = (me.friendRequests && me.friendRequests.length) || 0;
-            friendBadge.style.display = reqCount > 0 ? 'block' : 'none';
-            friendBadge.textContent = reqCount > 99 ? '99+' : reqCount;
-        }
+        if(friendBadge) { const reqCount = (me.friendRequests && me.friendRequests.length) || 0; friendBadge.style.display = reqCount > 0 ? 'block' : 'none'; friendBadge.textContent = reqCount > 99 ? '99+' : reqCount; }
     }
 
     rtdb.ref('/dg_app_data').on('value', (snapshot) => {
@@ -962,7 +933,7 @@
                 const updatedMe = db.users.find(u => u.id === me.id);
                 if (updatedMe) me = updatedMe;
                 
-                updateNavBadges(); // Обновляем цифры в нижнем меню
+                updateNavBadges(); 
 
                 db.chats.forEach(c => {
                     const currentCount = c.msgs ? c.msgs.length : 0;
@@ -1136,27 +1107,10 @@
         document.getElementById('callOverlay').classList.remove('active');
         setTimeout(() => { document.getElementById('minimizedCallBar').style.display = 'flex'; }, 300);
     }
-    
-    function expandCall() { 
-        document.getElementById('callOverlay').classList.add('active'); 
-        document.getElementById('minimizedCallBar').style.display = 'none'; 
-    }
-    
+    function expandCall() { document.getElementById('callOverlay').classList.add('active'); document.getElementById('minimizedCallBar').style.display = 'none'; }
     function hideCallUI() {
-        const overlay = document.getElementById('callOverlay');
-        overlay.classList.remove('active');
-        overlay.classList.add('closing');
-        document.getElementById('minimizedCallBar').style.display = 'none';
-        
-        setTimeout(() => {
-            overlay.classList.remove('closing');
-            document.getElementById('localVideo').style.display = 'none'; 
-            document.getElementById('remoteVideo').classList.remove('active-video'); 
-            document.getElementById('remoteVideo').srcObject = null;
-            document.getElementById('callTopCenter').style.display = 'none'; 
-            document.getElementById('callCenterArea').style.display = 'flex';
-        }, 400);
-
+        const overlay = document.getElementById('callOverlay'); overlay.classList.remove('active'); overlay.classList.add('closing'); document.getElementById('minimizedCallBar').style.display = 'none';
+        setTimeout(() => { overlay.classList.remove('closing'); document.getElementById('localVideo').style.display = 'none'; document.getElementById('remoteVideo').classList.remove('active-video'); document.getElementById('remoteVideo').srcObject = null; document.getElementById('callTopCenter').style.display = 'none'; document.getElementById('callCenterArea').style.display = 'flex'; }, 400);
         inRing.pause(); inRing.currentTime = 0; outRing.pause(); outRing.currentTime = 0;
     }
 
@@ -1179,63 +1133,115 @@
         applyCallBackground(); 
         document.getElementById('callAvatar').innerHTML = getAvatarHtml(targetUser.avatarType, targetUser.avatarValue); document.getElementById('callName').textContent = targetUser.name; document.getElementById('callNameSmall').textContent = targetUser.name; document.getElementById('minCallInfo').textContent = `${targetUser.name} · Ожидание...`;
         setCallStatusText('Запрос . .'); isCallMicMuted = false; isCallCamOff = false; isSpeakerOn = true;
+        
         const overlay = document.getElementById('callOverlay');
-        overlay.classList.remove('closing');
-        overlay.classList.add('active');
+        overlay.classList.remove('closing'); overlay.classList.add('active');
         document.getElementById('minimizedCallBar').style.display = 'none';
         document.getElementById('callCenterArea').style.display = 'flex'; document.getElementById('callTopCenter').style.display = 'none';
-        renderCallControls(); safePlayAudio(outRing, true);
+        renderCallControls(); 
 
         try {
-            localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: isVideo ? { facingMode: currentFacingMode } : false });
+            // Аппаратное эхоподавление
+            const audioConstraints = { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
+            localStream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints, video: isVideo ? { facingMode: currentFacingMode } : false });
             if (isVideo) { const localVid = document.getElementById('localVideo'); localVid.srcObject = localStream; localVid.style.display = 'block'; localVid.style.transform = 'scaleX(-1)'; }
-            peerConnection = new RTCPeerConnection(rtcConfig); localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+            
+            peerConnection = new RTCPeerConnection(rtcConfig); 
+            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+            
             peerConnection.ontrack = event => { 
-                const rVid = document.getElementById('remoteVideo');
-                if (!rVid.srcObject) { rVid.srcObject = event.streams[0] || new MediaStream([event.track]); } else if (event.streams[0]) { rVid.srcObject = event.streams[0]; } else { rVid.srcObject.addTrack(event.track); }
-                rVid.onloadedmetadata = () => { rVid.play().catch(e => console.warn('Play error', e)); if (currentCallIsVideo && rVid.srcObject.getVideoTracks().length > 0) { rVid.classList.add('active-video'); document.getElementById('callTopCenter').style.display = 'block'; document.getElementById('callCenterArea').style.display = 'none'; } };
+                const rVid = document.getElementById('remoteVideo'); const rAud = document.getElementById('remoteAudio');
+                if (event.track.kind === 'video') {
+                    if (!rVid.srcObject) rVid.srcObject = new MediaStream([event.track]); else rVid.srcObject.addTrack(event.track);
+                    rVid.onloadedmetadata = () => { rVid.play().catch(e=>{}); rVid.classList.add('active-video'); document.getElementById('callTopCenter').style.display='block'; document.getElementById('callCenterArea').style.display='none'; };
+                } else {
+                    if (!rAud.srcObject) rAud.srcObject = new MediaStream([event.track]); else rAud.srcObject.addTrack(event.track);
+                    rAud.play().catch(e=>{});
+                }
             };
             peerConnection.onicecandidate = event => { if (event.candidate) rtdb.ref(`/dg_calls/${currentCallId}/callerIce`).push(event.candidate.toJSON()); };
+            
             const offer = await peerConnection.createOffer(); await peerConnection.setLocalDescription(offer);
+            
+            safePlayAudio(outRing, true);
+
             await rtdb.ref(`/dg_calls/${currentCallId}`).set({ caller: me.id, callee: targetUserId, offer: { type: offer.type, sdp: offer.sdp }, status: 'ringing', isVideo: isVideo });
             await rtdb.ref(`/dg_user_calls/${targetUserId}`).set(currentCallId);
             
+            let isAnswerProcessed = false;
             callRef = rtdb.ref(`/dg_calls/${currentCallId}`);
-            callRef.on('value', snap => {
+            callRef.on('value', async snap => {
                 const data = snap.val(); if (!data) return cleanupCall();
-                if (data.status === 'connected') { outRing.pause(); outRing.currentTime = 0; setCallStatusText('Разговор (0:00)'); startCallTimer(); } else if (data.status === 'ended' || data.status === 'declined') {
-                    cleanupCall(); if (data.caller === me.id) { const newLog = { id: 'log_' + Date.now(), caller: data.caller, callee: data.callee, time: Date.now(), status: data.status, isVideo: data.isVideo, duration: callSeconds }; db.callLogs.push(newLog); rtdb.ref('/dg_app_data/callLogs').set(db.callLogs); }
+                
+                if (data.status === 'ended' || data.status === 'declined' || data.status === 'missed') {
+                    cleanupCall(); 
+                    if (data.caller === me.id) { const newLog = { id: 'log_' + Date.now(), caller: data.caller, callee: data.callee, time: Date.now(), status: data.status, isVideo: data.isVideo, duration: callSeconds }; db.callLogs.push(newLog); rtdb.ref('/dg_app_data/callLogs').set(db.callLogs); }
+                    return;
                 }
-                if (data.answer && peerConnection && peerConnection.signalingState === 'have-local-offer') { peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer)); }
+
+                if (data.answer && !isAnswerProcessed) {
+                    isAnswerProcessed = true;
+                    outRing.pause(); outRing.currentTime = 0;
+                    setCallStatusText('Разговор (0:00)');
+                    startCallTimer();
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+                }
             });
-            rtdb.ref(`/dg_calls/${currentCallId}/calleeIce`).on('child_added', snap => { if (snap.val() && peerConnection) peerConnection.addIceCandidate(new RTCIceCandidate(snap.val())); });
-        } catch (e) { alert('Ошибка камеры/микрофона: ' + e.message); cleanupCall(); }
+
+            rtdb.ref(`/dg_calls/${currentCallId}/calleeIce`).on('child_added', snap => { if (snap.val() && peerConnection) peerConnection.addIceCandidate(new RTCIceCandidate(snap.val())).catch(e=>console.warn(e)); });
+            
+        } catch (e) { showToast('Ошибка микрофона: ' + e.message); cleanupCall(); }
     }
 
     async function acceptCall(isVideo) {
-        if (!currentCallId) return; inRing.pause(); inRing.currentTime = 0; currentCallIsVideo = isVideo; setCallStatusText('Соединение...');
+        if (!currentCallId) return; 
+        inRing.pause(); inRing.currentTime = 0; currentCallIsVideo = isVideo; 
+        setCallStatusText('Соединение...');
         isCallMicMuted = false; isCallCamOff = false; isSpeakerOn = true; renderCallControls();
+        
         try {
-            localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: isVideo ? { facingMode: currentFacingMode } : false });
+            const audioConstraints = { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
+            localStream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints, video: isVideo ? { facingMode: currentFacingMode } : false });
             if (isVideo) { const localVid = document.getElementById('localVideo'); localVid.srcObject = localStream; localVid.style.display = 'block'; localVid.style.transform = 'scaleX(-1)'; }
-            peerConnection = new RTCPeerConnection(rtcConfig); localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+            
+            peerConnection = new RTCPeerConnection(rtcConfig); 
+            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+            
             peerConnection.ontrack = event => { 
-                const rVid = document.getElementById('remoteVideo');
-                if (!rVid.srcObject) { rVid.srcObject = event.streams[0] || new MediaStream([event.track]); } else if (event.streams[0]) { rVid.srcObject = event.streams[0]; } else { rVid.srcObject.addTrack(event.track); }
-                rVid.onloadedmetadata = () => { rVid.play().catch(e => console.warn('Play error', e)); if (currentCallIsVideo && rVid.srcObject.getVideoTracks().length > 0) { rVid.classList.add('active-video'); document.getElementById('callTopCenter').style.display = 'block'; document.getElementById('callCenterArea').style.display = 'none'; } };
+                const rVid = document.getElementById('remoteVideo'); const rAud = document.getElementById('remoteAudio');
+                if (event.track.kind === 'video') {
+                    if (!rVid.srcObject) rVid.srcObject = new MediaStream([event.track]); else rVid.srcObject.addTrack(event.track);
+                    rVid.onloadedmetadata = () => { rVid.play().catch(e=>{}); rVid.classList.add('active-video'); document.getElementById('callTopCenter').style.display='block'; document.getElementById('callCenterArea').style.display='none'; };
+                } else {
+                    if (!rAud.srcObject) rAud.srcObject = new MediaStream([event.track]); else rAud.srcObject.addTrack(event.track);
+                    rAud.play().catch(e=>{});
+                }
             };
             peerConnection.onicecandidate = event => { if (event.candidate) rtdb.ref(`/dg_calls/${currentCallId}/calleeIce`).push(event.candidate.toJSON()); };
             
-            const callSnap = await rtdb.ref(`/dg_calls/${currentCallId}`).once('value'); const callData = callSnap.val();
-            await peerConnection.setRemoteDescription(new RTCSessionDescription(callData.offer));
-            const answer = await peerConnection.createAnswer(); await peerConnection.setLocalDescription(answer);
-            await rtdb.ref(`/dg_calls/${currentCallId}`).update({ answer: { type: answer.type, sdp: answer.sdp }, status: 'connected' });
+            const callSnap = await rtdb.ref(`/dg_calls/${currentCallId}`).once('value'); 
+            const callData = callSnap.val();
             
-            rtdb.ref(`/dg_calls/${currentCallId}/callerIce`).on('child_added', snap => { if (snap.val() && peerConnection) peerConnection.addIceCandidate(new RTCIceCandidate(snap.val())); });
-            callRef = rtdb.ref(`/dg_calls/${currentCallId}`);
-            callRef.on('value', snap => { const data = snap.val(); if (!data || data.status === 'ended') { cleanupCall(); } else if (data.status === 'connected') { setCallStatusText('Разговор (0:00)'); startCallTimer(); } });
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(callData.offer));
+            const answer = await peerConnection.createAnswer(); 
+            await peerConnection.setLocalDescription(answer);
+            
+            await rtdb.ref(`/dg_calls/${currentCallId}`).update({ answer: { type: answer.type, sdp: answer.sdp }, status: 'connected' });
             await rtdb.ref(`/dg_user_calls/${me.id}`).remove();
-        } catch (e) { alert('Ошибка камеры/микрофона: ' + e.message); endCall(); }
+            
+            setCallStatusText('Разговор (0:00)'); startCallTimer();
+
+            callRef = rtdb.ref(`/dg_calls/${currentCallId}`);
+            callRef.on('value', snap => {
+                const data = snap.val(); 
+                if (!data || data.status === 'ended' || data.status === 'declined' || data.status === 'missed') return cleanupCall();
+            });
+            
+            rtdb.ref(`/dg_calls/${currentCallId}/callerIce`).on('child_added', snap => {
+                if (snap.val() && peerConnection) peerConnection.addIceCandidate(new RTCIceCandidate(snap.val())).catch(e=>console.warn(e));
+            });
+            
+        } catch (e) { showToast('Ошибка микрофона: ' + e.message); endCall(); }
     }
 
     async function endCall() {
@@ -1705,6 +1711,14 @@
     // === НОВЫЙ СОВРЕМЕННЫЙ ПРОФИЛЬ ТИПА TELEGRAM ===
     function closeModernProfile() { document.getElementById('profile-view-screen').classList.remove('active'); }
 
+    // Функция для просмотра квадратной аватарки
+    window.openAvatarModalView = function(type, value) {
+        const content = document.getElementById('mediaModalContent');
+        if (type === 'url') { content.innerHTML = `<img src="${escapeHtml(value)}" style="width: 100vw; height: 100vh; object-fit: contain; padding: 20px;">`; } 
+        else { content.innerHTML = `<div style="font-size: 150px; text-align: center;">${escapeHtml(value)}</div>`; }
+        document.getElementById('mediaModal').classList.add('active');
+    }
+
     function viewChatInfo() {
         if (!activeChat) return;
         const content = document.getElementById('profile-view-content');
@@ -1729,7 +1743,9 @@
                     <span onclick="closeModernProfile()" style="cursor:pointer; padding: 4px;">←</span>
                     <span style="cursor:pointer; padding: 4px;">⋮</span>
                 </div>
-                <div class="mp-av-wrap">${getAvatarHtml(contact.avatarType, contact.avatarValue)}</div>
+                <div class="mp-av-wrap" onclick="openAvatarModalView('${contact.avatarType}', '${contact.avatarValue}')" style="cursor: pointer;">
+                    ${getAvatarHtml(contact.avatarType, contact.avatarValue)}
+                </div>
                 <div class="mp-name">${escapeHtml(contact.name)}${starHtml}</div>
                 <div class="mp-status">${getUserStatus(contact)}</div>
                 
@@ -1762,7 +1778,10 @@
             const isCreator = activeChat.admin === me.id;
             
             let adminButtons = ''; 
-            if (isAdmin) { adminButtons += `<div class="mp-action-row" onclick="editChatName()">✏️ Изменить название</div><div class="mp-action-row" onclick="editChatDesc()">📝 Изменить описание</div>`; } 
+            if (isAdmin) { 
+                adminButtons += `<div class="mp-action-row" onclick="uploadChatAvatar()">📸 Изменить фото</div>`;
+                adminButtons += `<div class="mp-action-row" onclick="editChatName()">✏️ Изменить название</div><div class="mp-action-row" onclick="editChatDesc()">📝 Изменить описание</div>`; 
+            } 
             if (isCreator) { adminButtons += `<div class="mp-action-row" onclick="deleteChat()" style="color:var(--red);">🗑 Удалить ${activeChat.type === 'channel' ? 'канал' : 'группу'}</div>`; } 
             else { adminButtons += `<div class="mp-action-row" onclick="leaveChat()" style="color:var(--red);">🚪 Покинуть чат</div>`; }
 
@@ -1786,9 +1805,8 @@
 
             content.innerHTML = `
                 <div class="mp-head"><span onclick="closeModernProfile()" style="cursor:pointer; padding: 4px;">←</span><span style="cursor:pointer; padding: 4px;">⋮</span></div>
-                <div class="mp-av-wrap" ${isAdmin ? 'onclick="uploadChatAvatar()"' : ''} style="position:relative; ${isAdmin ? 'cursor:pointer;' : ''}">
+                <div class="mp-av-wrap" onclick="openAvatarModalView('${activeChat.avatarType}', '${activeChat.avatarValue}')" style="cursor: pointer;">
                     ${getAvatarHtml(activeChat.avatarType, activeChat.avatarValue)}
-                    ${isAdmin ? '<div style="position:absolute; bottom:0; right:0; background:var(--p); border-radius:50%; padding:4px;">✏️</div>' : ''}
                 </div>
                 <div class="mp-name">${escapeHtml(activeChat.name)}</div>
                 <div class="mp-status">${activeChat.type === 'channel' ? '📢 Канал' : '👥 Группа'}</div>
@@ -1864,6 +1882,7 @@
 
     async function resetFirebasePassword() { const email = document.getElementById('forgotLogin').value.trim().toLowerCase(); if (!email || !email.includes('@')) return showToast('Введите корректный Email в первое поле'); try { await firebase.auth().sendPasswordResetEmail(email); alert('Письмо для сброса пароля отправлено на ' + email + '.\nОбязательно проверьте папку "Спам" или "Рассылки"!'); closeForgotModal(); } catch (error) { showToast('Ошибка: ' + error.message); } }
     
+    // ИСПРАВЛЕНИЕ: Симметричное добавление без лишних кликов
     function acceptReq(id) { 
         const myIdx = db.users.findIndex(u => u.id === me.id);
         const fIdx = db.users.findIndex(u => u.id === id);
@@ -1914,38 +1933,15 @@
 
     // === ЛОГИКА ОКНА НАСТРОЕК ЗВУКА ===
     function openSoundSettings() {
-        document.getElementById('ringtoneSelect').value = currentRingtone;
         document.getElementById('notifSelect').value = currentNotif;
         document.getElementById('soundModal').classList.add('active');
     }
 
     function closeSoundModal() {
-        document.getElementById('incomingRingtone').pause();
-        document.getElementById('notificationSound').pause();
-        document.getElementById('incomingRingtone').currentTime = 0;
-        document.getElementById('notificationSound').currentTime = 0;
+        const notifEl = document.getElementById('notificationSound');
+        if (notifEl) { notifEl.pause(); notifEl.currentTime = 0; }
         applySounds(); 
         document.getElementById('soundModal').classList.remove('active');
-    }
-
-    function previewRingtone() {
-        let val = document.getElementById('ringtoneSelect').value;
-        if (val === 'custom') {
-            val = prompt("Введите прямую ссылку на аудиофайл (mp3, ogg):");
-            if (val && val.trim()) {
-                let opt = document.createElement('option');
-                opt.value = val.trim();
-                opt.text = "Свой рингтон";
-                document.getElementById('ringtoneSelect').add(opt);
-                document.getElementById('ringtoneSelect').value = val.trim();
-            } else {
-                document.getElementById('ringtoneSelect').value = currentRingtone;
-                return;
-            }
-        }
-        let audio = document.getElementById('incomingRingtone');
-        audio.src = val;
-        audio.play().catch(e => console.warn('Preview blocked:', e));
     }
 
     function previewNotif() {
@@ -1960,9 +1956,10 @@
     }
 
     function saveSoundSettings() {
-        currentRingtone = document.getElementById('ringtoneSelect').value;
+        const notifEl = document.getElementById('notificationSound');
+        if (notifEl) { notifEl.pause(); notifEl.currentTime = 0; }
+        
         currentNotif = document.getElementById('notifSelect').value;
-        localSettings.ringtone = currentRingtone;
         localSettings.notifSound = currentNotif;
         localStorage.setItem('Nexagram_Settings', JSON.stringify(localSettings));
         applySounds();
@@ -1971,4 +1968,4 @@
     }
 </script>
 </body>
-                                                                 </html>
+                                                                                             </html>
