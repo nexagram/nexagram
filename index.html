@@ -16,6 +16,12 @@
 
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); }
+
         :root {
             --bg: #000000; --card: #121212; --in: #1c1c1c; --brd: #262626;
             --txt: #ffffff; --mut: #8e8e8e; --p: #30d158; --red: #ff3b30; --online: #30d158;
@@ -110,7 +116,7 @@
         .list-name { font-weight: 600; font-size: 16px; margin-bottom: 4px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
         .list-preview { color: var(--mut); font-size: 14px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
         
-        /* НОВЫЙ ДИЗАЙН НИЖНЕГО МЕНЮ */
+        /* ВЕКТОРНЫЕ SVG ИКОНКИ НИЖНЕГО МЕНЮ */
         .nav { position: fixed; bottom: 0; width: 100%; height: calc(64px + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom); background: rgba(var(--card), 0.95); backdrop-filter: blur(10px); border-top: 1px solid var(--brd); display: flex; justify-content: space-around; z-index: 100; align-items: center; }
         .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--mut); gap: 4px; cursor: pointer; height: 100%; }
         .nav-icon-wrap { position: relative; width: 56px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 16px; transition: 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); font-size: 22px; z-index: 1; }
@@ -354,7 +360,7 @@
         @keyframes shake { 0%, 100% {transform: translateX(-50%);} 25% {transform: translateX(-55%);} 75% {transform: translateX(-45%);} }
         .shake { animation: shake 0.4s ease; }
 
-        /* НОВЫЙ СОВРЕМЕННЫЙ ПРОФИЛЬ ТИПА TELEGRAM */
+        /* СОВРЕМЕННЫЙ ПРОФИЛЬ ТИПА TELEGRAM */
         #profile-view-screen { position: fixed; inset: 0; background: var(--bg); z-index: 600; display: flex; flex-direction: column; overflow-y: auto; visibility: hidden; transform: translateX(100%); transition: all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1); }
         #profile-view-screen.active { visibility: visible; transform: translateX(0); }
         
@@ -379,49 +385,11 @@
         .mp-info-icon { font-size: 24px; color: var(--p); opacity: 0.8; }
         .mp-action-row { background: var(--card); border-radius: 20px; margin: 0 16px 16px; padding: 16px; text-align: center; font-size: 16px; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; border: 1px solid var(--brd); transition: 0.2s;}
         .mp-action-row:active { transform: scale(0.98); background: var(--in); }
-
-        /* ================= ДЕСКТОП ВЕРСИЯ (PC) ================= */
-        @media (min-width: 768px) {
-            body { 
-                display: flex; justify-content: center; align-items: center; 
-                background-color: #0f0f11; background-image: radial-gradient(circle at center, #1a1a20 0%, #000 100%); 
-            }
-            #app, .auth-screen { 
-                width: 100%; max-width: 1100px; height: 90vh !important; max-height: 850px; 
-                border-radius: 20px; box-shadow: 0 25px 80px rgba(0,0,0,0.6); 
-                transform: translateZ(0); 
-                border: 1px solid #2a2a2a; margin: auto; position: relative; overflow: hidden;
-            }
-            .content { width: 350px; border-right: 1px solid var(--brd); height: 100%; padding-bottom: 64px; }
-            .nav { width: 350px; position: absolute; left: 0; bottom: 0; border-top: 1px solid var(--brd); border-radius: 0 0 0 20px; }
-            
-            #chat-window { 
-                position: absolute; top: 0; right: 0; bottom: 0; left: 350px; 
-                transform: none !important; visibility: visible !important; display: flex !important;
-                border-radius: 0 20px 20px 0; background: var(--bg); border-left: 1px solid var(--brd);
-            }
-            #chat-window::before { 
-                content: 'Выберите чат для общения'; position: absolute; inset: 0; 
-                display: flex; align-items: center; justify-content: center; 
-                background: var(--bg); color: var(--mut); z-index: 1000; 
-                font-size: 16px; font-weight: 500; transition: opacity 0.3s ease; 
-                border-radius: 0 20px 20px 0;
-            }
-            #chat-window.active::before { opacity: 0; pointer-events: none; }
-            .back-btn { display: none !important; }
-            
-            #profile-view-screen { 
-                position: absolute; top: 0; right: 0; bottom: 0; left: 350px; 
-                border-left: 1px solid var(--brd); border-radius: 0 20px 20px 0;
-            }
-            
-            #callOverlay, .modal, #storyViewer { position: absolute; border-radius: 20px; }
-            .chat-input-area { padding-bottom: 12px !important; }
-        }
     </style>
 </head>
 <body>
 
+<!-- Умная плашка для разблокировки звука звонка -->
 <div id="audio-unlock-toast" onclick="forceUnlockAudio()">🔊 Нажмите, чтобы включить звук звонка</div>
 
 <div class="auth-screen" id="authScreen">
@@ -579,8 +547,8 @@
 
             <div class="section-header">Система</div>
             <div class="sett-box">
-                <div class="sett-row" onclick="openSoundSettings()"><span style="font-size:20px;">🎵</span> Настройки звука</div>
-                <div class="sett-row" onclick="requestNotifications()">🔔 Включить уведомления</div>
+                <div class="sett-row" onclick="openSoundSettings()"><span style="font-size:20px;">🎵</span> Уведомления сообщений</div>
+                <div class="sett-row" onclick="requestNotifications()">🔔 Включить push-уведомления</div>
                 <div class="sett-row" onclick="openSupportChat()">💬 Чат с поддержкой</div>
                 <div class="sett-row" id="admin-switch-btn" style="display: none;" onclick="switchAccount()">🔄 Сменить аккаунт (Админ)</div>
                 <div class="sett-row" id="admin-panel-btn" style="display: none; color: #a855f7; font-weight: bold;" onclick="openAdminPanel()">👑 Управление пользователями</div>
@@ -590,22 +558,32 @@
         </div>
     </div>
 
-    <!-- ОБНОВЛЕННЫЙ НАВБАР -->
+    <!-- ОБНОВЛЕННЫЙ НАВБАР С ВЕКТОРНЫМИ SVG ИКОНКАМИ -->
     <nav class="nav">
         <div class="nav-btn" id="nb-friends" onclick="setTab('friends')">
-            <div class="nav-icon-wrap"><span class="icon">👥</span><div id="friends-badge" class="nav-badge" style="display:none;"></div></div>
+            <div class="nav-icon-wrap">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 22px; height: 22px;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                <div id="friends-badge" class="nav-badge" style="display:none;"></div>
+            </div>
             <span class="nav-text">Контакты</span>
         </div>
         <div class="nav-btn active" id="nb-chats" onclick="setTab('chats')">
-            <div class="nav-icon-wrap"><span class="icon">💬</span><div id="chats-badge" class="nav-badge" style="display:none;"></div></div>
+            <div class="nav-icon-wrap">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 22px; height: 22px;"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                <div id="chats-badge" class="nav-badge" style="display:none;"></div>
+            </div>
             <span class="nav-text">Чаты</span>
         </div>
         <div class="nav-btn" id="nb-calls" onclick="setTab('calls')">
-            <div class="nav-icon-wrap"><span class="icon">📞</span></div>
+            <div class="nav-icon-wrap">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 22px; height: 22px;"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+            </div>
             <span class="nav-text">Звонки</span>
         </div>
         <div class="nav-btn" id="nb-profile" onclick="setTab('profile')">
-            <div class="nav-icon-wrap"><span class="icon">⚙️</span></div>
+            <div class="nav-icon-wrap">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 22px; height: 22px;"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            </div>
             <span class="nav-text">Профиль</span>
         </div>
     </nav>
@@ -669,8 +647,8 @@
 <!-- МОДАЛКА НАСТРОЕК ЗВУКА -->
 <div id="soundModal" class="modal">
     <div class="modal-content">
-        <h3>Звуки и уведомления</h3>
-        <div class="input-group" style="margin-top: 16px;">
+        <h3>Звуки сообщений</h3>
+        <div class="input-group">
             <label>Звук нового сообщения</label>
             <select id="notifSelect" class="auth-input" onchange="previewNotif()">
                 <option value="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3">Легкий Pop</option>
@@ -1126,6 +1104,7 @@
         }).join('');
     }
 
+    // === ИСПРАВЛЕНИЕ: МИКРОФОН ЗАПРАШИВАЕТСЯ СТРОГО ПО КЛИКУ, ПОТОКИ ОБЪЕДИНЕНЫ ===
     async function initiateCall(isVideo) {
         if (!activeChat || activeChat.type !== 'direct') return;
         const targetUserId = activeChat.u1 === me.id ? activeChat.u2 : activeChat.u1; const targetUser = db.users.find(u => u.id === targetUserId);
@@ -1141,7 +1120,6 @@
         renderCallControls(); 
 
         try {
-            // Аппаратное эхоподавление
             const audioConstraints = { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
             localStream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints, video: isVideo ? { facingMode: currentFacingMode } : false });
             if (isVideo) { const localVid = document.getElementById('localVideo'); localVid.srcObject = localStream; localVid.style.display = 'block'; localVid.style.transform = 'scaleX(-1)'; }
@@ -1149,16 +1127,28 @@
             peerConnection = new RTCPeerConnection(rtcConfig); 
             localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
             
+            // ВАЖНО: Если видеозвонок, собираем и звук, и картинку в видеоплеер!
             peerConnection.ontrack = event => { 
-                const rVid = document.getElementById('remoteVideo'); const rAud = document.getElementById('remoteAudio');
-                if (event.track.kind === 'video') {
-                    if (!rVid.srcObject) rVid.srcObject = new MediaStream([event.track]); else rVid.srcObject.addTrack(event.track);
-                    rVid.onloadedmetadata = () => { rVid.play().catch(e=>{}); rVid.classList.add('active-video'); document.getElementById('callTopCenter').style.display='block'; document.getElementById('callCenterArea').style.display='none'; };
+                const mediaEl = currentCallIsVideo ? document.getElementById('remoteVideo') : document.getElementById('remoteAudio');
+                
+                if (event.streams && event.streams[0]) {
+                    if (mediaEl.srcObject !== event.streams[0]) {
+                        mediaEl.srcObject = event.streams[0];
+                    }
                 } else {
-                    if (!rAud.srcObject) rAud.srcObject = new MediaStream([event.track]); else rAud.srcObject.addTrack(event.track);
-                    rAud.play().catch(e=>{});
+                    if (!mediaEl.srcObject) mediaEl.srcObject = new MediaStream();
+                    mediaEl.srcObject.addTrack(event.track);
+                }
+                
+                mediaEl.play().catch(e => console.warn('Play error:', e));
+
+                if (currentCallIsVideo) {
+                    mediaEl.classList.add('active-video'); 
+                    document.getElementById('callTopCenter').style.display='block'; 
+                    document.getElementById('callCenterArea').style.display='none';
                 }
             };
+            
             peerConnection.onicecandidate = event => { if (event.candidate) rtdb.ref(`/dg_calls/${currentCallId}/callerIce`).push(event.candidate.toJSON()); };
             
             const offer = await peerConnection.createOffer(); await peerConnection.setLocalDescription(offer);
@@ -1207,16 +1197,28 @@
             peerConnection = new RTCPeerConnection(rtcConfig); 
             localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
             
+            // ВАЖНО: Если видеозвонок, собираем и звук, и картинку в видеоплеер!
             peerConnection.ontrack = event => { 
-                const rVid = document.getElementById('remoteVideo'); const rAud = document.getElementById('remoteAudio');
-                if (event.track.kind === 'video') {
-                    if (!rVid.srcObject) rVid.srcObject = new MediaStream([event.track]); else rVid.srcObject.addTrack(event.track);
-                    rVid.onloadedmetadata = () => { rVid.play().catch(e=>{}); rVid.classList.add('active-video'); document.getElementById('callTopCenter').style.display='block'; document.getElementById('callCenterArea').style.display='none'; };
+                const mediaEl = currentCallIsVideo ? document.getElementById('remoteVideo') : document.getElementById('remoteAudio');
+                
+                if (event.streams && event.streams[0]) {
+                    if (mediaEl.srcObject !== event.streams[0]) {
+                        mediaEl.srcObject = event.streams[0];
+                    }
                 } else {
-                    if (!rAud.srcObject) rAud.srcObject = new MediaStream([event.track]); else rAud.srcObject.addTrack(event.track);
-                    rAud.play().catch(e=>{});
+                    if (!mediaEl.srcObject) mediaEl.srcObject = new MediaStream();
+                    mediaEl.srcObject.addTrack(event.track);
+                }
+                
+                mediaEl.play().catch(e => console.warn('Play error:', e));
+
+                if (currentCallIsVideo) {
+                    mediaEl.classList.add('active-video'); 
+                    document.getElementById('callTopCenter').style.display='block'; 
+                    document.getElementById('callCenterArea').style.display='none';
                 }
             };
+            
             peerConnection.onicecandidate = event => { if (event.candidate) rtdb.ref(`/dg_calls/${currentCallId}/calleeIce`).push(event.candidate.toJSON()); };
             
             const callSnap = await rtdb.ref(`/dg_calls/${currentCallId}`).once('value'); 
@@ -1266,7 +1268,7 @@
             const newVideoTrack = newStream.getVideoTracks()[0]; localStream.addTrack(newVideoTrack);
             const localVid = document.getElementById('localVideo'); localVid.srcObject = localStream; localVid.style.transform = currentFacingMode === 'user' ? 'scaleX(-1)' : 'none';
             if (peerConnection) { const sender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'video'); if (sender) sender.replaceTrack(newVideoTrack); }
-        } catch(e) { console.error("Error", e); alert("Не удалось переключить камеру: " + e.message); }
+        } catch(e) { console.error("Error", e); showToast("Не удалось переключить камеру: " + e.message); }
     }
 
     function toggleCallSpeaker() { isSpeakerOn = !isSpeakerOn; renderCallControls(); const rVid = document.getElementById('remoteVideo'); if (typeof rVid.setSinkId === 'function') { const targetSink = isSpeakerOn ? 'default' : ''; rVid.setSinkId(targetSink).catch(e => console.log(e)); } }
@@ -1968,4 +1970,4 @@
     }
 </script>
 </body>
-                                                                                             </html>
+</html>
