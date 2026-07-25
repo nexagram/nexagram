@@ -884,6 +884,7 @@
     let drafts = JSON.parse(localStorage.getItem('Nexagram_Drafts')) || {};
     let lastKnownMsgCounts = {}; 
     let isInitialLoadDone = false; 
+    let redirectHandled = false; // <-- НОВАЯ ПЕРЕМЕННАЯ
     
     let db = { users: [], chats: [], stories: [], callLogs: [] };
     let me = null; let activeChat = null; let currentChatsFilter = ''; let isDbReady = false;
@@ -985,7 +986,61 @@
                 });
             }
             
-            if (!isInitialLoadDone) isInitialLoadDone = true;
+            if (!isInitialLoadDone) {
+                isInitialLoadDone = true;
+                
+                // === НОВЫЙ БЛОК ОБРАБОТКИ РЕДИРЕКТА ===
+                if (!redirectHandled) {
+                    redirectHandled = true;
+                    firebase.auth().getRedirectResult().then(async (result) => {
+                        if (result.credential) {
+                            const fUser = result.user;
+                            let user = db.users.find(u => u.email === fUser.email?.toLowerCase() || u.firebaseUid === fUser.uid);
+
+                            if (!user) {
+                                let rawLogin = fUser.email ? fUser.email.split('@')[0] : 'user_' + Date.now();
+                                let finalLogin = rawLogin.toLowerCase().replace(/[^a-z0-9_]/g, '');
+                                // Убедимся, что логин уникален
+                                let baseLogin = finalLogin;
+                                let counter = 1;
+                                while (db.users.find(u => u.login === finalLogin)) {
+                                    finalLogin = baseLogin + counter++;
+                                }
+
+                                user = {
+                                    id: 'u_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+                                    login: finalLogin,
+                                    email: fUser.email ? fUser.email.toLowerCase() : '',
+                                    name: fUser.displayName || finalLogin,
+                                    avatarType: 'url',
+                                    avatarValue: fUser.photoURL || '',
+                                    friends: [],
+                                    friendRequests: [],
+                                    password: hashString('oauth_auth'),
+                                    secretWord: hashString('oauth_auth'),
+                                    lastSeen: Date.now(),
+                                    isBanned: false,
+                                    firebaseUid: fUser.uid
+                                };
+                                db.users.push(user);
+                                await rtdb.ref('/dg_app_data/users').set(db.users);
+                            }
+                            // Если пользователь найден или создан – выполняем вход
+                            if (user && !user.isBanned) {
+                                proceedWithLogin(user);
+                            } else if (user && user.isBanned) {
+                                alert('❌ Ваш аккаунт заблокирован.');
+                            }
+                        }
+                    }).catch((error) => {
+                        console.error('Ошибка при получении результата редиректа:', error);
+                        // Можно показать сообщение пользователю
+                        // alert('Ошибка авторизации: ' + error.message);
+                    });
+                }
+                // === КОНЕЦ НОВОГО БЛОКА ===
+            }
+            
             isDbReady = true; 
             const loader = document.getElementById('loader');
             loader.style.opacity = '0';
@@ -1341,52 +1396,17 @@
         document.getElementById('secretGroup').classList.toggle('visible', tab==='register');
     }
 
-    async function loginWithGitHub() {
-        if (!isDbReady) return alert('Подождите, идет подключение к серверу...'); ensureHelper();
-        try {
-            document.getElementById('loader').style.display = 'flex'; setTimeout(()=>document.getElementById('loader').style.opacity = '1', 50);
-            const result = await firebase.auth().signInWithPopup(githubProvider); 
-            const ghUser = result.user;
-            let user = db.users.find(u => u.githubUid === ghUser.uid || (ghUser.email && u.email === ghUser.email.toLowerCase()));
-
-            if (!user) {
-                let rawLogin = result.additionalUserInfo?.username || ghUser.displayName || (ghUser.email ? ghUser.email.split('@')[0] : 'github_user');
-                let baseLogin = rawLogin.toLowerCase().replace(/[^a-z0-9_]/g, '');
-                if (baseLogin.length < 3) baseLogin += 'user';
-                let finalLogin = baseLogin;
-                if (db.users.find(u => u.login === finalLogin)) {
-                    finalLogin = baseLogin + Math.floor(1000 + Math.random() * 9000);
-                    while(db.users.find(u => u.login === finalLogin)) { finalLogin = baseLogin + Math.floor(10000 + Math.random() * 90000); }
-                }
-                user = { id: 'u_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6), login: finalLogin, email: ghUser.email ? ghUser.email.toLowerCase() : '', name: ghUser.displayName || finalLogin, avatarType: 'emoji', avatarValue: 'person', friends: [], friendRequests: [], password: hashString('github_auth'), secretWord: hashString('github_auth'), lastSeen: Date.now(), isBanned: false, githubUid: ghUser.uid, firebaseUid: ghUser.uid };
-                db.users.push(user); await rtdb.ref('/dg_app_data/users').set(db.users);
-            }
-            document.getElementById('loader').style.opacity = '0'; setTimeout(()=>document.getElementById('loader').style.display='none', 300); proceedWithLogin(user);
-        } catch (error) { 
-            document.getElementById('loader').style.opacity = '0'; setTimeout(()=>document.getElementById('loader').style.display='none', 300);
-            if (error.code === 'auth/account-exists-with-different-credential') { showToast('⚠️ Этот Email уже используется другим способом.'); } 
-            else if (error.code !== 'auth/popup-closed-by-user') { showToast('Ошибка: ' + error.message); } 
-        }
+    // === УПРОЩЁННЫЕ ФУНКЦИИ ДЛЯ РЕДИРЕКТА ===
+    function loginWithGoogle() {
+        document.getElementById('loader').style.display = 'flex';
+        document.getElementById('loader').style.opacity = '1';
+        firebase.auth().signInWithRedirect(googleProvider);
     }
 
-    async function loginWithGoogle() {
-        if (!isDbReady) return alert('Подождите, идет подключение к серверу...'); ensureHelper();
-        try {
-            document.getElementById('loader').style.display = 'flex'; setTimeout(()=>document.getElementById('loader').style.opacity = '1', 50);
-            const result = await firebase.auth().signInWithPopup(googleProvider); const gUser = result.user;
-            let user = db.users.find(u => u.googleUid === gUser.uid || u.email === gUser.email.toLowerCase());
-
-            if (!user) {
-                const baseLogin = gUser.email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, ''); let finalLogin = baseLogin;
-                if (db.users.find(u => u.login === finalLogin)) {
-                    finalLogin = baseLogin + Math.floor(1000 + Math.random() * 9000);
-                    while(db.users.find(u => u.login === finalLogin)) { finalLogin = baseLogin + Math.floor(10000 + Math.random() * 90000); }
-                }
-                user = { id: 'u_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6), login: finalLogin, email: gUser.email.toLowerCase(), name: gUser.displayName || finalLogin, avatarType: 'emoji', avatarValue: 'person', friends: [], friendRequests: [], password: hashString('google_auth'), secretWord: hashString('google_auth'), lastSeen: Date.now(), isBanned: false, googleUid: gUser.uid, firebaseUid: gUser.uid };
-                db.users.push(user); await rtdb.ref('/dg_app_data/users').set(db.users);
-            }
-            document.getElementById('loader').style.opacity = '0'; setTimeout(()=>document.getElementById('loader').style.display='none', 300); proceedWithLogin(user);
-        } catch (error) { document.getElementById('loader').style.opacity = '0'; setTimeout(()=>document.getElementById('loader').style.display='none', 300); if (error.code !== 'auth/popup-closed-by-user') { showToast('Ошибка Google: ' + error.message); } }
+    function loginWithGitHub() {
+        document.getElementById('loader').style.display = 'flex';
+        document.getElementById('loader').style.opacity = '1';
+        firebase.auth().signInWithRedirect(githubProvider);
     }
 
     async function doLogin() {
