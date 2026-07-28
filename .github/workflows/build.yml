@@ -1,0 +1,79 @@
+name: Build Nexagram APK
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Android App
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Setup Java JDK
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+
+    - name: Install Capacitor
+      run: |
+        npm init -y
+        npm install @capacitor/core @capacitor/android
+        npm install -D @capacitor/cli
+
+    # ХИТРОСТЬ: Настраиваем приложение так, чтобы оно грузило сайт напрямую с хостинга
+    - name: Configure Capacitor
+      run: |
+        cat <<EOF > capacitor.config.json
+        {
+          "appId": "com.itsgemix.nexagram",
+          "appName": "Nexagram",
+          "webDir": "www",
+          "server": {
+            "url": "https://nexagram.site",
+            "cleartext": true
+          }
+        }
+        EOF
+        mkdir www
+        echo "<html><body>Loading Nexagram...</body></html>" > www/index.html
+
+    - name: Initialize Android Platform
+      run: npx cap add android
+
+    # ВНЕДРЕНИЕ РАЗРЕШЕНИЙ: Скрипт сам пропишет права на камеру, микрофон и файлы в Android-проект
+    - name: Inject System Permissions
+      run: |
+        MANIFEST="android/app/src/main/AndroidManifest.xml"
+        sed -i 's/<\/manifest>//g' $MANIFEST
+        cat <<EOF >> $MANIFEST
+            <uses-permission android:name="android.permission.CAMERA" />
+            <uses-permission android:name="android.permission.RECORD_AUDIO" />
+            <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+            <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+            <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+        </manifest>
+        EOF
+
+    - name: Build APK
+      working-directory: ./android
+      run: |
+        chmod +x ./gradlew
+        ./gradlew assembleDebug
+
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: Nexagram-App
+        path: android/app/build/outputs/apk/debug/app-debug.apk
+        retention-days: 7
