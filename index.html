@@ -910,6 +910,26 @@
     const rtdb = firebase.database();
     const googleProvider = new firebase.auth.GoogleAuthProvider();
     const githubProvider = new firebase.auth.GithubAuthProvider();
+    // Добавляем scopes для лучшей совместимости
+    googleProvider.addScope('email');
+    googleProvider.addScope('profile');
+    githubProvider.addScope('user:email');
+
+    // Страховка: если пользователь уже авторизован в Firebase (после redirect/popup)
+    let authStateHandled = false;
+    firebase.auth().onAuthStateChanged(async (fUser) => {
+        if (!fUser || me || authStateHandled) return;
+        // Не трогаем, если уже есть локальная сессия или идёт обычный email-логин
+        // Обрабатываем только если пришли через OAuth и база готова
+        if (isDbReady && !localStorage.getItem('Nexagram_Session_UID')) {
+            authStateHandled = true;
+            try {
+                await handleFirebaseUser(fUser);
+            } catch (e) {
+                console.error('onAuthStateChanged error:', e);
+            }
+        }
+    });
     
     const inRing = document.getElementById('incomingRingtone');
     const outRing = document.getElementById('outgoingRingtone');
@@ -1048,56 +1068,20 @@
             if (!isInitialLoadDone) {
                 isInitialLoadDone = true;
                 
-                // === НОВЫЙ БЛОК ОБРАБОТКИ РЕДИРЕКТА ===
+                // Обработка результата redirect (Google / GitHub)
                 if (!redirectHandled) {
                     redirectHandled = true;
                     firebase.auth().getRedirectResult().then(async (result) => {
-                        if (result.credential) {
-                            const fUser = result.user;
-                            let user = db.users.find(u => u.email === fUser.email?.toLowerCase() || u.firebaseUid === fUser.uid);
-
-                            if (!user) {
-                                let rawLogin = fUser.email ? fUser.email.split('@')[0] : 'user_' + Date.now();
-                                let finalLogin = rawLogin.toLowerCase().replace(/[^a-z0-9_]/g, '');
-                                // Убедимся, что логин уникален
-                                let baseLogin = finalLogin;
-                                let counter = 1;
-                                while (db.users.find(u => u.login === finalLogin)) {
-                                    finalLogin = baseLogin + counter++;
-                                }
-
-                                user = {
-                                    id: 'u_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
-                                    login: finalLogin,
-                                    email: fUser.email ? fUser.email.toLowerCase() : '',
-                                    name: fUser.displayName || finalLogin,
-                                    avatarType: 'url',
-                                    avatarValue: fUser.photoURL || '',
-                                    friends: [],
-                                    friendRequests: [],
-                                    password: hashString('oauth_auth'),
-                                    secretWord: hashString('oauth_auth'),
-                                    lastSeen: Date.now(),
-                                    isBanned: false,
-                                    firebaseUid: fUser.uid
-                                };
-                                db.users.push(user);
-                                await rtdb.ref('/dg_app_data/users').set(db.users);
-                            }
-                            // Если пользователь найден или создан – выполняем вход
-                            if (user && !user.isBanned) {
-                                proceedWithLogin(user);
-                            } else if (user && user.isBanned) {
-                                alert('❌ Ваш аккаунт заблокирован.');
-                            }
+                        if (result && result.user) {
+                            await handleFirebaseUser(result.user);
                         }
                     }).catch((error) => {
-                        console.error('Ошибка при получении результата редиректа:', error);
-                        // Можно показать сообщение пользователю
-                        // alert('Ошибка авторизации: ' + error.message);
+                        console.error('Ошибка getRedirectResult:', error);
+                        if (error.code && error.code !== 'auth/credential-already-in-use') {
+                            showToast('Ошибка авторизации: ' + (error.message || error.code));
+                        }
                     });
                 }
-                // === КОНЕЦ НОВОГО БЛОКА ===
             }
             
             isDbReady = true; 
@@ -1464,17 +1448,108 @@
         document.getElementById('secretGroup').classList.toggle('visible', tab==='register');
     }
 
-    // === УПРОЩЁННЫЕ ФУНКЦИИ ДЛЯ РЕДИРЕКТА ===
+    // === НАДЁЖНАЯ АВТОРИЗАЦИЯ (Popup + Redirect fallback) ===
+    function hideLoader() {
+        const loader = document.getElementById('loader');
+        if (loader) { loader.style.opacity = '0'; setTimeout(() => loader.style.display = 'none', 300); }
+    }
+    function showLoader() {
+        const loader = document.getElementById('loader');
+        if (loader) { loader.style.display = 'flex'; loader.style.opacity = '1'; }
+    }
+
+    async function handleFirebaseUser(fUser) {
+        if (!fUser) return;
+        // Ждём, пока база готова
+        if (!isDbReady) {
+            await new Promise(resolve => {
+                const check = setInterval(() => { if (isDbReady) { clearInterval(check); resolve(); } }, 100);
+            });
+        }
+        let user = db.users.find(u => 
+            (fUser.email && u.email === fUser.email.toLowerCase()) || 
+            u.firebaseUid === fUser.uid
+        );
+
+        if (!user) {
+            let rawLogin = fUser.email ? fUser.email.split('@')[0] : 'user_' + Date.now();
+            let finalLogin = rawLogin.toLowerCase().replace(/[^a-z0-9_]/g, '') || 'user';
+            let baseLogin = finalLogin;
+            let counter = 1;
+            while (db.users.find(u => u.login === finalLogin)) {
+                finalLogin = baseLogin + counter++;
+            }
+
+            user = {
+                id: 'u_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+                login: finalLogin,
+                email: fUser.email ? fUser.email.toLowerCase() : '',
+                name: fUser.displayName || finalLogin,
+                avatarType: fUser.photoURL ? 'url' : 'emoji',
+                avatarValue: fUser.photoURL || builtInAvatars[Math.floor(Math.random() * builtInAvatars.length)],
+                friends: [],
+                friendRequests: [],
+                password: hashString('oauth_auth'),
+                secretWord: hashString('oauth_auth'),
+                lastSeen: Date.now(),
+                isBanned: false,
+                firebaseUid: fUser.uid
+            };
+            db.users.push(user);
+            await rtdb.ref('/dg_app_data/users').set(db.users);
+        }
+
+        if (user.isBanned) {
+            hideLoader();
+            await firebase.auth().signOut();
+            alert('❌ Ваш аккаунт заблокирован.');
+            return;
+        }
+        hideLoader();
+        proceedWithLogin(user);
+    }
+
+    async function socialLogin(provider) {
+        if (!isDbReady) return alert('Подождите, идет подключение к серверу...');
+        showLoader();
+        try {
+            // Сначала пробуем popup (удобнее и надёжнее)
+            const result = await firebase.auth().signInWithPopup(provider);
+            if (result && result.user) {
+                await handleFirebaseUser(result.user);
+            } else {
+                hideLoader();
+            }
+        } catch (popupError) {
+            console.warn('Popup failed, trying redirect:', popupError.code || popupError.message);
+            // Fallback на redirect, если popup заблокирован
+            if (popupError.code === 'auth/popup-blocked' || 
+                popupError.code === 'auth/popup-closed-by-user' ||
+                popupError.code === 'auth/cancelled-popup-request' ||
+                popupError.code === 'auth/operation-not-supported-in-this-environment') {
+                try {
+                    await firebase.auth().signInWithRedirect(provider);
+                    // Страница перезагрузится, результат обработает getRedirectResult / onAuthStateChanged
+                } catch (redirectError) {
+                    hideLoader();
+                    showToast('Ошибка входа: ' + (redirectError.message || 'Попробуйте ещё раз'));
+                }
+            } else if (popupError.code === 'auth/account-exists-with-different-credential') {
+                hideLoader();
+                showToast('Аккаунт с этой почтой уже существует. Войдите через email.');
+            } else {
+                hideLoader();
+                showToast('Ошибка входа: ' + (popupError.message || 'Неизвестная ошибка'));
+            }
+        }
+    }
+
     function loginWithGoogle() {
-        document.getElementById('loader').style.display = 'flex';
-        document.getElementById('loader').style.opacity = '1';
-        firebase.auth().signInWithRedirect(googleProvider);
+        socialLogin(googleProvider);
     }
 
     function loginWithGitHub() {
-        document.getElementById('loader').style.display = 'flex';
-        document.getElementById('loader').style.opacity = '1';
-        firebase.auth().signInWithRedirect(githubProvider);
+        socialLogin(githubProvider);
     }
 
     async function doLogin() {
@@ -1482,23 +1557,65 @@
         const loginVal = document.getElementById('loginUsername').value.trim();
         const passwordVal = document.getElementById('loginPassword').value;
         if (!loginVal) return showToast('Введите логин или почту');
+        if (!passwordVal) return showToast('Введите пароль');
         const loginLower = loginVal.toLowerCase(); const isEmail = loginLower.includes('@');
         
         if (isEmail) {
             try {
-                document.getElementById('loader').style.display = 'flex'; setTimeout(()=>document.getElementById('loader').style.opacity = '1', 50);
+                showLoader();
                 const userCred = await firebase.auth().signInWithEmailAndPassword(loginLower, passwordVal);
                 
                 if (!userCred.user.emailVerified) {
-                    document.getElementById('loader').style.opacity = '0'; setTimeout(()=>document.getElementById('loader').style.display='none', 300); await firebase.auth().signOut();
+                    hideLoader();
+                    await firebase.auth().signOut();
                     return alert('❌ Ваша почта еще не подтверждена!\n\nПроверьте папку Спам и перейдите по ссылке в письме от Firebase.');
                 }
 
                 let user = db.users.find(u => u.email === loginLower || u.firebaseUid === userCred.user.uid);
-                if (!user) { document.getElementById('loader').style.opacity = '0'; setTimeout(()=>document.getElementById('loader').style.display='none', 300); return showToast('Пользователь не найден в базе'); }
-                if (user.isBanned) { document.getElementById('loader').style.opacity = '0'; setTimeout(()=>document.getElementById('loader').style.display='none', 300); return showToast('❌ Аккаунт заблокирован.'); }
-                document.getElementById('loader').style.opacity = '0'; setTimeout(()=>document.getElementById('loader').style.display='none', 300); proceedWithLogin(user);
-            } catch (error) { document.getElementById('loader').style.opacity = '0'; setTimeout(()=>document.getElementById('loader').style.display='none', 300); return showToast('Ошибка входа: ' + (error.code === 'auth/wrong-password' ? 'Неверный пароль' : error.message)); }
+                if (!user) {
+                    // Автосоздание записи в RTDB, если в Firebase Auth есть, а в базе нет
+                    let loginBase = loginLower.split('@')[0].replace(/[^a-z0-9_]/g, '') || 'user';
+                    let finalLogin = loginBase, c = 1;
+                    while (db.users.find(u => u.login === finalLogin)) finalLogin = loginBase + c++;
+                    user = {
+                        id: 'u_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+                        login: finalLogin,
+                        email: loginLower,
+                        name: loginBase,
+                        avatarType: 'emoji',
+                        avatarValue: builtInAvatars[Math.floor(Math.random() * builtInAvatars.length)],
+                        friends: [],
+                        friendRequests: [],
+                        password: hashString('firebase_auth'),
+                        secretWord: hashString('firebase_auth'),
+                        lastSeen: Date.now(),
+                        isBanned: false,
+                        firebaseUid: userCred.user.uid
+                    };
+                    db.users.push(user);
+                    await rtdb.ref('/dg_app_data/users').set(db.users);
+                }
+                if (user.isBanned) {
+                    hideLoader();
+                    await firebase.auth().signOut();
+                    return showToast('❌ Аккаунт заблокирован.');
+                }
+                hideLoader();
+                proceedWithLogin(user);
+            } catch (error) {
+                hideLoader();
+                let msg = 'Ошибка входа';
+                if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+                    msg = 'Неверный email или пароль';
+                } else if (error.code === 'auth/too-many-requests') {
+                    msg = 'Слишком много попыток. Подождите немного.';
+                } else if (error.code === 'auth/invalid-email') {
+                    msg = 'Некорректный email';
+                } else {
+                    msg = 'Ошибка: ' + (error.message || error.code);
+                }
+                showToast(msg);
+            }
         } else {
             const user = db.users.find(u => u.login === loginLower);
             if (!user) return showToast('Аккаунт не найден');
