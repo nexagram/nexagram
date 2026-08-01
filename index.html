@@ -550,8 +550,7 @@
 <audio id="notificationSound" preload="auto" playsinline></audio>
 
 <!-- Специальный скрытый аудиоплеер для голоса собеседника -->
-<audio id="remoteAudio" autoplay playsinline></audio>
-<!-- Не ставим muted — нужен звук собеседника -->
+<audio id="remoteAudio" autoplay playsinline webkit-playsinline></audio>
 
 <div id="minimizedCallBar" onclick="expandCall()">
     <button class="icon-btn-min mic-btn" id="minCallMicBtn" onclick="event.stopPropagation(); toggleCallMic();"><span class="material-symbols-outlined">mic</span></button>
@@ -870,9 +869,8 @@
 </div>
 
 <div id="callOverlay">
-    <video id="remoteVideo" autoplay playsinline></video>
-    <video id="localVideo" autoplay playsinline muted></video>
-    <!-- remoteAudio уже объявлен выше; убеждаемся что не muted -->
+    <video id="remoteVideo" autoplay playsinline webkit-playsinline muted></video>
+    <video id="localVideo" autoplay playsinline webkit-playsinline muted></video>
 
     <div class="call-top-bar">
         <button class="icon-btn" style="color: white; font-size: 28px; width:40px;" onclick="minimizeCall()"><span class="material-symbols-outlined">compress</span></button>
@@ -973,17 +971,59 @@
     }
 
     // === УМНАЯ СИСТЕМА ВОСПРОИЗВЕДЕНИЯ ЗВУКА ===
+    // === Разблокировка аудио (браузеры блокируют autoplay) ===
+    let audioUnlocked = false;
+    let audioCtx = null;
+
+    function unlockAudioContext() {
+        try {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume().catch(() => {});
+            }
+            const buf = audioCtx.createBuffer(1, 1, 22050);
+            const src = audioCtx.createBufferSource();
+            src.buffer = buf;
+            src.connect(audioCtx.destination);
+            src.start(0);
+            audioUnlocked = true;
+        } catch (e) { console.warn('AudioContext unlock:', e); }
+    }
+
+    ['touchstart', 'click', 'keydown'].forEach(ev => {
+        document.addEventListener(ev, function onceUnlock() {
+            unlockAudioContext();
+            ['incomingRingtone', 'outgoingRingtone', 'notificationSound', 'remoteAudio'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    const wasMuted = el.muted;
+                    el.muted = true;
+                    el.play().then(() => { el.pause(); el.currentTime = 0; el.muted = wasMuted; }).catch(() => { el.muted = wasMuted; });
+                }
+            });
+            document.removeEventListener(ev, onceUnlock, true);
+        }, { capture: true, passive: true });
+    });
+
     function safePlayAudio(audioElement, isRingtone = false) {
-        if (!audioElement || !audioElement.src || audioElement.src.includes('none')) return;
-        audioElement.loop = isRingtone;
-        audioElement.currentTime = 0;
-        
+        if (!audioElement) return;
+        if (!audioElement.src && !audioElement.srcObject) return;
+        if (audioElement.src && audioElement.src.includes('none')) return;
+
+        unlockAudioContext();
+        audioElement.loop = !!isRingtone;
+        audioElement.muted = false;
+        audioElement.volume = isRingtone ? (audioElement.id === 'outgoingRingtone' ? 0.25 : 0.8) : 1;
+        try { audioElement.currentTime = 0; } catch (_) {}
+
         const playPromise = audioElement.play();
         if (playPromise !== undefined) {
             playPromise.catch(error => {
                 console.warn("Браузер заблокировал звук:", error);
                 const toast = document.getElementById('audio-unlock-toast');
-                if(toast) { toast.style.display = 'block'; toast.classList.add('shake'); }
+                if (toast) { toast.style.display = 'block'; toast.classList.add('shake'); }
                 if (isRingtone) window.pendingRingtone = audioElement;
             });
         }
@@ -991,10 +1031,17 @@
 
     function forceUnlockAudio() {
         document.getElementById('audio-unlock-toast').style.display = 'none';
-        if (window.pendingRingtone) { window.pendingRingtone.play().catch(e => console.error(e)); window.pendingRingtone = null; }
+        unlockAudioContext();
+        if (window.pendingRingtone) {
+            window.pendingRingtone.muted = false;
+            window.pendingRingtone.play().catch(e => console.error(e));
+            window.pendingRingtone = null;
+        }
+        const rAud = document.getElementById('remoteAudio');
+        if (rAud && rAud.srcObject) rAud.play().catch(() => {});
     }
 
-    document.getElementById('outgoingRingtone').volume = 0.2;
+    document.getElementById('outgoingRingtone').volume = 0.25;
 
     function hashString(str) { return btoa(unescape(encodeURIComponent(str))); }
 
@@ -1452,6 +1499,7 @@
 
     async function initiateCall(isVideo) {
         if (!activeChat || activeChat.type !== 'direct') return;
+        unlockAudioContext();
         const targetUserId = activeChat.u1 === me.id ? activeChat.u2 : activeChat.u1; const targetUser = db.users.find(u => u.id === targetUserId);
         currentCallId = 'call_' + Date.now(); currentCallIsVideo = isVideo; currentFacingMode = 'user';
         applyCallBackground(); 
@@ -1508,7 +1556,8 @@
     }
 
     async function acceptCall(isVideo) {
-        if (!currentCallId) return; 
+        if (!currentCallId) return;
+        unlockAudioContext();
         inRing.pause(); inRing.currentTime = 0; currentCallIsVideo = isVideo; 
         setCallStatusText('Соединение...');
         isCallMicMuted = false; isCallCamOff = false; isSpeakerOn = true; renderCallControls();
@@ -1574,60 +1623,46 @@
         } catch(e) { console.error("Error", e); alert("Не удалось переключить камеру: " + e.message); }
     }
 
-    // === Обработка входящих треков (звук + видео) ===
+    // === Обработка входящих треков (звук отдельно от видео — надёжнее) ===
     function handleRemoteTrack(event) {
         const rVid = document.getElementById('remoteVideo');
         const rAud = document.getElementById('remoteAudio');
         const track = event.track;
-        const streams = event.streams;
 
-        // Предпочитаем готовый stream от браузера
-        if (streams && streams[0]) {
-            const remoteStream = streams[0];
-            // Видео-элемент получает весь stream (видео + аудио) — так звук работает надёжнее
-            if (!rVid.srcObject || rVid.srcObject.id !== remoteStream.id) {
-                rVid.srcObject = remoteStream;
+        unlockAudioContext();
+
+        if (track.kind === 'audio') {
+            // Звук ТОЛЬКО через <audio> — так не глохнет на мобильных
+            let stream = (event.streams && event.streams[0]) ? event.streams[0] : null;
+            if (!stream) {
+                stream = rAud.srcObject instanceof MediaStream ? rAud.srcObject : new MediaStream();
+                if (!stream.getAudioTracks().includes(track)) stream.addTrack(track);
             }
-            rVid.muted = false;
-            rVid.volume = 1;
+            rAud.srcObject = stream;
+            rAud.muted = false;
+            rAud.volume = isSpeakerOn ? 1 : 0.4;
+            const tryPlay = () => rAud.play().catch(e => {
+                console.warn('remoteAudio play:', e);
+                const toast = document.getElementById('audio-unlock-toast');
+                if (toast) { toast.style.display = 'block'; toast.classList.add('shake'); }
+            });
+            tryPlay();
+            // Повтор через 300мс на случай гонки autoplay
+            setTimeout(tryPlay, 300);
+        } else if (track.kind === 'video') {
+            let stream = (event.streams && event.streams[0]) ? event.streams[0] : null;
+            if (!stream) {
+                stream = rVid.srcObject instanceof MediaStream ? rVid.srcObject : new MediaStream();
+                if (!stream.getVideoTracks().includes(track)) stream.addTrack(track);
+            }
+            // Видео без звука (звук идёт через remoteAudio)
+            rVid.srcObject = stream;
+            rVid.muted = true;
             rVid.play().then(() => {
-                if (track.kind === 'video' || currentCallIsVideo) {
-                    rVid.classList.add('active-video');
-                    document.getElementById('callTopCenter').style.display = 'block';
-                    document.getElementById('callCenterArea').style.display = 'none';
-                }
+                rVid.classList.add('active-video');
+                document.getElementById('callTopCenter').style.display = 'block';
+                document.getElementById('callCenterArea').style.display = 'none';
             }).catch(e => console.warn('remoteVideo play:', e));
-
-            // Дублируем аудио в отдельный <audio> на случай, если видео-элемент заглушён ОС
-            if (track.kind === 'audio' || remoteStream.getAudioTracks().length) {
-                rAud.srcObject = remoteStream;
-                rAud.muted = false;
-                rAud.volume = 1;
-                rAud.play().catch(e => console.warn('remoteAudio play:', e));
-            }
-        } else {
-            // Fallback: треки по отдельности
-            if (track.kind === 'video') {
-                if (!rVid.srcObject) rVid.srcObject = new MediaStream();
-                if (!rVid.srcObject.getVideoTracks().includes(track)) rVid.srcObject.addTrack(track);
-                rVid.muted = false;
-                rVid.onloadedmetadata = () => {
-                    rVid.play().catch(() => {});
-                    rVid.classList.add('active-video');
-                    document.getElementById('callTopCenter').style.display = 'block';
-                    document.getElementById('callCenterArea').style.display = 'none';
-                };
-            } else if (track.kind === 'audio') {
-                if (!rAud.srcObject) rAud.srcObject = new MediaStream();
-                if (!rAud.srcObject.getAudioTracks().includes(track)) rAud.srcObject.addTrack(track);
-                rAud.muted = false;
-                rAud.volume = 1;
-                rAud.play().catch(e => console.warn('remoteAudio play:', e));
-                // Также добавим аудио-трек к видео-элементу
-                if (rVid.srcObject && !rVid.srcObject.getAudioTracks().includes(track)) {
-                    try { rVid.srcObject.addTrack(track); } catch (_) {}
-                }
-            }
         }
     }
 
@@ -2967,4 +3002,4 @@
     }
 </script>
 </body>
-    </html>
+</html>
