@@ -46,14 +46,14 @@
 
         /* === ЭКРАН АВТОРИЗАЦИИ === */
         @keyframes slideUp { from { opacity: 0; transform: translateY(40px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
-        .auth-screen { position: fixed; inset: 0; background: linear-gradient(135deg, #050505, #0a1a0f); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .auth-card { width: 100%; max-width: 320px; background: rgba(17,17,17,0.95); backdrop-filter: blur(10px); border-radius: 32px; padding: 30px 20px; border: 1px solid rgba(48,209,88,0.2); box-shadow: 0 0 40px rgba(48,209,88,0.1); animation: slideUp 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .auth-screen { position: fixed; inset: 0; background: linear-gradient(135deg, #050505, #0a1424); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .auth-card { width: 100%; max-width: 320px; background: rgba(17,17,17,0.95); backdrop-filter: blur(10px); border-radius: 32px; padding: 30px 20px; border: 1px solid rgba(0,122,255,0.25); box-shadow: 0 0 40px rgba(0,122,255,0.12); animation: slideUp 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); }
         .auth-logo { text-align: center; margin-bottom: 24px; }
-        .logo-text { font-size: 32px; font-weight: 800; background: linear-gradient(135deg, var(--p), #4ade80); -webkit-background-clip: text; background-clip: text; color: transparent; letter-spacing: -1px; }
+        .logo-text { font-size: 32px; font-weight: 800; background: linear-gradient(135deg, var(--p), #5ac8fa); -webkit-background-clip: text; background-clip: text; color: transparent; letter-spacing: -1px; }
         .auth-logo small { font-size: 13px; color: var(--mut); display: block; margin-top: 6px; }
         .auth-tabs { display: flex; gap: 8px; margin-bottom: 20px; background: #1a1a1a; border-radius: 30px; padding: 4px; }
         .auth-tab { flex: 1; text-align: center; padding: 10px; border-radius: 26px; cursor: pointer; color: var(--mut); font-weight: 500; font-size: 14px; }
-        .auth-tab.active { background: linear-gradient(135deg, var(--p), #4ade80); color: #000; font-weight: 600; }
+        .auth-tab.active { background: linear-gradient(135deg, var(--p), #5ac8fa); color: #000; font-weight: 600; }
         .auth-form { display: none; opacity: 0; transition: opacity 0.3s ease; }
         .auth-form.active { display: block; opacity: 1; animation: fadeInForm 0.4s ease forwards; }
         @keyframes fadeInForm { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -61,10 +61,10 @@
         .input-group { margin-bottom: 16px; text-align: left; }
         .input-group label { display: block; margin-bottom: 6px; color: var(--mut); font-size: 12px; }
         .input-group input, .input-group select { width: 100%; padding: 12px; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px; color: #fff; font-size: 14px; outline: none; box-sizing: border-box; transition: all 0.3s ease; }
-        .input-group input:focus, .input-group select:focus { border-color: var(--p); background: #222; box-shadow: 0 0 10px rgba(48,209,88,0.1); }
+        .input-group input:focus, .input-group select:focus { border-color: var(--p); background: #222; box-shadow: 0 0 10px rgba(0,122,255,0.15); }
         select.auth-input option { background: var(--card); color: var(--txt); }
 
-        .auth-btn { width: 100%; padding: 12px; background: linear-gradient(135deg, var(--p), #4ade80); border: none; border-radius: 12px; color: #000; font-weight: 700; font-size: 15px; cursor: pointer; margin-top: 4px; }
+        .auth-btn { width: 100%; padding: 12px; background: linear-gradient(135deg, var(--p), #5ac8fa); border: none; border-radius: 12px; color: #000; font-weight: 700; font-size: 15px; cursor: pointer; margin-top: 4px; }
         .auth-btn:active { transform: scale(0.96); opacity: 0.8; }
         .auth-switch { text-align: center; margin-top: 14px; font-size: 13px; color: var(--mut); cursor: pointer; transition: color 0.2s; }
         .auth-switch:hover { color: var(--txt); }
@@ -125,7 +125,7 @@
             color: var(--p); display: flex; align-items: center; justify-content: center;
             cursor: pointer; transition: all 0.2s; margin-left: auto; flex-shrink: 0;
         }
-        .plus-btn:active { transform: scale(0.9); background: rgba(48,209,88,0.12); }
+        .plus-btn:active { transform: scale(0.9); background: rgba(0,122,255,0.12); }
         .plus-btn .material-symbols-outlined { font-size: 24px; font-weight: 500; }
         
         .list-item { padding: 12px 16px; display: flex; align-items: center; gap: 14px; border-bottom: 1px solid var(--brd); cursor: pointer; }
@@ -221,7 +221,7 @@
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
         .add-friend-btn { width: calc(100% - 32px); margin: 16px; padding: 16px; background: var(--p); color: #000; border: none; border-radius: 16px; cursor: pointer; font-size: 16px; font-weight: 700; transition: transform 0.2s, box-shadow 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
-        .add-friend-btn:active { transform: scale(0.97); box-shadow: 0 0 15px rgba(48,209,88,0.3); }
+        .add-friend-btn:active { transform: scale(0.97); box-shadow: 0 0 15px rgba(0,122,255,0.3); }
         .section-header { margin: 16px 20px 8px; font-size: 13px; font-weight: 600; color: var(--mut); text-transform: uppercase; letter-spacing: 0.5px; }
         .logout-btn { color: var(--red) !important; }
         
@@ -336,7 +336,7 @@
             left: 5%; 
             width: 90%; 
             height: 52px;
-            background: linear-gradient(135deg, #115930, #0a331a);
+            background: linear-gradient(135deg, #0a3d7a, #06264d);
             border-radius: 26px;
             z-index: 8000; 
             display: none; 
@@ -357,7 +357,7 @@
         #minimizedCallBar .icon-btn-min { width: 36px; height: 36px; border-radius: 50%; border: none; display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; transition: transform 0.2s; }
         #minimizedCallBar .icon-btn-min:active { transform: scale(0.85); }
         #minimizedCallBar .mic-btn { background: rgba(255,255,255,0.2); color: white; }
-        #minimizedCallBar .mic-btn.muted { background: white; color: #115930; }
+        #minimizedCallBar .mic-btn.muted { background: white; color: #0a3d7a; }
         #minimizedCallBar .end-btn { background: var(--red); color: white; }
 
         #typing-indicator { font-size: 12px; color: var(--p); padding: 4px 16px; background: rgba(var(--bg), 0.9); display: none; border-bottom: 1px solid var(--brd); position: sticky; top: 56px; z-index: 9; }
@@ -2403,7 +2403,7 @@
         
         html += msgsToRender.map((msg, idx) => {
             if (msg.uid === 'system') return `<div style="text-align: center; color: var(--mut); font-size: 12px; margin: 10px 0; background: var(--card); border-radius: 12px; padding: 4px; align-self: center;">${escapeHtml(msg.txt)}</div>`;
-            if (msg.type === 'system_call') return `<div style="text-align: center; color: var(--p); font-size: 13px; margin: 12px 0; background: rgba(48,209,88,0.1); border-radius: 12px; padding: 6px 12px; align-self: center; font-weight: 500;">${escapeHtml(msg.txt)}</div>`;
+            if (msg.type === 'system_call') return `<div style="text-align: center; color: var(--p); font-size: 13px; margin: 12px 0; background: rgba(0,122,255,0.12); border-radius: 12px; padding: 6px 12px; align-self: center; font-weight: 500;">${escapeHtml(msg.txt)}</div>`;
             const isSent = msg.uid === me.id;
             const time = new Date(msg.time).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
             let isRead = false;
@@ -2751,7 +2751,7 @@
             const otherId = activeChat.u1 === me.id ? activeChat.u2 : activeChat.u1; 
             const contact = db.users.find(u => u.id === otherId);
             const isFriend = me.friends.includes(contact.id);
-            const starHtml = isSuperAdmin(contact) ? ' <span style="color: #30d158; font-size: 18px;">★</span>' : '';
+            const starHtml = isSuperAdmin(contact) ? ' <span style="color: #007aff; font-size: 18px;">★</span>' : '';
             
             let addBtnHtml = '';
             if (activeChat.u1 !== activeChat.u2) {
