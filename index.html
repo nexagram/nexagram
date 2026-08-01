@@ -362,6 +362,34 @@
 
         #typing-indicator { font-size: 12px; color: var(--p); padding: 4px 16px; background: rgba(var(--bg), 0.9); display: none; border-bottom: 1px solid var(--brd); position: sticky; top: 56px; z-index: 9; }
         
+        /* Закреплённые сообщения */
+        #pinned-bar {
+            display: none; padding: 8px 14px; background: var(--card); border-bottom: 1px solid var(--brd);
+            cursor: pointer; align-items: center; gap: 10px; z-index: 8;
+        }
+        #pinned-bar.visible { display: flex; }
+        #pinned-bar .pin-icon { color: var(--p); font-size: 20px; flex-shrink: 0; }
+        #pinned-bar .pin-info { flex: 1; overflow: hidden; }
+        #pinned-bar .pin-label { font-size: 11px; color: var(--p); font-weight: 600; }
+        #pinned-bar .pin-text { font-size: 13px; color: var(--txt); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        #pinned-bar .pin-nav { display: flex; gap: 4px; flex-shrink: 0; }
+        #pinned-bar .pin-nav button {
+            background: var(--in); border: none; color: var(--txt); width: 28px; height: 28px;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; font-size: 16px;
+        }
+        #pinned-bar .pin-nav button:active { transform: scale(0.9); }
+        .msg-pinned-badge { font-size: 11px; color: var(--p); margin-bottom: 2px; display: flex; align-items: center; gap: 3px; }
+        .load-more-msgs {
+            text-align: center; padding: 12px; color: var(--mut); font-size: 13px; cursor: pointer;
+        }
+        .load-more-msgs:active { color: var(--p); }
+        .msg-highlight { animation: msgHighlight 1.5s ease; }
+        @keyframes msgHighlight {
+            0%, 100% { box-shadow: none; }
+            30% { box-shadow: 0 0 0 3px var(--p); }
+        }
+        
         #replyBox { display: none; background: var(--in); border-radius: 12px; padding: 8px 12px; margin-bottom: 8px; justify-content: space-between; align-items: center; border-left: 3px solid var(--p); animation: fadeInForm 0.2s ease; }
         .reply-text-preview { font-size: 13px; color: var(--mut); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 85%; }
         
@@ -523,6 +551,7 @@
 
 <!-- Специальный скрытый аудиоплеер для голоса собеседника -->
 <audio id="remoteAudio" autoplay playsinline></audio>
+<!-- Не ставим muted — нужен звук собеседника -->
 
 <div id="minimizedCallBar" onclick="expandCall()">
     <button class="icon-btn-min mic-btn" id="minCallMicBtn" onclick="event.stopPropagation(); toggleCallMic();"><span class="material-symbols-outlined">mic</span></button>
@@ -664,6 +693,18 @@
         </div>
         
         <div id="typing-indicator">Кто-то печатает...</div>
+        
+        <div id="pinned-bar" onclick="jumpToCurrentPin()">
+            <span class="material-symbols-outlined pin-icon">keep</span>
+            <div class="pin-info">
+                <div class="pin-label" id="pin-label">Закреплённое · 1/1</div>
+                <div class="pin-text" id="pin-text">Текст сообщения...</div>
+            </div>
+            <div class="pin-nav" onclick="event.stopPropagation()">
+                <button onclick="cyclePin(-1)" title="Предыдущее"><span class="material-symbols-outlined" style="font-size:16px;">expand_less</span></button>
+                <button onclick="cyclePin(1)" title="Следующее"><span class="material-symbols-outlined" style="font-size:16px;">expand_more</span></button>
+            </div>
+        </div>
 
         <div class="msgs" id="m-area"></div>
 
@@ -710,6 +751,12 @@
             <select id="notifSelect" class="auth-input" onchange="previewNotif()">
                 <option value="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3">Легкий Pop</option>
                 <option value="https://assets.mixkit.co/active_storage/sfx/1114/1114-preview.mp3">Системное уведомление</option>
+                <option value="https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3">Мягкий колокольчик</option>
+                <option value="https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3">Короткий ding</option>
+                <option value="https://assets.mixkit.co/active_storage/sfx/2870/2870-preview.mp3">Сообщение (bubble)</option>
+                <option value="https://assets.mixkit.co/active_storage/sfx/2570/2570-preview.mp3">Двойной клик</option>
+                <option value="https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3">Мелодичный</option>
+                <option value="https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3">Классический alert</option>
                 <option value="none">Без звука</option>
             </select>
         </div>
@@ -747,6 +794,9 @@
         </button>
         <button class="auth-btn" style="background:var(--in); color:var(--txt); margin-bottom: 10px; display:flex; align-items:center; justify-content:center; gap:10px;" onclick="closeCreateMenu(); createGroup();">
             <span class="material-symbols-outlined">group_add</span> Создать группу
+        </button>
+        <button class="auth-btn" style="background:var(--in); color:var(--txt); margin-bottom: 10px; display:flex; align-items:center; justify-content:center; gap:10px;" onclick="closeCreateMenu(); createChannel();">
+            <span class="material-symbols-outlined">campaign</span> Создать канал
         </button>
         <button class="auth-btn" style="background:var(--in); color:var(--txt); margin-bottom: 10px; display:flex; align-items:center; justify-content:center; gap:10px;" onclick="closeCreateMenu(); setTab('friends');">
             <span class="material-symbols-outlined">contacts</span> Контакты
@@ -791,6 +841,7 @@
             <span onclick="reactMsg('👏')">👏</span>
         </div>
         <button class="auth-btn" id="btn-edit-msg" style="background:var(--in); color:var(--txt); margin-bottom: 12px; display:none;" onclick="editSelectedMsg()"><span class="material-symbols-outlined">edit</span> Редактировать</button>
+        <button class="auth-btn" id="btn-pin-msg" style="background:var(--in); color:var(--txt); margin-bottom: 12px;" onclick="togglePinSelectedMsg()"><span class="material-symbols-outlined">keep</span> <span id="pin-msg-label">Закрепить</span></button>
         <button class="auth-btn" style="margin-bottom: 12px;" onclick="replySelectedMsg()"><span class="material-symbols-outlined">reply</span> Ответить</button>
         <button class="auth-btn" style="background:var(--in); color:var(--txt); margin-bottom: 12px;" onclick="openForwardModal()"><span class="material-symbols-outlined">forward</span> Переслать</button>
         <button class="auth-btn" id="btn-del-msg" style="background:var(--red); color: white; margin-bottom: 12px;" onclick="deleteSelectedMsg()"><span class="material-symbols-outlined">delete</span> Удалить у всех</button>
@@ -821,6 +872,7 @@
 <div id="callOverlay">
     <video id="remoteVideo" autoplay playsinline></video>
     <video id="localVideo" autoplay playsinline muted></video>
+    <!-- remoteAudio уже объявлен выше; убеждаемся что не muted -->
 
     <div class="call-top-bar">
         <button class="icon-btn" style="color: white; font-size: 28px; width:40px;" onclick="minimizeCall()"><span class="material-symbols-outlined">compress</span></button>
@@ -859,11 +911,65 @@
         setTimeout(() => { toast.style.opacity='0'; toast.style.transform='translateX(-50%) translateY(20px)'; setTimeout(()=>toast.remove(), 300); }, 2500);
     }
 
-    // === ГЕНЕРАТОР SERVICE WORKER ДЛЯ УВЕДОМЛЕНИЙ ===
+    // === SERVICE WORKER ДЛЯ УВЕДОМЛЕНИЙ ===
     let swRegistration = null;
     if ('serviceWorker' in navigator) {
-        const swBlob = new Blob(["self.addEventListener('notificationclick', function(event) { event.notification.close(); });"], {type: 'application/javascript'});
-        navigator.serviceWorker.register(URL.createObjectURL(swBlob)).then(reg => { swRegistration = reg; }).catch(err => {});
+        const swCode = `
+            self.addEventListener('install', (e) => { self.skipWaiting(); });
+            self.addEventListener('activate', (e) => { e.waitUntil(self.clients.claim()); });
+            self.addEventListener('notificationclick', function(event) {
+                event.notification.close();
+                event.waitUntil(
+                    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
+                        for (var i = 0; i < clientList.length; i++) {
+                            var client = clientList[i];
+                            if ('focus' in client) return client.focus();
+                        }
+                        if (clients.openWindow) return clients.openWindow('/');
+                    })
+                );
+            });
+            self.addEventListener('message', function(event) {
+                if (event.data && event.data.type === 'SHOW_NOTIFICATION') {
+                    const { title, options } = event.data;
+                    self.registration.showNotification(title, options || {});
+                }
+            });
+        `;
+        const swBlob = new Blob([swCode], { type: 'application/javascript' });
+        navigator.serviceWorker.register(URL.createObjectURL(swBlob)).then(reg => {
+            swRegistration = reg;
+            console.log('SW registered for notifications');
+        }).catch(err => console.warn('SW register failed:', err));
+    }
+
+    // Универсальный показ уведомления
+    function showAppNotification(title, body, opts = {}) {
+        if (!("Notification" in window)) return;
+        if (Notification.permission !== "granted") return;
+
+        const options = {
+            body: body || '',
+            icon: 'icon.png',
+            badge: 'icon.png',
+            tag: opts.tag || 'nexagram-' + Date.now(),
+            renotify: true,
+            silent: false,
+            ...opts
+        };
+
+        try {
+            if (swRegistration && swRegistration.active) {
+                swRegistration.showNotification(title, options);
+            } else if (swRegistration) {
+                // SW ещё активируется
+                swRegistration.showNotification(title, options);
+            } else {
+                new Notification(title, options);
+            }
+        } catch (e) {
+            try { new Notification(title, options); } catch (_) {}
+        }
     }
 
     // === УМНАЯ СИСТЕМА ВОСПРОИЗВЕДЕНИЯ ЗВУКА ===
@@ -915,19 +1021,20 @@
     googleProvider.addScope('profile');
     githubProvider.addScope('user:email');
 
-    // Страховка: если пользователь уже авторизован в Firebase (после redirect/popup)
+    // Флаг: мы сами инициировали OAuth (popup/redirect)
+    let pendingSocialLogin = false;
     let authStateHandled = false;
     firebase.auth().onAuthStateChanged(async (fUser) => {
-        if (!fUser || me || authStateHandled) return;
-        // Не трогаем, если уже есть локальная сессия или идёт обычный email-логин
-        // Обрабатываем только если пришли через OAuth и база готова
-        if (isDbReady && !localStorage.getItem('Nexagram_Session_UID')) {
-            authStateHandled = true;
-            try {
-                await handleFirebaseUser(fUser);
-            } catch (e) {
-                console.error('onAuthStateChanged error:', e);
-            }
+        // Реагируем только если сами запускали social login и ещё не обработали
+        if (!fUser || me || authStateHandled || !pendingSocialLogin) return;
+        if (!isDbReady) return;
+        authStateHandled = true;
+        pendingSocialLogin = false;
+        try {
+            await handleFirebaseUser(fUser);
+        } catch (e) {
+            console.error('onAuthStateChanged error:', e);
+            hideLoader();
         }
     });
     
@@ -998,6 +1105,19 @@
 
     document.getElementById('loader').style.display = 'flex';
     document.getElementById('loader').style.opacity = '1';
+
+    // Таймаут: если Firebase не ответил за 12 сек — снимаем лоадер и показываем экран входа
+    let dbConnectTimeout = setTimeout(() => {
+        if (!isDbReady) {
+            console.warn('Firebase connection timeout');
+            isDbReady = true;
+            const loader = document.getElementById('loader');
+            if (loader) { loader.style.opacity = '0'; setTimeout(() => loader.style.display = 'none', 300); }
+            document.getElementById('app').style.display = 'none';
+            document.getElementById('authScreen').style.display = 'flex';
+            showToast('Не удалось подключиться к серверу. Проверьте интернет.');
+        }
+    }, 12000);
     
     function updateNavBadges() {
         if (!me) return;
@@ -1050,14 +1170,15 @@
                             safePlayAudio(notifSound, false);
 
                             if ("Notification" in window && Notification.permission === "granted") {
-                                let senderName = "Nexagram"; const sender = db.users.find(u => u.id === lastMsg.uid);
-                                if (sender) senderName = sender.name; 
-                                
-                                if (swRegistration) {
-                                    swRegistration.showNotification(senderName, { body: lastMsg.txt || 'Новое сообщение', icon: 'icon.png' });
-                                } else {
-                                    new Notification(senderName, { body: lastMsg.txt || 'Новое сообщение', icon: 'icon.png' });
-                                }
+                                let senderName = "Nexagram";
+                                const sender = db.users.find(u => u.id === lastMsg.uid);
+                                if (sender) senderName = sender.name;
+                                let body = lastMsg.txt || 'Новое сообщение';
+                                if (lastMsg.type === 'voice' || lastMsg.type === 'audio') body = '🎙️ Голосовое сообщение';
+                                else if (lastMsg.type === 'image') body = '📷 Фото';
+                                else if (lastMsg.type === 'video' || lastMsg.type === 'video_circle') body = '🎥 Видео';
+                                else if (lastMsg.type === 'file') body = '📄 Файл';
+                                showAppNotification(senderName, body, { tag: 'chat-' + c.id });
                             }
                         }
                     }
@@ -1071,12 +1192,18 @@
                 // Обработка результата redirect (Google / GitHub)
                 if (!redirectHandled) {
                     redirectHandled = true;
+                    const wasOAuth = sessionStorage.getItem('nexagram_pending_oauth') === '1';
+                    sessionStorage.removeItem('nexagram_pending_oauth');
                     firebase.auth().getRedirectResult().then(async (result) => {
                         if (result && result.user) {
                             await handleFirebaseUser(result.user);
+                        } else if (wasOAuth) {
+                            // Redirect прошёл, но user пустой — скрываем лоадер
+                            hideLoader();
                         }
                     }).catch((error) => {
                         console.error('Ошибка getRedirectResult:', error);
+                        hideLoader();
                         if (error.code && error.code !== 'auth/credential-already-in-use') {
                             showToast('Ошибка авторизации: ' + (error.message || error.code));
                         }
@@ -1084,10 +1211,10 @@
                 }
             }
             
-            isDbReady = true; 
+            isDbReady = true;
+            clearTimeout(dbConnectTimeout);
             const loader = document.getElementById('loader');
-            loader.style.opacity = '0';
-            setTimeout(() => loader.style.display = 'none', 300);
+            if (loader) { loader.style.opacity = '0'; setTimeout(() => loader.style.display = 'none', 300); }
 
             const savedSession = localStorage.getItem('Nexagram_Session_UID');
 
@@ -1114,17 +1241,51 @@
             } else {
                 document.getElementById('app').style.display = 'none'; document.getElementById('authScreen').style.display = 'flex';
             }
-        } catch (err) { console.error(err); }
-    }, (error) => { alert("Ошибка подключения: " + error.message); });
+        } catch (err) {
+            console.error('Ошибка обработки данных Firebase:', err);
+            // Даже при ошибке парсинга — не зависаем на «Синхронизация»
+            isDbReady = true;
+            clearTimeout(dbConnectTimeout);
+            const loader = document.getElementById('loader');
+            if (loader) { loader.style.opacity = '0'; setTimeout(() => loader.style.display = 'none', 300); }
+            document.getElementById('app').style.display = 'none';
+            document.getElementById('authScreen').style.display = 'flex';
+            showToast('Ошибка загрузки данных. Попробуйте обновить страницу.');
+        }
+    }, (error) => {
+        console.error('Ошибка подключения Firebase:', error);
+        isDbReady = true;
+        clearTimeout(dbConnectTimeout);
+        const loader = document.getElementById('loader');
+        if (loader) { loader.style.opacity = '0'; setTimeout(() => loader.style.display = 'none', 300); }
+        document.getElementById('app').style.display = 'none';
+        document.getElementById('authScreen').style.display = 'flex';
+        alert("Ошибка подключения к серверу: " + (error.message || error));
+    });
 
-    function requestNotifications() { 
-        if (!("Notification" in window)) { alert("Ваш браузер не поддерживает уведомления."); return; } 
-        Notification.requestPermission().then(permission => { 
-            if (permission === "granted") { 
-                if (swRegistration) { swRegistration.showNotification("Nexagram", { body: "Уведомления включены!", icon: 'icon.png' }); }
-                else { new Notification("Nexagram", { body: "Уведомления включены!", icon: 'icon.png' }); }
-            } else { alert("Уведомления отклонены."); } 
-        }); 
+    async function requestNotifications() { 
+        if (!("Notification" in window)) {
+            alert("Ваш браузер не поддерживает уведомления.");
+            return;
+        }
+        try {
+            // На некоторых браузерах нужно сначала зарегистрировать SW
+            if ('serviceWorker' in navigator && !swRegistration) {
+                await navigator.serviceWorker.ready.catch(() => {});
+            }
+            const permission = await Notification.requestPermission();
+            if (permission === "granted") {
+                showAppNotification("Nexagram", "Уведомления успешно включены! 🔔");
+                showToast("Уведомления включены");
+            } else if (permission === "denied") {
+                alert("Уведомления заблокированы.\n\nОткройте настройки сайта в браузере и разрешите уведомления для nexagram.site");
+            } else {
+                showToast("Разрешение не получено");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Не удалось запросить уведомления: " + e.message);
+        }
     }
 
     function markChatAsReadLocally() { if (!activeChat || !me) return; const chatIndex = db.chats.findIndex(c => c.id === activeChat.id); if (chatIndex > -1) { const currentRead = (activeChat.lastRead && activeChat.lastRead[me.id]) || 0; const lastMsg = activeChat.msgs && activeChat.msgs.length > 0 ? activeChat.msgs[activeChat.msgs.length - 1] : null; if (!lastMsg || currentRead >= lastMsg.time) return; rtdb.ref(`/dg_app_data/chats/${chatIndex}/lastRead/${me.id}`).set(Date.now()); } }
@@ -1138,11 +1299,18 @@
     }
 
     function getUserStatus(user) {
-        if (user.lastSeen === 'online') return "в сети"; if (!user.lastSeen) return "недавно";
-        const diff = Date.now() - user.lastSeen; if (diff < 120000) return "в сети"; 
-        const minutes = Math.floor(diff / 60000); if (minutes < 60) return `был(а) ${minutes} мин назад`;
-        const hours = Math.floor(minutes / 60); if (hours < 24) return `был(а) ${hours} ч назад`;
-        return `был(а) ${Math.floor(hours / 24)} дн назад`;
+        if (user.lastSeen === 'online') return "в сети";
+        if (!user.lastSeen) return "недавно";
+        const diff = Date.now() - user.lastSeen;
+        if (diff < 120000) return "в сети";
+        const minutes = Math.floor(diff / 60000);
+        if (minutes < 60) return `был(а) ${minutes} мин назад`;
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `был(а) ${hours} ч назад`;
+        const days = Math.floor(hours / 24);
+        if (days <= 2) return `был(а) ${days} дн назад`;
+        if (days <= 7) return "недавно";
+        return "давно";
     }
 
     function escapeHtml(str) { if (typeof str !== 'string') return ''; return str.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])); }
@@ -1245,9 +1413,8 @@
         
         safePlayAudio(inRing, true);
         
-        if ("Notification" in window && Notification.permission === "granted" && document.hidden) { 
-            if(swRegistration) swRegistration.showNotification('Входящий вызов', { body: `Звонит ${caller.name}`, icon: 'icon.png' });
-            else new Notification('Входящий вызов', { body: `Звонит ${caller.name}` }); 
+        if ("Notification" in window && Notification.permission === "granted" && document.hidden) {
+            showAppNotification('Входящий вызов', `Звонит ${caller.name}`, { tag: 'call-' + callId, requireInteraction: true });
         }
     }
 
@@ -1305,16 +1472,7 @@
             peerConnection = new RTCPeerConnection(rtcConfig); 
             localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
             
-            peerConnection.ontrack = event => { 
-                const rVid = document.getElementById('remoteVideo'); const rAud = document.getElementById('remoteAudio');
-                if (event.track.kind === 'video') {
-                    if (!rVid.srcObject) rVid.srcObject = new MediaStream([event.track]); else rVid.srcObject.addTrack(event.track);
-                    rVid.onloadedmetadata = () => { rVid.play().catch(e=>{}); rVid.classList.add('active-video'); document.getElementById('callTopCenter').style.display='block'; document.getElementById('callCenterArea').style.display='none'; };
-                } else {
-                    if (!rAud.srcObject) rAud.srcObject = new MediaStream([event.track]); else rAud.srcObject.addTrack(event.track);
-                    rAud.play().catch(e=>{});
-                }
-            };
+            peerConnection.ontrack = (event) => handleRemoteTrack(event);
             peerConnection.onicecandidate = event => { if (event.candidate) rtdb.ref(`/dg_calls/${currentCallId}/callerIce`).push(event.candidate.toJSON()); };
             
             const offer = await peerConnection.createOffer(); await peerConnection.setLocalDescription(offer);
@@ -1363,16 +1521,7 @@
             peerConnection = new RTCPeerConnection(rtcConfig); 
             localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
             
-            peerConnection.ontrack = event => { 
-                const rVid = document.getElementById('remoteVideo'); const rAud = document.getElementById('remoteAudio');
-                if (event.track.kind === 'video') {
-                    if (!rVid.srcObject) rVid.srcObject = new MediaStream([event.track]); else rVid.srcObject.addTrack(event.track);
-                    rVid.onloadedmetadata = () => { rVid.play().catch(e=>{}); rVid.classList.add('active-video'); document.getElementById('callTopCenter').style.display='block'; document.getElementById('callCenterArea').style.display='none'; };
-                } else {
-                    if (!rAud.srcObject) rAud.srcObject = new MediaStream([event.track]); else rAud.srcObject.addTrack(event.track);
-                    rAud.play().catch(e=>{});
-                }
-            };
+            peerConnection.ontrack = (event) => handleRemoteTrack(event);
             peerConnection.onicecandidate = event => { if (event.candidate) rtdb.ref(`/dg_calls/${currentCallId}/calleeIce`).push(event.candidate.toJSON()); };
             
             const callSnap = await rtdb.ref(`/dg_calls/${currentCallId}`).once('value'); 
@@ -1425,11 +1574,96 @@
         } catch(e) { console.error("Error", e); alert("Не удалось переключить камеру: " + e.message); }
     }
 
-    function toggleCallSpeaker() { isSpeakerOn = !isSpeakerOn; renderCallControls(); const rVid = document.getElementById('remoteVideo'); if (typeof rVid.setSinkId === 'function') { const targetSink = isSpeakerOn ? 'default' : ''; rVid.setSinkId(targetSink).catch(e => console.log(e)); } }
+    // === Обработка входящих треков (звук + видео) ===
+    function handleRemoteTrack(event) {
+        const rVid = document.getElementById('remoteVideo');
+        const rAud = document.getElementById('remoteAudio');
+        const track = event.track;
+        const streams = event.streams;
+
+        // Предпочитаем готовый stream от браузера
+        if (streams && streams[0]) {
+            const remoteStream = streams[0];
+            // Видео-элемент получает весь stream (видео + аудио) — так звук работает надёжнее
+            if (!rVid.srcObject || rVid.srcObject.id !== remoteStream.id) {
+                rVid.srcObject = remoteStream;
+            }
+            rVid.muted = false;
+            rVid.volume = 1;
+            rVid.play().then(() => {
+                if (track.kind === 'video' || currentCallIsVideo) {
+                    rVid.classList.add('active-video');
+                    document.getElementById('callTopCenter').style.display = 'block';
+                    document.getElementById('callCenterArea').style.display = 'none';
+                }
+            }).catch(e => console.warn('remoteVideo play:', e));
+
+            // Дублируем аудио в отдельный <audio> на случай, если видео-элемент заглушён ОС
+            if (track.kind === 'audio' || remoteStream.getAudioTracks().length) {
+                rAud.srcObject = remoteStream;
+                rAud.muted = false;
+                rAud.volume = 1;
+                rAud.play().catch(e => console.warn('remoteAudio play:', e));
+            }
+        } else {
+            // Fallback: треки по отдельности
+            if (track.kind === 'video') {
+                if (!rVid.srcObject) rVid.srcObject = new MediaStream();
+                if (!rVid.srcObject.getVideoTracks().includes(track)) rVid.srcObject.addTrack(track);
+                rVid.muted = false;
+                rVid.onloadedmetadata = () => {
+                    rVid.play().catch(() => {});
+                    rVid.classList.add('active-video');
+                    document.getElementById('callTopCenter').style.display = 'block';
+                    document.getElementById('callCenterArea').style.display = 'none';
+                };
+            } else if (track.kind === 'audio') {
+                if (!rAud.srcObject) rAud.srcObject = new MediaStream();
+                if (!rAud.srcObject.getAudioTracks().includes(track)) rAud.srcObject.addTrack(track);
+                rAud.muted = false;
+                rAud.volume = 1;
+                rAud.play().catch(e => console.warn('remoteAudio play:', e));
+                // Также добавим аудио-трек к видео-элементу
+                if (rVid.srcObject && !rVid.srcObject.getAudioTracks().includes(track)) {
+                    try { rVid.srcObject.addTrack(track); } catch (_) {}
+                }
+            }
+        }
+    }
+
+    function toggleCallSpeaker() {
+        isSpeakerOn = !isSpeakerOn;
+        renderCallControls();
+        const rVid = document.getElementById('remoteVideo');
+        const rAud = document.getElementById('remoteAudio');
+        // Громкость
+        if (rVid) rVid.volume = isSpeakerOn ? 1 : 0.3;
+        if (rAud) rAud.volume = isSpeakerOn ? 1 : 0.3;
+        if (typeof rVid.setSinkId === 'function') {
+            rVid.setSinkId(isSpeakerOn ? 'default' : '').catch(e => console.log(e));
+        }
+        if (typeof rAud.setSinkId === 'function') {
+            rAud.setSinkId(isSpeakerOn ? 'default' : '').catch(e => console.log(e));
+        }
+    }
 
     let callInterval; let callSeconds = 0;
     function startCallTimer() { clearInterval(callInterval); callSeconds = 0; callInterval = setInterval(() => { callSeconds++; const m = Math.floor(callSeconds / 60); const s = (callSeconds % 60).toString().padStart(2, '0'); const timeStr = `${m}:${s}`; setCallStatusText(`Разговор (${timeStr})`); const name = document.getElementById('callNameSmall').textContent; document.getElementById('minCallInfo').textContent = `${name} · ${m.toString().padStart(2, '0')}:${s}`; }, 1000); }
-    function cleanupCall() { clearInterval(callInterval); if (localStream) localStream.getTracks().forEach(t => t.stop()); if (peerConnection) peerConnection.close(); peerConnection = null; localStream = null; if (callRef) callRef.off(); currentCallId = null; hideCallUI(); }
+    function cleanupCall() {
+        clearInterval(callInterval);
+        if (localStream) localStream.getTracks().forEach(t => t.stop());
+        if (peerConnection) peerConnection.close();
+        peerConnection = null;
+        localStream = null;
+        if (callRef) callRef.off();
+        currentCallId = null;
+        // Очищаем удалённые медиа
+        const rVid = document.getElementById('remoteVideo');
+        const rAud = document.getElementById('remoteAudio');
+        if (rVid) { rVid.srcObject = null; rVid.classList.remove('active-video'); }
+        if (rAud) { rAud.srcObject = null; rAud.pause(); }
+        hideCallUI();
+    }
 
     // ================= АВТОРИЗАЦИЯ И СОЦСЕТИ =================
 
@@ -1460,11 +1694,23 @@
 
     async function handleFirebaseUser(fUser) {
         if (!fUser) return;
-        // Ждём, пока база готова
+        // Ждём базу максимум 10 секунд, чтобы не зависнуть навсегда
         if (!isDbReady) {
             await new Promise(resolve => {
-                const check = setInterval(() => { if (isDbReady) { clearInterval(check); resolve(); } }, 100);
+                let waited = 0;
+                const check = setInterval(() => {
+                    waited += 100;
+                    if (isDbReady || waited >= 10000) {
+                        clearInterval(check);
+                        resolve();
+                    }
+                }, 100);
             });
+        }
+        if (!isDbReady) {
+            hideLoader();
+            showToast('Сервер не отвечает. Попробуйте позже.');
+            return;
         }
         let user = db.users.find(u => 
             (fUser.email && u.email === fUser.email.toLowerCase()) || 
@@ -1512,12 +1758,16 @@
     async function socialLogin(provider) {
         if (!isDbReady) return alert('Подождите, идет подключение к серверу...');
         showLoader();
+        pendingSocialLogin = true;
+        authStateHandled = false;
         try {
             // Сначала пробуем popup (удобнее и надёжнее)
             const result = await firebase.auth().signInWithPopup(provider);
             if (result && result.user) {
+                pendingSocialLogin = false;
                 await handleFirebaseUser(result.user);
             } else {
+                pendingSocialLogin = false;
                 hideLoader();
             }
         } catch (popupError) {
@@ -1528,16 +1778,23 @@
                 popupError.code === 'auth/cancelled-popup-request' ||
                 popupError.code === 'auth/operation-not-supported-in-this-environment') {
                 try {
+                    // pendingSocialLogin остаётся true — после reload сработает getRedirectResult
+                    sessionStorage.setItem('nexagram_pending_oauth', '1');
                     await firebase.auth().signInWithRedirect(provider);
-                    // Страница перезагрузится, результат обработает getRedirectResult / onAuthStateChanged
                 } catch (redirectError) {
+                    pendingSocialLogin = false;
                     hideLoader();
                     showToast('Ошибка входа: ' + (redirectError.message || 'Попробуйте ещё раз'));
                 }
             } else if (popupError.code === 'auth/account-exists-with-different-credential') {
+                pendingSocialLogin = false;
                 hideLoader();
                 showToast('Аккаунт с этой почтой уже существует. Войдите через email.');
+            } else if (popupError.code === 'auth/popup-closed-by-user') {
+                pendingSocialLogin = false;
+                hideLoader();
             } else {
+                pendingSocialLogin = false;
                 hideLoader();
                 showToast('Ошибка входа: ' + (popupError.message || 'Неизвестная ошибка'));
             }
@@ -1769,10 +2026,18 @@
 
     let selectedMsgIdxForMenu = null;
     function openMsgMenu(e, idx, msgUid) {
-        e.preventDefault(); selectedMsgIdxForMenu = idx; const btnDel = document.getElementById('btn-del-msg'); const btnEdit = document.getElementById('btn-edit-msg'); const targetMsg = getFilteredMsgs()[idx];
+        e.preventDefault(); selectedMsgIdxForMenu = idx;
+        const btnDel = document.getElementById('btn-del-msg');
+        const btnEdit = document.getElementById('btn-edit-msg');
+        const targetMsg = getFilteredMsgs()[idx];
         const isChatAdmin = activeChat && (activeChat.admin === me.id || (activeChat.admins && activeChat.admins.includes(me.id)));
         if (msgUid === me.id || isSuperAdmin(me) || isChatAdmin) btnDel.style.display = 'block'; else btnDel.style.display = 'none';
         if (msgUid === me.id && (!targetMsg.type || targetMsg.type === 'text')) btnEdit.style.display = 'block'; else btnEdit.style.display = 'none';
+        // Метка закрепа
+        const pinLabel = document.getElementById('pin-msg-label');
+        if (pinLabel && targetMsg) {
+            pinLabel.textContent = isMsgPinned(targetMsg) ? 'Открепить' : 'Закрепить';
+        }
         document.getElementById('msgMenuModal').classList.add('active');
     }
     
@@ -1798,8 +2063,27 @@
 
     function toggleReaction(e, idx, emoji) { e.stopPropagation(); selectedMsgIdxForMenu = idx; reactMsg(emoji); }
 
-    function createGroup() { if (!me) return; const name = prompt('Введите название группы:'); if (!name) return; const chat = { id: 'g_' + Date.now(), type: 'group', name: name, desc: '', avatarType: 'emoji', avatarValue: 'group', admin: me.id, admins: [me.id], members: [me.id], msgs: [] }; db.chats.push(chat); rtdb.ref('/dg_app_data/chats').set(db.chats); openChat(chat.id); }
-    function createChannel() { if (!me) return; const name = prompt('Введите название канала:'); if (!name) return; const chat = { id: 'ch_' + Date.now(), type: 'channel', name: name, desc: '', avatarType: 'emoji', avatarValue: 'campaign', admin: me.id, admins: [me.id], members: [me.id], msgs: [] }; db.chats.push(chat); rtdb.ref('/dg_app_data/chats').set(db.chats); openChat(chat.id); }
+    function createGroup() { if (!me) return; const name = prompt('Введите название группы:'); if (!name) return; const chat = { id: 'g_' + Date.now(), type: 'group', name: name, desc: '', avatarType: 'emoji', avatarValue: 'group', admin: me.id, admins: [me.id], members: [me.id], msgs: [], pinned: [] }; db.chats.push(chat); rtdb.ref('/dg_app_data/chats').set(db.chats); openChat(chat.id); }
+    function createChannel() {
+        if (!me) return;
+        const name = prompt('Название канала:');
+        if (!name || !name.trim()) return;
+        let username = prompt('Юзернейм канала (без @, латиница/цифры, для поиска):');
+        if (!username || !username.trim()) return showToast('Юзернейм обязателен');
+        username = username.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+        if (username.length < 3) return showToast('Юзернейм от 3 символов');
+        if (db.chats.find(c => c.type === 'channel' && c.username === username)) return showToast('Такой юзернейм канала уже занят');
+        if (db.users.find(u => u.login === username)) return showToast('Этот юзернейм занят пользователем');
+        const chat = {
+            id: 'ch_' + Date.now(), type: 'channel', name: name.trim(), username: username,
+            desc: '', avatarType: 'emoji', avatarValue: 'campaign',
+            admin: me.id, admins: [me.id], members: [me.id], msgs: [], pinned: []
+        };
+        db.chats.push(chat);
+        rtdb.ref('/dg_app_data/chats').set(db.chats);
+        openChat(chat.id);
+        showToast('Канал @' + username + ' создан');
+    }
 
     function addMemberToCurrentChat() {
         if (!activeChat || activeChat.type === 'direct') return; const isChatAdmin = activeChat.admin === me.id || (activeChat.admins && activeChat.admins.includes(me.id)); if (!isChatAdmin) return showToast('Только администратор может добавлять участников');
@@ -1808,7 +2092,30 @@
         if(chatIndex > -1) { db.chats[chatIndex].members.push(user.id); if (!db.chats[chatIndex].msgs) db.chats[chatIndex].msgs = []; db.chats[chatIndex].msgs.push({ uid: 'system', txt: `Пользователь ${user.name} добавлен`, time: Date.now() }); rtdb.ref(`/dg_app_data/chats/${chatIndex}`).set(db.chats[chatIndex]); showToast('Успешно добавлен!'); }
     }
 
-    function newChat() { if (!me) return; const login = prompt("Логин пользователя (для 'Избранного' введи свой логин):"); if (!login) return; let user = db.users.find(u => u.login === login.toLowerCase()); if (!user) return showToast('Пользователь не найден в системе'); startChat(user.id); }
+    function newChat() {
+        if (!me) return;
+        const login = prompt("Логин пользователя или @юзернейм канала:");
+        if (!login) return;
+        const q = login.trim().toLowerCase().replace(/^@/, '');
+        // Сначала ищем канал по username
+        const channel = db.chats.find(c => c.type === 'channel' && c.username === q);
+        if (channel) {
+            // Подписываемся, если ещё не участник
+            if (!channel.members.includes(me.id)) {
+                const chatIndex = db.chats.findIndex(c => c.id === channel.id);
+                if (chatIndex > -1) {
+                    db.chats[chatIndex].members.push(me.id);
+                    rtdb.ref(`/dg_app_data/chats/${chatIndex}/members`).set(db.chats[chatIndex].members);
+                }
+            }
+            openChat(channel.id);
+            showToast('Канал @' + channel.username);
+            return;
+        }
+        let user = db.users.find(u => u.login === q);
+        if (!user) return showToast('Пользователь или канал не найден');
+        startChat(user.id);
+    }
     function startChat(userId) {
         if (!me) return;
         let chat = db.chats.find(c => c.type === 'direct' && ((c.u1 === me.id && c.u2 === userId) || (c.u2 === me.id && c.u1 === userId)));
@@ -1831,6 +2138,11 @@
             activeChat = db.chats.find(c => c.id === chatOrId);
             if (!activeChat) return;
         }
+        // Сброс ленивой загрузки и индекса закрепов
+        visibleMsgLimit = typeof MSGS_PAGE !== 'undefined' ? MSGS_PAGE : 40;
+        currentPinIndex = 0;
+        if (!activeChat.pinned) activeChat.pinned = [];
+
         const chatId = activeChat.id;
         const hName = document.getElementById('h-name'); const hAv = document.getElementById('h-av'); const hStatus = document.getElementById('h-status'); const addBtn = document.getElementById('add-member-btn'); const callBtnAudio = document.getElementById('btn-start-call'); const callBtnVideo = document.getElementById('btn-start-video'); const inputArea = document.getElementById('chat-input-area'); const readonlyMsg = document.getElementById('channel-readonly-msg');
         
@@ -1838,7 +2150,19 @@
 
         if (activeChat.type === 'direct' && activeChat.u1 === activeChat.u2) { hName.textContent = "Избранное"; hAv.innerHTML = '<span class="material-symbols-outlined" style="font-size: 28px;">bookmark</span>'; hStatus.textContent = "Сохраненные сообщения"; } 
         else if (activeChat.type === 'direct') { const otherId = activeChat.u1 === me.id ? activeChat.u2 : activeChat.u1; const other = db.users.find(u => u.id === otherId); if (other) { hName.textContent = other.name; hAv.innerHTML = getAvatarHtml(other.avatarType, other.avatarValue); hStatus.textContent = getUserStatus(other); } else { hName.textContent = 'Пользователь'; hAv.innerHTML = '?'; hStatus.textContent = ''; } callBtnAudio.style.display = 'flex'; callBtnVideo.style.display = 'flex'; } 
-        else { hName.textContent = activeChat.name; hAv.innerHTML = getAvatarHtml(activeChat.avatarType, activeChat.avatarValue); hStatus.textContent = `${(activeChat.members || []).length} участник(ов)`; const isChatAdmin = activeChat.admin === me.id || (activeChat.admins && activeChat.admins.includes(me.id)); if ((activeChat.type === 'group' || activeChat.type === 'channel') && isChatAdmin) { addBtn.style.display = 'block'; } if ((activeChat.type === 'group' || activeChat.type === 'channel') && !isChatAdmin && activeChat.type === 'channel') { inputArea.style.display = 'none'; readonlyMsg.style.display = 'block'; } }
+        else {
+            hName.textContent = activeChat.name;
+            hAv.innerHTML = getAvatarHtml(activeChat.avatarType, activeChat.avatarValue);
+            const mc = (activeChat.members || []).length;
+            if (activeChat.type === 'channel') {
+                hStatus.textContent = (activeChat.username ? '@' + activeChat.username + ' · ' : '') + mc + ' подписчик(ов)';
+            } else {
+                hStatus.textContent = mc + ' участник(ов)';
+            }
+            const isChatAdmin = activeChat.admin === me.id || (activeChat.admins && activeChat.admins.includes(me.id));
+            if ((activeChat.type === 'group' || activeChat.type === 'channel') && isChatAdmin) addBtn.style.display = 'block';
+            if (activeChat.type === 'channel' && !isChatAdmin) { inputArea.style.display = 'none'; readonlyMsg.style.display = 'block'; }
+        }
         
         if(window.currentTypingRef) window.currentTypingRef.off();
         // Для временных чатов не подписываемся на typing (нет в БД)
@@ -1871,7 +2195,7 @@
         
         container.innerHTML = filteredChats.map(chat => {
             let name, avType, avVal, badge = '';
-            if (chat.type === 'direct' && chat.u1 === chat.u2) { name = 'Избранное'; avType = 'emoji'; avVal = 'bookmark'; } else if (chat.type === 'direct') { const other = db.users.find(u => u.id === (chat.u1 === me.id ? chat.u2 : chat.u1)); name = other ? other.name : 'Удаленный аккаунт'; avType = other ? other.avatarType : 'emoji'; avVal = other ? other.avatarValue : 'person_off'; } else { name = chat.name; avType = chat.avatarType; avVal = chat.avatarValue; badge = chat.type === 'channel' ? ' <span class="material-symbols-outlined" style="font-size: 14px;">campaign</span>' : ' <span class="material-symbols-outlined" style="font-size: 14px;">group</span>'; }
+            if (chat.type === 'direct' && chat.u1 === chat.u2) { name = 'Избранное'; avType = 'emoji'; avVal = 'bookmark'; } else if (chat.type === 'direct') { const other = db.users.find(u => u.id === (chat.u1 === me.id ? chat.u2 : chat.u1)); name = other ? other.name : 'Удаленный аккаунт'; avType = other ? other.avatarType : 'emoji'; avVal = other ? other.avatarValue : 'person_off'; } else { name = chat.name + (chat.type === 'channel' && chat.username ? ' · @' + chat.username : ''); avType = chat.avatarType; avVal = chat.avatarValue; badge = chat.type === 'channel' ? ' <span class="material-symbols-outlined" style="font-size: 14px;">campaign</span>' : ' <span class="material-symbols-outlined" style="font-size: 14px;">group</span>'; }
             const lastMsg = chat.msgs && chat.msgs.length ? chat.msgs[chat.msgs.length - 1] : null; let preview = drafts[chat.id] ? `<span style="color:var(--red);">Черновик:</span> ${escapeHtml(drafts[chat.id])}` : 'Нет сообщений';
             let isUnread = false; if (lastMsg && lastMsg.uid !== me.id) { const myReadTime = (chat.lastRead && chat.lastRead[me.id]) ? chat.lastRead[me.id] : 0; if (lastMsg.time > myReadTime) isUnread = true; } let unreadDot = isUnread ? '<span style="color:var(--p); font-size: 24px; margin-left: auto;">•</span>' : '';
             if (lastMsg && !drafts[chat.id]) { let prefix = ''; if (chat.type === 'group' && lastMsg.uid !== 'system') { const author = db.users.find(u => u.id === lastMsg.uid); prefix = author ? `${author.name}: ` : ''; } if (lastMsg.type === 'system_call') preview = prefix + lastMsg.txt; else if (lastMsg.type === 'voice' || lastMsg.type === 'audio') preview = prefix + '🎙️ Аудио'; else if (lastMsg.type === 'video_circle') preview = prefix + '📹 Кружок'; else if (lastMsg.type === 'image') preview = prefix + '📷 Фото'; else if (lastMsg.type === 'video') preview = prefix + '🎥 Видео'; else if (lastMsg.type === 'file') preview = prefix + '📄 Файл'; else preview = prefix + (lastMsg.txt || ''); }
@@ -1881,27 +2205,190 @@
 
     function openMedia(idx) { const msgs = getFilteredMsgs(); if (!msgs[idx]) return; const msg = msgs[idx]; const content = document.getElementById('mediaModalContent'); if (msg.type === 'image') content.innerHTML = `<img src="${escapeHtml(msg.url)}" style="max-width: 100vw; max-height: 100vh; object-fit: contain;">`; else if (msg.type === 'video') content.innerHTML = `<video src="${escapeHtml(msg.url)}" controls autoplay playsinline style="max-width: 100vw; max-height: 100vh; object-fit: contain; outline: none;"></video>`; document.getElementById('mediaModal').classList.add('active'); }
     function closeMediaModal() { document.getElementById('mediaModalContent').innerHTML = ''; document.getElementById('mediaModal').classList.remove('active'); }
-    function getFilteredMsgs() { if (!activeChat) return []; let msgs = activeChat.msgs || []; const q = document.getElementById('msg-search-input').value.toLowerCase(); if (q) msgs = msgs.filter(m => (m.txt && m.txt.toLowerCase().includes(q)) || (m.reply && m.reply.txt && m.reply.txt.toLowerCase().includes(q))); return msgs; }
+    // === Ленивая загрузка сообщений ===
+    const MSGS_PAGE = 40;
+    let visibleMsgLimit = MSGS_PAGE;
+    let isLoadingMoreMsgs = false;
+    let currentPinIndex = 0;
 
-    function renderMsgs() {
+    function getAllFilteredMsgs() {
+        if (!activeChat) return [];
+        let msgs = activeChat.msgs || [];
+        const q = (document.getElementById('msg-search-input')?.value || '').toLowerCase();
+        if (q) msgs = msgs.filter(m => (m.txt && m.txt.toLowerCase().includes(q)) || (m.reply && m.reply.txt && m.reply.txt.toLowerCase().includes(q)));
+        return msgs;
+    }
+
+    function getFilteredMsgs() {
+        const all = getAllFilteredMsgs();
+        // Поиск — показываем всё найденное
+        const q = (document.getElementById('msg-search-input')?.value || '').toLowerCase();
+        if (q) return all;
+        // Ленивая загрузка: только последние N
+        if (all.length <= visibleMsgLimit) return all;
+        return all.slice(all.length - visibleMsgLimit);
+    }
+
+    function setupMsgScroll() {
+        const area = document.getElementById('m-area');
+        if (!area) return;
+        area.onscroll = function() {
+            if (area.scrollTop < 80 && !isLoadingMoreMsgs && activeChat) {
+                const all = getAllFilteredMsgs();
+                if (visibleMsgLimit < all.length) {
+                    isLoadingMoreMsgs = true;
+                    const prevHeight = area.scrollHeight;
+                    visibleMsgLimit = Math.min(visibleMsgLimit + MSGS_PAGE, all.length);
+                    renderMsgs(true); // preserve scroll
+                    // Восстанавливаем позицию после добавления сверху
+                    requestAnimationFrame(() => {
+                        area.scrollTop = area.scrollHeight - prevHeight;
+                        isLoadingMoreMsgs = false;
+                    });
+                }
+            }
+        };
+    }
+
+    // === Закреплённые сообщения ===
+    function getPinnedMsgs() {
+        if (!activeChat || !activeChat.pinned || !activeChat.pinned.length) return [];
+        const all = activeChat.msgs || [];
+        return activeChat.pinned
+            .map(p => all.find(m => m.time === p.time && m.uid === p.uid))
+            .filter(Boolean);
+    }
+
+    function updatePinnedBar() {
+        const bar = document.getElementById('pinned-bar');
+        if (!bar || !activeChat) return;
+        const pins = getPinnedMsgs();
+        if (!pins.length) {
+            bar.classList.remove('visible');
+            return;
+        }
+        if (currentPinIndex >= pins.length) currentPinIndex = 0;
+        const pin = pins[currentPinIndex];
+        let preview = pin.txt || '';
+        if (!preview) {
+            if (pin.type === 'voice' || pin.type === 'audio') preview = '🎙️ Голосовое';
+            else if (pin.type === 'image') preview = '📷 Фото';
+            else if (pin.type === 'video' || pin.type === 'video_circle') preview = '🎥 Видео';
+            else if (pin.type === 'file') preview = '📄 Файл';
+            else preview = 'Медиа';
+        }
+        document.getElementById('pin-label').textContent = `Закреплённое · ${currentPinIndex + 1}/${pins.length}`;
+        document.getElementById('pin-text').textContent = preview;
+        bar.classList.add('visible');
+    }
+
+    function cyclePin(dir) {
+        const pins = getPinnedMsgs();
+        if (!pins.length) return;
+        currentPinIndex = (currentPinIndex + dir + pins.length) % pins.length;
+        updatePinnedBar();
+        jumpToCurrentPin();
+    }
+
+    function jumpToCurrentPin() {
+        const pins = getPinnedMsgs();
+        if (!pins.length) return;
+        const pin = pins[currentPinIndex];
+        // Убедимся, что сообщение в видимом диапазоне
+        const all = getAllFilteredMsgs();
+        const globalIdx = all.findIndex(m => m.time === pin.time && m.uid === pin.uid);
+        if (globalIdx === -1) return;
+        const fromEnd = all.length - globalIdx;
+        if (fromEnd > visibleMsgLimit) {
+            visibleMsgLimit = Math.min(all.length, fromEnd + 10);
+            renderMsgs(true);
+        }
+        setTimeout(() => {
+            const el = document.querySelector(`[data-msg-time="${pin.time}"][data-msg-uid="${pin.uid}"]`);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                el.classList.add('msg-highlight');
+                setTimeout(() => el.classList.remove('msg-highlight'), 1600);
+            }
+        }, 50);
+    }
+
+    function togglePinSelectedMsg() {
+        if (selectedMsgIdxForMenu === null || !activeChat) return;
+        const targetMsg = getFilteredMsgs()[selectedMsgIdxForMenu];
+        if (!targetMsg || targetMsg.uid === 'system') return;
+        const chatIndex = db.chats.findIndex(c => c.id === activeChat.id);
+        if (chatIndex === -1) return;
+        if (!db.chats[chatIndex].pinned) db.chats[chatIndex].pinned = [];
+        const pinKey = { time: targetMsg.time, uid: targetMsg.uid };
+        const existing = db.chats[chatIndex].pinned.findIndex(p => p.time === pinKey.time && p.uid === pinKey.uid);
+        if (existing > -1) {
+            db.chats[chatIndex].pinned.splice(existing, 1);
+            showToast('Сообщение откреплено');
+        } else {
+            // Лимит 10 закрепов
+            if (db.chats[chatIndex].pinned.length >= 10) {
+                showToast('Максимум 10 закреплённых сообщений');
+                closeMsgMenu();
+                return;
+            }
+            db.chats[chatIndex].pinned.push(pinKey);
+            showToast('Сообщение закреплено');
+        }
+        activeChat.pinned = db.chats[chatIndex].pinned;
+        rtdb.ref(`/dg_app_data/chats/${chatIndex}/pinned`).set(db.chats[chatIndex].pinned);
+        closeMsgMenu();
+        updatePinnedBar();
+        renderMsgs(true);
+    }
+
+    function isMsgPinned(msg) {
+        if (!activeChat || !activeChat.pinned) return false;
+        return activeChat.pinned.some(p => p.time === msg.time && p.uid === msg.uid);
+    }
+
+    function renderMsgs(preserveScroll) {
         const area = document.getElementById('m-area'); if (!area || !activeChat) return;
-        const msgsToRender = getFilteredMsgs(); if (msgsToRender.length === 0) { area.innerHTML = '<div class="empty-state" style="margin-top: 40px;"><span class="material-symbols-outlined" style="font-size: 48px;">chat</span>Здесь начинается история<br><span style="font-size: 13px; opacity: 0.7; margin-top: 8px;">(Удерживайте сообщение для действий)</span></div>'; return; }
+        const allMsgs = getAllFilteredMsgs();
+        const msgsToRender = getFilteredMsgs();
+        if (msgsToRender.length === 0) {
+            area.innerHTML = '<div class="empty-state" style="margin-top: 40px;"><span class="material-symbols-outlined" style="font-size: 48px;">chat</span>Здесь начинается история<br><span style="font-size: 13px; opacity: 0.7; margin-top: 8px;">(Удерживайте сообщение для действий)</span></div>';
+            updatePinnedBar();
+            return;
+        }
         
-        const otherId = activeChat.type === 'direct' ? (activeChat.u1 === me.id ? activeChat.u2 : activeChat.u1) : null; const otherReadTime = (activeChat.lastRead && otherId && activeChat.lastRead[otherId]) ? activeChat.lastRead[otherId] : 0;
+        const otherId = activeChat.type === 'direct' ? (activeChat.u1 === me.id ? activeChat.u2 : activeChat.u1) : null;
+        const otherReadTime = (activeChat.lastRead && otherId && activeChat.lastRead[otherId]) ? activeChat.lastRead[otherId] : 0;
         
-        area.innerHTML = msgsToRender.map((msg, idx) => {
+        const hasMore = allMsgs.length > msgsToRender.length;
+        let html = '';
+        if (hasMore) {
+            html += `<div class="load-more-msgs" onclick="visibleMsgLimit=Math.min(visibleMsgLimit+MSGS_PAGE,getAllFilteredMsgs().length);renderMsgs(true);">↑ Загрузить ещё (${allMsgs.length - msgsToRender.length})</div>`;
+        }
+        
+        html += msgsToRender.map((msg, idx) => {
             if (msg.uid === 'system') return `<div style="text-align: center; color: var(--mut); font-size: 12px; margin: 10px 0; background: var(--card); border-radius: 12px; padding: 4px; align-self: center;">${escapeHtml(msg.txt)}</div>`;
             if (msg.type === 'system_call') return `<div style="text-align: center; color: var(--p); font-size: 13px; margin: 12px 0; background: rgba(48,209,88,0.1); border-radius: 12px; padding: 6px 12px; align-self: center; font-weight: 500;">${escapeHtml(msg.txt)}</div>`;
-            const isSent = msg.uid === me.id; const time = new Date(msg.time).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-            let isRead = false; if (activeChat.type === 'direct' && activeChat.u1 === activeChat.u2) isRead = true; else if (activeChat.type === 'direct') isRead = msg.time <= otherReadTime; else { isRead = Object.keys(activeChat.lastRead || {}).some(uid => uid !== me.id && activeChat.lastRead[uid] >= msg.time); }
-            // Векторные SVG-галочки вместо текстовых ✔
+            const isSent = msg.uid === me.id;
+            const time = new Date(msg.time).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+            let isRead = false;
+            if (activeChat.type === 'direct' && activeChat.u1 === activeChat.u2) isRead = true;
+            else if (activeChat.type === 'direct') isRead = msg.time <= otherReadTime;
+            else { isRead = Object.keys(activeChat.lastRead || {}).some(uid => uid !== me.id && activeChat.lastRead[uid] >= msg.time); }
             const singleCheck = `<svg width="14" height="11" viewBox="0 0 14 11" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1.5 5.5L5 9L12.5 1.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
             const doubleCheck = `<svg width="18" height="11" viewBox="0 0 18 11" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 5.5L4.5 9L12 1.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M6.5 5.5L10 9L17.5 1.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
             const readHtml = isSent ? `<span class="read-receipt ${isRead ? 'read' : ''}">${isRead ? doubleCheck : singleCheck}</span>` : '';
             const editedHtml = msg.isEdited ? `<span style="font-size: 10px; opacity: 0.6; margin-left: 4px;">(изм.)</span>` : '';
+            const pinBadge = isMsgPinned(msg) ? `<div class="msg-pinned-badge"><span class="material-symbols-outlined" style="font-size:12px;">keep</span> Закреплено</div>` : '';
 
-            let content = ''; let authorNameHtml = ''; if (!isSent && activeChat.type === 'group') { const author = db.users.find(u => u.id === msg.uid); authorNameHtml = `<div class="msg-author">${escapeHtml(author ? author.name : 'Unknown')}</div>`; }
-            let replyHtml = ''; if (msg.reply) replyHtml = `<div class="msg-quote">${escapeHtml(msg.reply.txt || 'Медиа')}</div>`;
+            let content = '';
+            let authorNameHtml = '';
+            if (!isSent && (activeChat.type === 'group' || activeChat.type === 'channel')) {
+                const author = db.users.find(u => u.id === msg.uid);
+                authorNameHtml = `<div class="msg-author">${escapeHtml(author ? author.name : 'Unknown')}</div>`;
+            }
+            let replyHtml = '';
+            if (msg.reply) replyHtml = `<div class="msg-quote">${escapeHtml(msg.reply.txt || 'Медиа')}</div>`;
             
             if (msg.type === 'voice' || msg.type === 'audio') content = `<div class="voice-msg-placeholder" data-idx="${idx}"></div>`;
             else if (msg.type === 'image') content = `<div class="media-content"><img src="${escapeHtml(msg.url)}" onclick="openMedia(${idx})"></div>`;
@@ -1910,12 +2397,27 @@
             else if (msg.type === 'file') content = `<div style="display:flex;align-items:center;gap:12px;padding:8px 12px;background:rgba(255,255,255,0.15);border-radius:12px;margin-top:4px;"><span class="material-symbols-outlined">description</span><a href="${escapeHtml(msg.url)}" target="_blank" style="color:inherit;text-decoration:none;font-weight:600;font-size:15px;word-break:break-all;">Скачать файл</a></div>`;
             else content = `<div>${escapeHtml(msg.txt || '')}</div>`;
             
-            let reactionsHtml = ''; if (msg.reactions && Object.keys(msg.reactions).length > 0) { reactionsHtml = '<div class="msg-reactions">'; for (let emo in msg.reactions) { const count = msg.reactions[emo].length; const iReacted = msg.reactions[emo].includes(me.id); reactionsHtml += `<span class="reaction-badge ${iReacted ? 'active' : ''}" onclick="toggleReaction(event, ${idx}, '${emo}')">${emo} ${count}</span>`; } reactionsHtml += '</div>'; }
-            return `<div class="m-body ${isSent ? 'sent' : 'received'}" oncontextmenu="openMsgMenu(event, ${idx}, '${msg.uid}')">${authorNameHtml}${replyHtml}${content}${reactionsHtml}<div class="msg-time">${editedHtml} ${time} ${readHtml}</div></div>`;
+            let reactionsHtml = '';
+            if (msg.reactions && Object.keys(msg.reactions).length > 0) {
+                reactionsHtml = '<div class="msg-reactions">';
+                for (let emo in msg.reactions) {
+                    const count = msg.reactions[emo].length;
+                    const iReacted = msg.reactions[emo].includes(me.id);
+                    reactionsHtml += `<span class="reaction-badge ${iReacted ? 'active' : ''}" onclick="toggleReaction(event, ${idx}, '${emo}')">${emo} ${count}</span>`;
+                }
+                reactionsHtml += '</div>';
+            }
+            return `<div class="m-body ${isSent ? 'sent' : 'received'}" data-msg-time="${msg.time}" data-msg-uid="${msg.uid}" oncontextmenu="openMsgMenu(event, ${idx}, '${msg.uid}')">${pinBadge}${authorNameHtml}${replyHtml}${content}${reactionsHtml}<div class="msg-time">${editedHtml} ${time} ${readHtml}</div></div>`;
         }).join('');
         
-        area.querySelectorAll('.voice-msg-placeholder').forEach(ph => { const msg = msgsToRender[ph.dataset.idx]; if (msg.url) ph.replaceWith(createVoicePlayer(msg.url)); });
-        area.scrollTop = area.scrollHeight;
+        area.innerHTML = html;
+        area.querySelectorAll('.voice-msg-placeholder').forEach(ph => {
+            const msg = msgsToRender[ph.dataset.idx];
+            if (msg && msg.url) ph.replaceWith(createVoicePlayer(msg.url));
+        });
+        if (!preserveScroll) area.scrollTop = area.scrollHeight;
+        updatePinnedBar();
+        setupMsgScroll();
     }
 
     // Создаёт реальный чат в БД, если сейчас открыт временный (isTemp)
@@ -2020,7 +2522,18 @@
         return container;
     }
     
-    function closeChat() { document.getElementById('chat-window').classList.remove('active'); activeChat = null; document.getElementById('chat-search-bar').style.display = 'none'; document.querySelectorAll('#m-area video').forEach(v => { v.pause(); v.removeAttribute('src'); v.load(); }); if (window.currentActiveAudio) { window.currentActiveAudio.audio.pause(); window.currentActiveAudio = null; } const area = document.getElementById('m-area'); if (area) area.innerHTML = ''; renderChats(); }
+    function closeChat() {
+        document.getElementById('chat-window').classList.remove('active');
+        activeChat = null;
+        document.getElementById('chat-search-bar').style.display = 'none';
+        const pinBar = document.getElementById('pinned-bar');
+        if (pinBar) pinBar.classList.remove('visible');
+        document.querySelectorAll('#m-area video').forEach(v => { v.pause(); v.removeAttribute('src'); v.load(); });
+        if (window.currentActiveAudio) { window.currentActiveAudio.audio.pause(); window.currentActiveAudio = null; }
+        const area = document.getElementById('m-area');
+        if (area) area.innerHTML = '';
+        renderChats();
+    }
 
     function openAdminPanel() { if (!isSuperAdmin(me)) return; renderAdminPanel(); document.getElementById('adminModal').classList.add('active'); }
     function closeAdminPanel() { document.getElementById('adminModal').classList.remove('active'); }
@@ -2454,4 +2967,4 @@
     }
 </script>
 </body>
-</html>
+    </html>
