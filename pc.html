@@ -2469,8 +2469,33 @@
     }
 
     function renderChats() {
-        if (!me) return; const container = document.getElementById('c-list'); const filter = currentChatsFilter.toLowerCase();
-        const filteredChats = db.chats.filter(c => { if (c.type === 'direct') return c.u1 === me.id || c.u2 === me.id; return c.members && c.members.includes(me.id); }).filter(chat => { let name = ''; if (chat.type === 'direct' && chat.u1 === chat.u2) name = 'Избранное'; else if (chat.type === 'direct') { const other = db.users.find(u => u.id === (chat.u1 === me.id ? chat.u2 : chat.u1)); if(other) name = other.name; } else { name = chat.name; } return name.toLowerCase().includes(filter); }).sort((a, b) => { const timeA = a.msgs && a.msgs.length ? a.msgs[a.msgs.length-1].time : parseInt(a.id.split('_')[1]||0); const timeB = b.msgs && b.msgs.length ? b.msgs[b.msgs.length-1].time : parseInt(b.id.split('_')[1]||0); return timeB - timeA; });
+        if (!me) return; const container = document.getElementById('c-list');
+        const rawFilter = (currentChatsFilter || '').toLowerCase().trim();
+        const filterQ = rawFilter.replace(/^@/, '');
+        const filteredChats = db.chats
+            .filter(c => {
+                if (c.type === 'direct') return c.u1 === me.id || c.u2 === me.id;
+                return c.members && c.members.includes(me.id);
+            })
+            .filter(chat => {
+                if (!filterQ) return true;
+                if (chat.type === 'direct' && chat.u1 === chat.u2) {
+                    return 'избранное'.includes(filterQ) || 'saved'.includes(filterQ);
+                }
+                if (chat.type === 'direct') {
+                    const other = db.users.find(u => u.id === (chat.u1 === me.id ? chat.u2 : chat.u1));
+                    if (!other) return false;
+                    const hay = ((other.name || '') + ' ' + (other.login || '')).toLowerCase();
+                    return hay.includes(filterQ);
+                }
+                const hay = ((chat.name || '') + ' ' + (chat.username || '')).toLowerCase();
+                return hay.includes(filterQ);
+            })
+            .sort((a, b) => {
+                const timeA = a.msgs && a.msgs.length ? a.msgs[a.msgs.length - 1].time : parseInt(a.id.split('_')[1] || 0);
+                const timeB = b.msgs && b.msgs.length ? b.msgs[b.msgs.length - 1].time : parseInt(b.id.split('_')[1] || 0);
+                return timeB - timeA;
+            });
         
         updateNavBadges();
 
@@ -2821,19 +2846,27 @@
     function openAdminPanel() { if (!isSuperAdmin(me)) return; renderAdminPanel(); document.getElementById('adminModal').classList.add('active'); }
     function closeAdminPanel() { document.getElementById('adminModal').classList.remove('active'); }
     
+    function isValidUser(u) {
+        return u && typeof u === 'object' && u.id && u.login && String(u.login).trim().length > 0 && u.name;
+    }
     function switchAccount() { 
         // Админ может переключаться на любой аккаунт
         if (!isSuperAdmin(me)) return; 
         document.getElementById('accountsModalTitle').textContent = 'Сменить аккаунт (Админ)';
-        const list = document.getElementById('accountsList'); 
-        list.innerHTML = db.users.map(u => `
-            <div class="account-item" onclick="forceLogin('${u.id}')">
-                <div class="account-avatar">${getAvatarHtml(u.avatarType, u.avatarValue)}</div>
-                <div class="account-info">
-                    <div class="account-name">${escapeHtml(u.name)}</div>
-                    <div class="account-login">@${escapeHtml(u.login)}</div>
-                </div>
-            </div>`).join(''); 
+        const list = document.getElementById('accountsList');
+        const valid = db.users.filter(isValidUser);
+        if (valid.length === 0) {
+            list.innerHTML = '<div class="empty-state" style="padding:20px;color:var(--mut);">Нет аккаунтов</div>';
+        } else {
+            list.innerHTML = valid.map(u => `
+                <div class="account-item" onclick="forceLogin('${u.id}')">
+                    <div class="account-avatar">${getAvatarHtml(u.avatarType, u.avatarValue)}</div>
+                    <div class="account-info">
+                        <div class="account-name">${escapeHtml(u.name || u.login)}</div>
+                        <div class="account-login">@${escapeHtml(u.login)}</div>
+                    </div>
+                </div>`).join('');
+        }
         document.getElementById('accountsModal').classList.add('active'); 
     }
 
@@ -2896,11 +2929,61 @@
     function updateSavedAccountsBtn() {
         // Отключено — используем только нативную Google авторизацию
     }
-    function renderAdminPanel() { const list = document.getElementById('adminUserList'); const usersList = db.users.filter(u => u.id !== me.id); if (usersList.length === 0) { list.innerHTML = '<div class="empty-state">Нет пользователей</div>'; return; } list.innerHTML = usersList.map(u => ` <div class="account-item" style="flex-direction: column; align-items: stretch; gap: 12px; margin-bottom: 8px;"> <div style="display: flex; align-items: center; gap: 14px;"> <div class="account-avatar">${getAvatarHtml(u.avatarType, u.avatarValue)}</div> <div class="account-info"> <div class="account-name" style="${u.isBanned ? 'text-decoration: line-through; color: var(--mut);' : ''}">${escapeHtml(u.name)} ${isSuperAdmin(u) ? '👑' : ''}</div> <div class="account-login">@${escapeHtml(u.login)}</div> </div> </div> <div style="display: flex; gap: 8px; flex-wrap: wrap;"> <button class="auth-btn" style="flex:1; min-width: 45%; padding: 10px; font-size: 13px; margin: 0; background: ${u.isBanned ? 'var(--online)' : 'var(--red)'};" onclick="toggleBan('${u.id}')">${u.isBanned ? 'Разбанить' : 'Забанить'}</button> <button class="auth-btn" style="flex:1; min-width: 45%; padding: 10px; font-size: 13px; margin: 0; background: var(--p);" onclick="toggleGlobalAdmin('${u.id}')">${u.isGlobalAdmin ? 'Снять админа' : 'Дать админа'}</button> <button class="auth-btn" style="flex:1; min-width: 100%; padding: 10px; font-size: 13px; margin: 0; background: transparent; border: 1px solid var(--red); color: var(--red);" onclick="deleteUser('${u.id}')">Удалить</button> </div> </div> `).join(''); }
+    function renderAdminPanel() {
+        const list = document.getElementById('adminUserList');
+        if (!list) return;
+        const before = db.users.length;
+        db.users = db.users.filter(isValidUser);
+        if (db.users.length !== before) {
+            rtdb.ref('/dg_app_data/users').set(db.users);
+        }
+        const usersList = db.users.filter(u => u.id !== me.id);
+        if (usersList.length === 0) {
+            list.innerHTML = '<div class="empty-state">Нет пользователей</div>';
+            return;
+        }
+        list.innerHTML = usersList.map(u => `
+            <div class="account-item" style="flex-direction: column; align-items: stretch; gap: 12px; margin-bottom: 8px;">
+                <div style="display: flex; align-items: center; gap: 14px;">
+                    <div class="account-avatar">${getAvatarHtml(u.avatarType, u.avatarValue)}</div>
+                    <div class="account-info">
+                        <div class="account-name" style="${u.isBanned ? 'text-decoration: line-through; color: var(--mut);' : ''}">${escapeHtml(u.name)} ${isSuperAdmin(u) ? '👑' : ''}</div>
+                        <div class="account-login">@${escapeHtml(u.login)}</div>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button class="auth-btn" style="flex:1; min-width: 45%; padding: 10px; font-size: 13px; margin: 0; background: ${u.isBanned ? 'var(--online)' : 'var(--red)'};" onclick="toggleBan('${u.id}')">${u.isBanned ? 'Разбанить' : 'Забанить'}</button>
+                    <button class="auth-btn" style="flex:1; min-width: 45%; padding: 10px; font-size: 13px; margin: 0; background: var(--p);" onclick="toggleGlobalAdmin('${u.id}')">${u.isGlobalAdmin ? 'Снять админа' : 'Дать админа'}</button>
+                    <button class="auth-btn" style="flex:1; min-width: 100%; padding: 10px; font-size: 13px; margin: 0; background: transparent; border: 1px solid var(--red); color: var(--red);" onclick="deleteUser('${u.id}')">Удалить</button>
+                </div>
+            </div>`).join('');
+    }
     
     function toggleBan(userId) { const user = db.users.find(u => u.id === userId); if (user) { user.isBanned = user.isBanned ? false : true; rtdb.ref('/dg_app_data/users').set(db.users); renderAdminPanel(); } }
     window.toggleGlobalAdmin = function(userId) { const user = db.users.find(u => u.id === userId); if (user) { user.isGlobalAdmin = !user.isGlobalAdmin; rtdb.ref('/dg_app_data/users').set(db.users); renderAdminPanel(); } }
-    function deleteUser(userId) { if (!confirm('Удалить юзера?')) return; db.users = db.users.filter(u => u.id !== userId); db.users.forEach(u => { if (u.friends) u.friends = u.friends.filter(fid => fid !== userId); }); db.chats = db.chats.filter(c => { if(c.type==='direct') return c.u1 !== userId && c.u2 !== userId; return true; }); rtdb.ref('/dg_app_data').set({ users: db.users, chats: db.chats, stories: db.stories }); renderAdminPanel(); }
+    function deleteUser(userId) {
+        if (!confirm('Удалить юзера навсегда?')) return;
+        db.users = db.users.filter(u => u.id !== userId && isValidUser(u));
+        db.users.forEach(u => {
+            if (u.friends) u.friends = u.friends.filter(fid => fid !== userId);
+            if (u.friendRequests) u.friendRequests = u.friendRequests.filter(fid => fid !== userId);
+        });
+        db.chats = db.chats.filter(c => {
+            if (c.type === 'direct') return c.u1 !== userId && c.u2 !== userId;
+            return true;
+        });
+        db.chats.forEach(c => {
+            if (c.members) c.members = c.members.filter(id => id !== userId);
+            if (c.admins) c.admins = c.admins.filter(id => id !== userId);
+            if (c.admin === userId) c.admin = (c.members && c.members[0]) || null;
+        });
+        db.stories = (db.stories || []).filter(s => s.uid !== userId);
+        rtdb.ref('/dg_app_data').set({ users: db.users, chats: db.chats, stories: db.stories, callLogs: db.callLogs || [] });
+        savedAccounts = savedAccounts.filter(a => a.id !== userId);
+        localStorage.setItem('Nexagram_Accounts', JSON.stringify(savedAccounts));
+        renderAdminPanel();
+        showToast('Пользователь удалён');
+    }
     
     window.toggleGroupAdmin = function(userId) { if (!activeChat || activeChat.admin !== me.id) return; if (!activeChat.admins) activeChat.admins = []; const idx = activeChat.admins.indexOf(userId); if (idx > -1) activeChat.admins.splice(idx, 1); else activeChat.admins.push(userId); const chatIndex = db.chats.findIndex(c => c.id === activeChat.id); if (chatIndex > -1) { rtdb.ref(`/dg_app_data/chats/${chatIndex}/admins`).set(activeChat.admins); viewChatInfo(); } }
     window.kickMember = function(userId) { if (!activeChat || activeChat.admin !== me.id) return; if (!confirm('Исключить пользователя из чата?')) return; activeChat.members = activeChat.members.filter(id => id !== userId); if (activeChat.admins) activeChat.admins = activeChat.admins.filter(id => id !== userId); const chatIndex = db.chats.findIndex(c => c.id === activeChat.id); if (chatIndex > -1) { rtdb.ref(`/dg_app_data/chats/${chatIndex}/members`).set(activeChat.members); if(activeChat.admins) rtdb.ref(`/dg_app_data/chats/${chatIndex}/admins`).set(activeChat.admins); viewChatInfo(); } }
@@ -3020,17 +3103,20 @@
 
         const myId = me.id;
 
-        // Удаляем пользователя
-        db.users = db.users.filter(u => u.id !== myId);
+        try {
+            if (typeof presenceHeartbeat !== 'undefined' && presenceHeartbeat) { clearInterval(presenceHeartbeat); presenceHeartbeat = null; }
+            if (presenceRef) { presenceRef.onDisconnect().cancel(); presenceRef.set(Date.now()); }
+            if (connectedRef) connectedRef.off();
+        } catch (e) {}
 
-        // Чистим друзей и заявки у остальных
+        db.users = db.users.filter(u => u.id !== myId && (typeof isValidUser === 'function' ? isValidUser(u) : true));
+
         db.users.forEach(u => {
             if (u.friends) u.friends = u.friends.filter(fid => fid !== myId);
             if (u.friendRequests) u.friendRequests = u.friendRequests.filter(fid => fid !== myId);
             if (u.blocked) u.blocked = u.blocked.filter(fid => fid !== myId);
         });
 
-        // Удаляем прямые чаты с участием пользователя, из групп — выходим
         db.chats = db.chats.filter(c => {
             if (c.type === 'direct') return c.u1 !== myId && c.u2 !== myId;
             return true;
@@ -3041,17 +3127,18 @@
             if (c.admin === myId) c.admin = (c.members && c.members[0]) || null;
         });
 
-        // Удаляем истории и логи звонков
-        db.stories = db.stories.filter(s => s.uid !== myId);
-        db.callLogs = db.callLogs.filter(c => c.caller !== myId && c.callee !== myId);
+        db.stories = (db.stories || []).filter(s => s.uid !== myId);
+        db.callLogs = (db.callLogs || []).filter(c => c.caller !== myId && c.callee !== myId);
 
         rtdb.ref('/dg_app_data').set({ users: db.users, chats: db.chats, stories: db.stories, callLogs: db.callLogs });
 
         localStorage.removeItem('Nexagram_Session_UID');
         localStorage.removeItem('Nexagram_Drafts');
-        // Удаляем и из списка сохранённых
         savedAccounts = savedAccounts.filter(a => a.id !== myId);
         localStorage.setItem('Nexagram_Accounts', JSON.stringify(savedAccounts));
+
+        try { if (firebase.auth().currentUser) firebase.auth().signOut(); } catch (e) {}
+
         me = null;
         activeChat = null;
         document.getElementById('app').style.display = 'none';
