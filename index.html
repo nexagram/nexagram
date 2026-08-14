@@ -545,8 +545,8 @@
     document.head.insertAdjacentHTML('beforeend', `<link rel="manifest" href="data:application/manifest+json;charset=utf-8,${encodeURIComponent(JSON.stringify(pwaManifest()))}">`);
 </script>
 
-<audio id="incomingRingtone" preload="auto" playsinline loop src="https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3"></audio>
-<audio id="outgoingRingtone" preload="auto" playsinline loop src="https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3"></audio>
+<audio id="incomingRingtone" preload="auto" playsinline loop></audio>
+<audio id="outgoingRingtone" preload="auto" playsinline loop></audio>
 <audio id="notificationSound" preload="auto" playsinline></audio>
 
 <!-- Специальный скрытый аудиоплеер для голоса собеседника -->
@@ -748,27 +748,21 @@
         <div class="input-group" style="margin-top: 16px;">
             <label>Звук нового сообщения</label>
             <select id="notifSelect" class="auth-input" onchange="previewNotif()">
-                <option value="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3">Легкий Pop</option>
-                <option value="https://assets.mixkit.co/active_storage/sfx/1114/1114-preview.mp3">Системное уведомление</option>
-                <option value="https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3">Мягкий колокольчик</option>
-                <option value="https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3">Короткий ding</option>
-                <option value="https://assets.mixkit.co/active_storage/sfx/2870/2870-preview.mp3">Сообщение (bubble)</option>
-                <option value="https://assets.mixkit.co/active_storage/sfx/2570/2570-preview.mp3">Двойной клик</option>
-                <option value="https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3">Мелодичный</option>
-                <option value="https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3">Классический alert</option>
+                <option value="builtin:pop">Pop (встроенный)</option>
+                <option value="builtin:ding">Ding (встроенный)</option>
+                <option value="builtin:soft">Мягкий (встроенный)</option>
+                <option value="builtin:double">Двойной (встроенный)</option>
+                <option value="builtin:melody">Мелодия (встроенный)</option>
                 <option value="none">Без звука</option>
             </select>
         </div>
         <div class="input-group" style="margin-top: 16px;">
             <label>Рингтон входящего звонка</label>
             <select id="ringtoneSelect" class="auth-input" onchange="previewRingtone()">
-                <option value="https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3">Классический</option>
-                <option value="https://assets.mixkit.co/active_storage/sfx/2018/2018-preview.mp3">Современный бип</option>
-                <option value="https://assets.mixkit.co/active_storage/sfx/2867/2867-preview.mp3">Мягкий пульс</option>
-                <option value="https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3">Двойной сигнал</option>
-                <option value="https://assets.mixkit.co/active_storage/sfx/2001/2001-preview.mp3">Электронная мелодия</option>
-                <option value="https://assets.mixkit.co/active_storage/sfx/1516/1516-preview.mp3">Короткий звонок</option>
-                <option value="https://assets.mixkit.co/active_storage/sfx/2413/2413-preview.mp3">Приятный тон</option>
+                <option value="builtin:classic">Классический (встроенный)</option>
+                <option value="builtin:modern">Современный (встроенный)</option>
+                <option value="builtin:pulse">Пульс (встроенный)</option>
+                <option value="builtin:soft_ring">Мягкий тон (встроенный)</option>
                 <option value="none">Без звука</option>
             </select>
         </div>
@@ -918,6 +912,20 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 
 <script>
+    // === Редирект на ПК-версию (десктоп) ===
+    (function () {
+        try {
+            var path = (location.pathname || '').toLowerCase();
+            if (path.indexOf('pc.html') !== -1 || path.indexOf('app.html') !== -1) return;
+            if (localStorage.getItem('Nexagram_ForceMobile') === '1') return;
+            var isDesktop = window.innerWidth >= 900 || (window.matchMedia && window.matchMedia('(min-width: 900px) and (pointer: fine)').matches);
+            if (isDesktop) {
+                var target = 'pc.html' + (location.search || '') + (location.hash || '');
+                location.replace(target);
+            }
+        } catch (e) {}
+    })();
+
     // === ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ ДЛЯ УВЕДОМЛЕНИЙ В ПРИЛОЖЕНИИ ===
     function showToast(msg) {
         const toast = document.createElement('div');
@@ -1125,22 +1133,102 @@
     
     let localSettings = JSON.parse(localStorage.getItem('Nexagram_Settings')) || { theme: 'orange', lightMode: false };
     let savedAccounts = JSON.parse(localStorage.getItem('Nexagram_Accounts') || '[]');
+
+    // === Встроенные звуки (WAV data URI) — работают без интернета/VPN ===
+    function _wavDataUri(samples, sampleRate) {
+        const numSamples = samples.length;
+        const buffer = new ArrayBuffer(44 + numSamples * 2);
+        const view = new DataView(buffer);
+        const writeStr = (off, str) => { for (let i = 0; i < str.length; i++) view.setUint8(off + i, str.charCodeAt(i)); };
+        writeStr(0, 'RIFF');
+        view.setUint32(4, 36 + numSamples * 2, true);
+        writeStr(8, 'WAVE');
+        writeStr(12, 'fmt ');
+        view.setUint32(16, 16, true);
+        view.setUint16(20, 1, true);
+        view.setUint16(22, 1, true);
+        view.setUint32(24, sampleRate, true);
+        view.setUint32(28, sampleRate * 2, true);
+        view.setUint16(32, 2, true);
+        view.setUint16(34, 16, true);
+        writeStr(36, 'data');
+        view.setUint32(40, numSamples * 2, true);
+        for (let i = 0; i < numSamples; i++) {
+            const s = Math.max(-1, Math.min(1, samples[i]));
+            view.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+        }
+        const bytes = new Uint8Array(buffer);
+        let binary = '';
+        for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+        return 'data:audio/wav;base64,' + btoa(binary);
+    }
+    function _tone(freqs, durs, gaps, vol) {
+        // freqs/durs arrays in ms; generate mono samples @ 22050
+        const sr = 22050;
+        const parts = [];
+        for (let i = 0; i < freqs.length; i++) {
+            const n = Math.floor((durs[i] / 1000) * sr);
+            const f = freqs[i];
+            for (let j = 0; j < n; j++) {
+                const t = j / sr;
+                const env = Math.min(1, j / (sr * 0.01)) * Math.min(1, (n - j) / (sr * 0.03));
+                parts.push(Math.sin(2 * Math.PI * f * t) * vol * env);
+            }
+            if (gaps && gaps[i]) {
+                const g = Math.floor((gaps[i] / 1000) * sr);
+                for (let j = 0; j < g; j++) parts.push(0);
+            }
+        }
+        return _wavDataUri(parts, sr);
+    }
+    const BUILTIN_SOUNDS = {
+        'builtin:pop': () => _tone([880, 1320], [60, 80], [20, 0], 0.35),
+        'builtin:ding': () => _tone([1046], [180], [0], 0.3),
+        'builtin:soft': () => _tone([523, 659], [100, 140], [30, 0], 0.25),
+        'builtin:double': () => _tone([800, 800], [70, 70], [90, 0], 0.3),
+        'builtin:melody': () => _tone([659, 784, 988], [90, 90, 140], [20, 20, 0], 0.28),
+        'builtin:classic': () => _tone([440, 480, 440, 480], [280, 280, 280, 280], [80, 80, 80, 200], 0.32),
+        'builtin:modern': () => _tone([660, 880, 660, 880], [160, 160, 160, 160], [60, 60, 60, 180], 0.3),
+        'builtin:pulse': () => _tone([520, 520, 520], [120, 120, 120], [180, 180, 300], 0.28),
+        'builtin:soft_ring': () => _tone([392, 494, 392, 494], [220, 220, 220, 220], [70, 70, 70, 220], 0.26)
+    };
+    function resolveSoundSrc(key) {
+        if (!key || key === 'none') return null;
+        if (key.indexOf('builtin:') === 0) {
+            try { return BUILTIN_SOUNDS[key] ? BUILTIN_SOUNDS[key]() : null; } catch (e) { return null; }
+        }
+        // старые mixkit / любые http — оставляем (если VPN/доступ есть)
+        return key;
+    }
     
-    let currentNotif = localSettings.notifSound || "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3";
-    let currentRingtone = localSettings.ringtone || "https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3";
+    // Если в настройках старый mixkit — переключаем на встроенный (без VPN)
+    function migrateSoundKey(key, fallback) {
+        if (!key || key === 'none') return key || fallback;
+        if (key.indexOf('mixkit.co') !== -1 || key.indexOf('http') === 0) return fallback;
+        return key;
+    }
+    let currentNotif = migrateSoundKey(localSettings.notifSound, 'builtin:pop');
+    let currentRingtone = migrateSoundKey(localSettings.ringtone, 'builtin:classic');
+    if (localSettings.notifSound !== currentNotif || localSettings.ringtone !== currentRingtone) {
+        localSettings.notifSound = currentNotif;
+        localSettings.ringtone = currentRingtone;
+        localStorage.setItem('Nexagram_Settings', JSON.stringify(localSettings));
+    }
 
     function applySounds() {
-        if (currentNotif === 'none') { notifSound.removeAttribute('src'); } 
-        else { if (notifSound.src !== currentNotif) notifSound.src = currentNotif; }
+        const nSrc = resolveSoundSrc(currentNotif);
+        if (!nSrc) { notifSound.removeAttribute('src'); }
+        else { notifSound.src = nSrc; }
         
         const inRing = document.getElementById('incomingRingtone');
         const outRing = document.getElementById('outgoingRingtone');
-        if (currentRingtone === 'none') {
+        const rSrc = resolveSoundSrc(currentRingtone);
+        if (!rSrc) {
             if (inRing) inRing.removeAttribute('src');
             if (outRing) outRing.removeAttribute('src');
         } else {
-            if (inRing && inRing.src !== currentRingtone) inRing.src = currentRingtone;
-            if (outRing && outRing.src !== currentRingtone) outRing.src = currentRingtone;
+            if (inRing) inRing.src = rSrc;
+            if (outRing) outRing.src = rSrc;
         }
     }
     applySounds();
@@ -3323,7 +3411,9 @@
             audio.pause();
             return;
         }
-        audio.src = val;
+        const src = resolveSoundSrc(val);
+        if (!src) return;
+        audio.src = src;
         audio.play().catch(e => console.warn('Preview blocked:', e));
     }
 
@@ -3334,10 +3424,11 @@
         audio.pause();
         audio.currentTime = 0;
         if (val === 'none') return;
-        audio.src = val;
+        const src = resolveSoundSrc(val);
+        if (!src) return;
+        audio.src = src;
         audio.loop = false;
         audio.play().catch(e => console.warn('Ringtone preview blocked:', e));
-        // Останавливаем через 3 сек, чтобы не играло бесконечно
         setTimeout(() => { audio.pause(); audio.currentTime = 0; }, 3000);
     }
 
@@ -3358,4 +3449,4 @@
     }
 </script>
 </body>
-</html>
+    </html>
