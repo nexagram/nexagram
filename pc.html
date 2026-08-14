@@ -1494,27 +1494,56 @@
 
     function markChatAsReadLocally() { if (!activeChat || !me) return; const chatIndex = db.chats.findIndex(c => c.id === activeChat.id); if (chatIndex > -1) { const currentRead = (activeChat.lastRead && activeChat.lastRead[me.id]) || 0; const lastMsg = activeChat.msgs && activeChat.msgs.length > 0 ? activeChat.msgs[activeChat.msgs.length - 1] : null; if (!lastMsg || currentRead >= lastMsg.time) return; rtdb.ref(`/dg_app_data/chats/${chatIndex}/lastRead/${me.id}`).set(Date.now()); } }
 
-    let presenceRef = null; let connectedRef = null;
+    let presenceRef = null; let connectedRef = null; let presenceHeartbeat = null;
     function setupPresence() {
-        if (!me) return; const uIdx = db.users.findIndex(u => u.id === me.id); if (uIdx === -1) return;
-        presenceRef = rtdb.ref(`/dg_app_data/users/${uIdx}/lastSeen`); if (connectedRef) connectedRef.off(); 
+        if (!me) return;
+        const uIdx = db.users.findIndex(u => u.id === me.id);
+        if (uIdx === -1) return;
+        if (presenceHeartbeat) { clearInterval(presenceHeartbeat); presenceHeartbeat = null; }
+        presenceRef = rtdb.ref(`/dg_app_data/users/${uIdx}/lastSeen`);
+        if (connectedRef) connectedRef.off();
         connectedRef = rtdb.ref('.info/connected');
-        connectedRef.on('value', snap => { if (snap.val() === true) { presenceRef.onDisconnect().set(firebase.database.ServerValue.TIMESTAMP); presenceRef.set('online'); } });
+        const goOnline = () => {
+            if (!presenceRef) return;
+            presenceRef.onDisconnect().set(firebase.database.ServerValue.TIMESTAMP);
+            presenceRef.set('online');
+        };
+        connectedRef.on('value', snap => {
+            if (snap.val() === true) goOnline();
+        });
+        // Heartbeat: пока вкладка открыта — держим online
+        presenceHeartbeat = setInterval(() => {
+            if (document.visibilityState === 'visible' && presenceRef) presenceRef.set('online');
+        }, 45000);
+        document.addEventListener('visibilitychange', () => {
+            if (!presenceRef) return;
+            if (document.visibilityState === 'visible') goOnline();
+            else presenceRef.set(firebase.database.ServerValue.TIMESTAMP);
+        });
     }
 
     function getUserStatus(user) {
-        if (user.lastSeen === 'online') return "в сети";
-        if (!user.lastSeen) return "недавно";
-        const diff = Date.now() - user.lastSeen;
-        if (diff < 120000) return "в сети";
+        if (!user) return '';
+        let ls = user.lastSeen;
+        if (ls === 'online') return 'в сети';
+        if (ls == null || ls === '') return 'недавно';
+        // если пришла строка-число
+        if (typeof ls === 'string' && ls !== 'online') {
+            const n = parseInt(ls, 10);
+            if (!isNaN(n)) ls = n;
+            else return 'недавно';
+        }
+        const diff = Date.now() - Number(ls);
+        if (isNaN(diff) || diff < 0) return 'недавно';
+        if (diff < 120000) return 'в сети'; // < 2 мин
         const minutes = Math.floor(diff / 60000);
         if (minutes < 60) return `был(а) ${minutes} мин назад`;
         const hours = Math.floor(minutes / 60);
         if (hours < 24) return `был(а) ${hours} ч назад`;
         const days = Math.floor(hours / 24);
         if (days <= 2) return `был(а) ${days} дн назад`;
-        if (days <= 7) return "недавно";
-        return "давно";
+        if (days <= 7) return 'недавно';
+        return 'давно';
     }
 
     function escapeHtml(str) { if (typeof str !== 'string') return ''; return str.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])); }
@@ -2306,12 +2335,13 @@
         if (!me) return;
         const name = prompt('Название канала:');
         if (!name || !name.trim()) return;
-        let username = prompt('Юзернейм канала (без @, латиница/цифры, для поиска):');
+        let username = prompt('Юзернейм канала (без @, только латиница/цифры/_ , для поиска):');
         if (!username || !username.trim()) return showToast('Юзернейм обязателен');
-        username = username.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+        username = username.trim().toLowerCase().replace(/^@/, '').replace(/[^a-z0-9_]/g, '');
         if (username.length < 3) return showToast('Юзернейм от 3 символов');
-        if (db.chats.find(c => c.type === 'channel' && c.username === username)) return showToast('Такой юзернейм канала уже занят');
-        if (db.users.find(u => u.login === username)) return showToast('Этот юзернейм занят пользователем');
+        if (db.chats.find(c => c.type === 'channel' && c.username === username)) return showToast('Такой @' + username + ' уже занят каналом');
+        if (db.users.find(u => u.login === username)) return showToast('@' + username + ' занят пользователем — выбери другой');
+        // Канал = только чат, без создания пользователя
         const chat = {
             id: 'ch_' + Date.now(), type: 'channel', name: name.trim(), username: username,
             desc: '', avatarType: 'emoji', avatarValue: 'campaign',
@@ -2335,23 +2365,38 @@
         const login = prompt("Логин пользователя или @юзернейм канала:");
         if (!login) return;
         const q = login.trim().toLowerCase().replace(/^@/, '');
-        // Сначала ищем канал по username
-        const channel = db.chats.find(c => c.type === 'channel' && c.username === q);
+        if (!q) return showToast('Введи логин или @канал');
+        // 1) Точный username канала
+        let channel = db.chats.find(c => c.type === 'channel' && c.username === q);
+        // 2) Поиск по имени канала (частичное совпадение)
+        if (!channel) {
+            const matches = db.chats.filter(c => c.type === 'channel' && (
+                (c.username && c.username.includes(q)) ||
+                (c.name && c.name.toLowerCase().includes(q))
+            ));
+            if (matches.length === 1) channel = matches[0];
+            else if (matches.length > 1) {
+                showToast('Найдено несколько каналов, уточни @юзернейм');
+                return;
+            }
+        }
         if (channel) {
-            // Подписываемся, если ещё не участник
+            if (!Array.isArray(channel.members)) channel.members = [];
             if (!channel.members.includes(me.id)) {
                 const chatIndex = db.chats.findIndex(c => c.id === channel.id);
                 if (chatIndex > -1) {
+                    if (!db.chats[chatIndex].members) db.chats[chatIndex].members = [];
                     db.chats[chatIndex].members.push(me.id);
                     rtdb.ref(`/dg_app_data/chats/${chatIndex}/members`).set(db.chats[chatIndex].members);
                 }
             }
             openChat(channel.id);
-            showToast('Канал @' + channel.username);
+            showToast('Канал @' + (channel.username || channel.name));
             return;
         }
+        // Пользователь по логину
         let user = db.users.find(u => u.login === q);
-        if (!user) return showToast('Пользователь или канал не найден');
+        if (!user) return showToast('Пользователь или канал «' + q + '» не найден');
         startChat(user.id);
     }
     function startChat(userId) {

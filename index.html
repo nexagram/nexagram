@@ -759,13 +759,32 @@
                 <option value="none">Без звука</option>
             </select>
         </div>
+        <div class="input-group" style="margin-top: 16px;">
+            <label>Рингтон входящего звонка</label>
+            <select id="ringtoneSelect" class="auth-input" onchange="previewRingtone()">
+                <option value="https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3">Классический</option>
+                <option value="https://assets.mixkit.co/active_storage/sfx/2018/2018-preview.mp3">Современный бип</option>
+                <option value="https://assets.mixkit.co/active_storage/sfx/2867/2867-preview.mp3">Мягкий пульс</option>
+                <option value="https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3">Двойной сигнал</option>
+                <option value="https://assets.mixkit.co/active_storage/sfx/2001/2001-preview.mp3">Электронная мелодия</option>
+                <option value="https://assets.mixkit.co/active_storage/sfx/1516/1516-preview.mp3">Короткий звонок</option>
+                <option value="https://assets.mixkit.co/active_storage/sfx/2413/2413-preview.mp3">Приятный тон</option>
+                <option value="none">Без звука</option>
+            </select>
+        </div>
         <button class="auth-btn" onclick="saveSoundSettings()">Сохранить настройки</button>
         <button class="auth-btn" style="background: var(--in); color: var(--txt); margin-top: 12px;" onclick="closeSoundModal()">Отмена</button>
     </div>
 </div>
 
 <div id="avatarModal" class="modal"><div class="modal-content"><h3>Выберите аватар</h3><div class="avatar-list" id="avatarList"></div><button class="auth-btn" style="margin-top: 24px; background: var(--in); color: var(--txt);" onclick="closeAvatarModal()">Отмена</button></div></div>
-<div id="accountsModal" class="modal"><div class="modal-content"><h3>Сменить аккаунт</h3><div id="accountsList" class="accounts-list"></div><button class="auth-btn" style="margin-top: 24px; background: var(--in); color: var(--txt);" onclick="closeAccountsModal()">Отмена</button></div></div>
+<div id="accountsModal" class="modal">
+    <div class="modal-content">
+        <h3 id="accountsModalTitle">Выберите аккаунт</h3>
+        <div id="accountsList" class="accounts-list"></div>
+        <button class="auth-btn" style="margin-top: 16px; background: var(--in); color: var(--txt);" onclick="closeAccountsModal()">Другой аккаунт / Отмена</button>
+    </div>
+</div>
 
 <div id="forgotModal" class="modal">
     <div class="modal-content">
@@ -1105,12 +1124,24 @@
     }
     
     let localSettings = JSON.parse(localStorage.getItem('Nexagram_Settings')) || { theme: 'blue', lightMode: false };
+    let savedAccounts = JSON.parse(localStorage.getItem('Nexagram_Accounts') || '[]');
     
     let currentNotif = localSettings.notifSound || "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3";
+    let currentRingtone = localSettings.ringtone || "https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3";
 
     function applySounds() {
         if (currentNotif === 'none') { notifSound.removeAttribute('src'); } 
         else { if (notifSound.src !== currentNotif) notifSound.src = currentNotif; }
+        
+        const inRing = document.getElementById('incomingRingtone');
+        const outRing = document.getElementById('outgoingRingtone');
+        if (currentRingtone === 'none') {
+            if (inRing) inRing.removeAttribute('src');
+            if (outRing) outRing.removeAttribute('src');
+        } else {
+            if (inRing && inRing.src !== currentRingtone) inRing.src = currentRingtone;
+            if (outRing && outRing.src !== currentRingtone) outRing.src = currentRingtone;
+        }
     }
     applySounds();
 
@@ -1284,9 +1315,14 @@
             } else if (savedSession) {
                 const user = db.users.find(u => u.id === savedSession);
                 if (user && !user.isBanned) proceedWithLogin(user);
-                else { localStorage.removeItem('Nexagram_Session_UID'); document.getElementById('app').style.display = 'none'; document.getElementById('authScreen').style.display = 'flex'; }
+                else { 
+                    localStorage.removeItem('Nexagram_Session_UID'); 
+                    document.getElementById('app').style.display = 'none'; 
+                    document.getElementById('authScreen').style.display = 'flex';
+                }
             } else {
-                document.getElementById('app').style.display = 'none'; document.getElementById('authScreen').style.display = 'flex';
+                document.getElementById('app').style.display = 'none'; 
+                document.getElementById('authScreen').style.display = 'flex';
             }
         } catch (err) {
             console.error('Ошибка обработки данных Firebase:', err);
@@ -1337,27 +1373,56 @@
 
     function markChatAsReadLocally() { if (!activeChat || !me) return; const chatIndex = db.chats.findIndex(c => c.id === activeChat.id); if (chatIndex > -1) { const currentRead = (activeChat.lastRead && activeChat.lastRead[me.id]) || 0; const lastMsg = activeChat.msgs && activeChat.msgs.length > 0 ? activeChat.msgs[activeChat.msgs.length - 1] : null; if (!lastMsg || currentRead >= lastMsg.time) return; rtdb.ref(`/dg_app_data/chats/${chatIndex}/lastRead/${me.id}`).set(Date.now()); } }
 
-    let presenceRef = null; let connectedRef = null;
+    let presenceRef = null; let connectedRef = null; let presenceHeartbeat = null;
     function setupPresence() {
-        if (!me) return; const uIdx = db.users.findIndex(u => u.id === me.id); if (uIdx === -1) return;
-        presenceRef = rtdb.ref(`/dg_app_data/users/${uIdx}/lastSeen`); if (connectedRef) connectedRef.off(); 
+        if (!me) return;
+        const uIdx = db.users.findIndex(u => u.id === me.id);
+        if (uIdx === -1) return;
+        if (presenceHeartbeat) { clearInterval(presenceHeartbeat); presenceHeartbeat = null; }
+        presenceRef = rtdb.ref(`/dg_app_data/users/${uIdx}/lastSeen`);
+        if (connectedRef) connectedRef.off();
         connectedRef = rtdb.ref('.info/connected');
-        connectedRef.on('value', snap => { if (snap.val() === true) { presenceRef.onDisconnect().set(firebase.database.ServerValue.TIMESTAMP); presenceRef.set('online'); } });
+        const goOnline = () => {
+            if (!presenceRef) return;
+            presenceRef.onDisconnect().set(firebase.database.ServerValue.TIMESTAMP);
+            presenceRef.set('online');
+        };
+        connectedRef.on('value', snap => {
+            if (snap.val() === true) goOnline();
+        });
+        // Heartbeat: пока вкладка открыта — держим online
+        presenceHeartbeat = setInterval(() => {
+            if (document.visibilityState === 'visible' && presenceRef) presenceRef.set('online');
+        }, 45000);
+        document.addEventListener('visibilitychange', () => {
+            if (!presenceRef) return;
+            if (document.visibilityState === 'visible') goOnline();
+            else presenceRef.set(firebase.database.ServerValue.TIMESTAMP);
+        });
     }
 
     function getUserStatus(user) {
-        if (user.lastSeen === 'online') return "в сети";
-        if (!user.lastSeen) return "недавно";
-        const diff = Date.now() - user.lastSeen;
-        if (diff < 120000) return "в сети";
+        if (!user) return '';
+        let ls = user.lastSeen;
+        if (ls === 'online') return 'в сети';
+        if (ls == null || ls === '') return 'недавно';
+        // если пришла строка-число
+        if (typeof ls === 'string' && ls !== 'online') {
+            const n = parseInt(ls, 10);
+            if (!isNaN(n)) ls = n;
+            else return 'недавно';
+        }
+        const diff = Date.now() - Number(ls);
+        if (isNaN(diff) || diff < 0) return 'недавно';
+        if (diff < 120000) return 'в сети'; // < 2 мин
         const minutes = Math.floor(diff / 60000);
         if (minutes < 60) return `был(а) ${minutes} мин назад`;
         const hours = Math.floor(minutes / 60);
         if (hours < 24) return `был(а) ${hours} ч назад`;
         const days = Math.floor(hours / 24);
         if (days <= 2) return `был(а) ${days} дн назад`;
-        if (days <= 7) return "недавно";
-        return "давно";
+        if (days <= 7) return 'недавно';
+        return 'давно';
     }
 
     function escapeHtml(str) { if (typeof str !== 'string') return ''; return str.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])); }
@@ -1837,12 +1902,50 @@
     }
 
     function loginWithGoogle() {
+        // Если запущено внутри Sketchware / Android WebView с нативным мостом
+        if (window.Android && typeof window.Android.loginWithGoogle === 'function') {
+            try {
+                window.Android.loginWithGoogle();
+                return;
+            } catch (e) {
+                console.warn('Native Google bridge failed, fallback to web', e);
+            }
+        }
+        // Обычный веб-вариант
         socialLogin(googleProvider);
     }
 
     function loginWithGitHub() {
         socialLogin(githubProvider);
     }
+
+    // Вызывается из Sketchware после успешного нативного Google Sign-In
+    // Android → webView.evaluateJavascript("window.loginWithGoogleToken('" + idToken + "')", null);
+    window.loginWithGoogleToken = async function(idToken) {
+        if (!idToken) {
+            showToast('Не получен токен Google');
+            return;
+        }
+        if (!isDbReady) {
+            showToast('Подождите, идет подключение к серверу...');
+            return;
+        }
+        showLoader();
+        try {
+            const credential = firebase.auth.GoogleAuthProvider.credential(idToken);
+            const result = await firebase.auth().signInWithCredential(credential);
+            if (result && result.user) {
+                await handleFirebaseUser(result.user);
+            } else {
+                hideLoader();
+                showToast('Не удалось войти через Google');
+            }
+        } catch (err) {
+            hideLoader();
+            console.error('loginWithGoogleToken error:', err);
+            showToast('Ошибка входа Google: ' + (err.message || 'Неизвестная ошибка'));
+        }
+    };
 
     async function doLogin() {
         if (!isDbReady) return alert('Подождите, идет подключение к серверу...'); ensureHelper();
@@ -1965,6 +2068,14 @@
     
     function proceedWithLogin(user) {
         me = user; localStorage.setItem('Nexagram_Session_UID', me.id);
+        // Сохраняем аккаунт в список для быстрого входа (Sketchware / multi-account)
+        try {
+            const acc = { id: user.id, name: user.name || user.login, login: user.login, avatarType: user.avatarType || 'color', avatarValue: user.avatarValue || '#007aff' };
+            savedAccounts = savedAccounts.filter(a => a.id !== user.id);
+            savedAccounts.unshift(acc);
+            if (savedAccounts.length > 12) savedAccounts = savedAccounts.slice(0, 12);
+            localStorage.setItem('Nexagram_Accounts', JSON.stringify(savedAccounts));
+        } catch(e) {}
         const authScr = document.getElementById('authScreen');
         authScr.style.opacity = '0';
         setTimeout(() => {
@@ -2103,12 +2214,13 @@
         if (!me) return;
         const name = prompt('Название канала:');
         if (!name || !name.trim()) return;
-        let username = prompt('Юзернейм канала (без @, латиница/цифры, для поиска):');
+        let username = prompt('Юзернейм канала (без @, только латиница/цифры/_ , для поиска):');
         if (!username || !username.trim()) return showToast('Юзернейм обязателен');
-        username = username.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+        username = username.trim().toLowerCase().replace(/^@/, '').replace(/[^a-z0-9_]/g, '');
         if (username.length < 3) return showToast('Юзернейм от 3 символов');
-        if (db.chats.find(c => c.type === 'channel' && c.username === username)) return showToast('Такой юзернейм канала уже занят');
-        if (db.users.find(u => u.login === username)) return showToast('Этот юзернейм занят пользователем');
+        if (db.chats.find(c => c.type === 'channel' && c.username === username)) return showToast('Такой @' + username + ' уже занят каналом');
+        if (db.users.find(u => u.login === username)) return showToast('@' + username + ' занят пользователем — выбери другой');
+        // Канал = только чат, без создания пользователя
         const chat = {
             id: 'ch_' + Date.now(), type: 'channel', name: name.trim(), username: username,
             desc: '', avatarType: 'emoji', avatarValue: 'campaign',
@@ -2132,23 +2244,38 @@
         const login = prompt("Логин пользователя или @юзернейм канала:");
         if (!login) return;
         const q = login.trim().toLowerCase().replace(/^@/, '');
-        // Сначала ищем канал по username
-        const channel = db.chats.find(c => c.type === 'channel' && c.username === q);
+        if (!q) return showToast('Введи логин или @канал');
+        // 1) Точный username канала
+        let channel = db.chats.find(c => c.type === 'channel' && c.username === q);
+        // 2) Поиск по имени канала (частичное совпадение)
+        if (!channel) {
+            const matches = db.chats.filter(c => c.type === 'channel' && (
+                (c.username && c.username.includes(q)) ||
+                (c.name && c.name.toLowerCase().includes(q))
+            ));
+            if (matches.length === 1) channel = matches[0];
+            else if (matches.length > 1) {
+                showToast('Найдено несколько каналов, уточни @юзернейм');
+                return;
+            }
+        }
         if (channel) {
-            // Подписываемся, если ещё не участник
+            if (!Array.isArray(channel.members)) channel.members = [];
             if (!channel.members.includes(me.id)) {
                 const chatIndex = db.chats.findIndex(c => c.id === channel.id);
                 if (chatIndex > -1) {
+                    if (!db.chats[chatIndex].members) db.chats[chatIndex].members = [];
                     db.chats[chatIndex].members.push(me.id);
                     rtdb.ref(`/dg_app_data/chats/${chatIndex}/members`).set(db.chats[chatIndex].members);
                 }
             }
             openChat(channel.id);
-            showToast('Канал @' + channel.username);
+            showToast('Канал @' + (channel.username || channel.name));
             return;
         }
+        // Пользователь по логину
         let user = db.users.find(u => u.login === q);
-        if (!user) return showToast('Пользователь или канал не найден');
+        if (!user) return showToast('Пользователь или канал «' + q + '» не найден');
         startChat(user.id);
     }
     function startChat(userId) {
@@ -2573,9 +2700,81 @@
     function openAdminPanel() { if (!isSuperAdmin(me)) return; renderAdminPanel(); document.getElementById('adminModal').classList.add('active'); }
     function closeAdminPanel() { document.getElementById('adminModal').classList.remove('active'); }
     
-    function switchAccount() { if (!isSuperAdmin(me)) return; const list = document.getElementById('accountsList'); list.innerHTML = db.users.map(u => `<div class="account-item" onclick="forceLogin('${u.id}')"><div class="account-avatar">${getAvatarHtml(u.avatarType, u.avatarValue)}</div><div class="account-info"><div class="account-name">${escapeHtml(u.name)}</div><div class="account-login">@${escapeHtml(u.login)}</div></div></div>`).join(''); document.getElementById('accountsModal').classList.add('active'); }
-    function forceLogin(uid) { const user = db.users.find(u => u.id === uid); if (user) { proceedWithLogin(user); closeAccountsModal(); setTab('chats'); } }
-    function closeAccountsModal() { document.getElementById('accountsModal').classList.remove('active'); }
+    function switchAccount() { 
+        // Админ может переключаться на любой аккаунт
+        if (!isSuperAdmin(me)) return; 
+        document.getElementById('accountsModalTitle').textContent = 'Сменить аккаунт (Админ)';
+        const list = document.getElementById('accountsList'); 
+        list.innerHTML = db.users.map(u => `
+            <div class="account-item" onclick="forceLogin('${u.id}')">
+                <div class="account-avatar">${getAvatarHtml(u.avatarType, u.avatarValue)}</div>
+                <div class="account-info">
+                    <div class="account-name">${escapeHtml(u.name)}</div>
+                    <div class="account-login">@${escapeHtml(u.login)}</div>
+                </div>
+            </div>`).join(''); 
+        document.getElementById('accountsModal').classList.add('active'); 
+    }
+
+    function openSavedAccounts() {
+        document.getElementById('accountsModalTitle').textContent = 'Выберите аккаунт';
+        const list = document.getElementById('accountsList');
+        if (!savedAccounts || savedAccounts.length === 0) {
+            list.innerHTML = '<div class="empty-state" style="padding:20px;color:var(--mut);">Нет сохранённых аккаунтов</div>';
+        } else {
+            list.innerHTML = savedAccounts.map(a => {
+                const live = db.users.find(u => u.id === a.id);
+                const name = live ? live.name : a.name;
+                const login = live ? live.login : a.login;
+                const avType = live ? live.avatarType : a.avatarType;
+                const avVal = live ? live.avatarValue : a.avatarValue;
+                return `
+                <div class="account-item" style="position:relative;">
+                    <div onclick="forceLogin('${a.id}')" style="display:flex;align-items:center;gap:14px;flex:1;">
+                        <div class="account-avatar">${getAvatarHtml(avType, avVal)}</div>
+                        <div class="account-info">
+                            <div class="account-name">${escapeHtml(name)}</div>
+                            <div class="account-login">@${escapeHtml(login)}</div>
+                        </div>
+                    </div>
+                    <button onclick="event.stopPropagation(); removeSavedAccount('${a.id}')" style="background:none;border:none;color:var(--mut);padding:8px;cursor:pointer;">
+                        <span class="material-symbols-outlined" style="font-size:20px;">close</span>
+                    </button>
+                </div>`;
+            }).join('');
+        }
+        document.getElementById('accountsModal').classList.add('active');
+    }
+
+    function removeSavedAccount(uid) {
+        savedAccounts = savedAccounts.filter(a => a.id !== uid);
+        localStorage.setItem('Nexagram_Accounts', JSON.stringify(savedAccounts));
+        openSavedAccounts(); // перерисовать
+    }
+
+    function forceLogin(uid) { 
+        const user = db.users.find(u => u.id === uid); 
+        if (user) { 
+            if (user.isBanned) { showToast('Этот аккаунт заблокирован'); return; }
+            proceedWithLogin(user); 
+            closeAccountsModal(); 
+            setTab('chats'); 
+        } else {
+            showToast('Аккаунт не найден в базе');
+            // Удаляем устаревший
+            savedAccounts = savedAccounts.filter(a => a.id !== uid);
+            localStorage.setItem('Nexagram_Accounts', JSON.stringify(savedAccounts));
+            openSavedAccounts();
+        }
+    }
+
+    function closeAccountsModal() { 
+        document.getElementById('accountsModal').classList.remove('active'); 
+    }
+
+    function updateSavedAccountsBtn() {
+        // Отключено — используем только нативную Google авторизацию
+    }
     function renderAdminPanel() { const list = document.getElementById('adminUserList'); const usersList = db.users.filter(u => u.id !== me.id); if (usersList.length === 0) { list.innerHTML = '<div class="empty-state">Нет пользователей</div>'; return; } list.innerHTML = usersList.map(u => ` <div class="account-item" style="flex-direction: column; align-items: stretch; gap: 12px; margin-bottom: 8px;"> <div style="display: flex; align-items: center; gap: 14px;"> <div class="account-avatar">${getAvatarHtml(u.avatarType, u.avatarValue)}</div> <div class="account-info"> <div class="account-name" style="${u.isBanned ? 'text-decoration: line-through; color: var(--mut);' : ''}">${escapeHtml(u.name)} ${isSuperAdmin(u) ? '👑' : ''}</div> <div class="account-login">@${escapeHtml(u.login)}</div> </div> </div> <div style="display: flex; gap: 8px; flex-wrap: wrap;"> <button class="auth-btn" style="flex:1; min-width: 45%; padding: 10px; font-size: 13px; margin: 0; background: ${u.isBanned ? 'var(--online)' : 'var(--red)'};" onclick="toggleBan('${u.id}')">${u.isBanned ? 'Разбанить' : 'Забанить'}</button> <button class="auth-btn" style="flex:1; min-width: 45%; padding: 10px; font-size: 13px; margin: 0; background: var(--p);" onclick="toggleGlobalAdmin('${u.id}')">${u.isGlobalAdmin ? 'Снять админа' : 'Дать админа'}</button> <button class="auth-btn" style="flex:1; min-width: 100%; padding: 10px; font-size: 13px; margin: 0; background: transparent; border: 1px solid var(--red); color: var(--red);" onclick="deleteUser('${u.id}')">Удалить</button> </div> </div> `).join(''); }
     
     function toggleBan(userId) { const user = db.users.find(u => u.id === userId); if (user) { user.isBanned = user.isBanned ? false : true; rtdb.ref('/dg_app_data/users').set(db.users); renderAdminPanel(); } }
@@ -2729,6 +2928,9 @@
 
         localStorage.removeItem('Nexagram_Session_UID');
         localStorage.removeItem('Nexagram_Drafts');
+        // Удаляем и из списка сохранённых
+        savedAccounts = savedAccounts.filter(a => a.id !== myId);
+        localStorage.setItem('Nexagram_Accounts', JSON.stringify(savedAccounts));
         me = null;
         activeChat = null;
         document.getElementById('app').style.display = 'none';
@@ -2968,12 +3170,16 @@
     // === ЛОГИКА ОКНА НАСТРОЕК ЗВУКА ===
     function openSoundSettings() {
         document.getElementById('notifSelect').value = currentNotif;
+        const rtSelect = document.getElementById('ringtoneSelect');
+        if (rtSelect) rtSelect.value = currentRingtone;
         document.getElementById('soundModal').classList.add('active');
     }
 
     function closeSoundModal() {
         const notifEl = document.getElementById('notificationSound');
         if (notifEl) { notifEl.pause(); notifEl.currentTime = 0; }
+        const inRing = document.getElementById('incomingRingtone');
+        if (inRing) { inRing.pause(); inRing.currentTime = 0; }
         applySounds(); 
         document.getElementById('soundModal').classList.remove('active');
     }
@@ -2989,12 +3195,30 @@
         audio.play().catch(e => console.warn('Preview blocked:', e));
     }
 
+    function previewRingtone() {
+        const val = document.getElementById('ringtoneSelect').value;
+        const audio = document.getElementById('incomingRingtone');
+        if (!audio) return;
+        audio.pause();
+        audio.currentTime = 0;
+        if (val === 'none') return;
+        audio.src = val;
+        audio.loop = false;
+        audio.play().catch(e => console.warn('Ringtone preview blocked:', e));
+        // Останавливаем через 3 сек, чтобы не играло бесконечно
+        setTimeout(() => { audio.pause(); audio.currentTime = 0; }, 3000);
+    }
+
     function saveSoundSettings() {
         const notifEl = document.getElementById('notificationSound');
         if (notifEl) { notifEl.pause(); notifEl.currentTime = 0; }
+        const inRing = document.getElementById('incomingRingtone');
+        if (inRing) { inRing.pause(); inRing.currentTime = 0; }
         
         currentNotif = document.getElementById('notifSelect').value;
+        currentRingtone = document.getElementById('ringtoneSelect').value;
         localSettings.notifSound = currentNotif;
+        localSettings.ringtone = currentRingtone;
         localStorage.setItem('Nexagram_Settings', JSON.stringify(localSettings));
         applySounds();
         document.getElementById('soundModal').classList.remove('active');
