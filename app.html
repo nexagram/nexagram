@@ -532,10 +532,6 @@
                 <svg class="social-icon" viewBox="0 0 24 24"><path fill="#ffffff" d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-3.975-1.395-.09-.225-.48-1.395-1.065-1.65-.45-.195-1.095-.735-.015-.75.975-.015 1.74.9 2.01 1.335 1.14 1.965 3.045 1.395 3.795 1.065.105-.855.45-1.395.825-1.71-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.465.39.87 1.185.87 2.385 0 1.725-.015 3.105-.015 3.525 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
                 Продолжить с GitHub
             </button>
-            <button class="social-btn" id="savedAccountsBtn" style="display:none; background: var(--in); color: var(--txt); border: 1px solid var(--brd);" onclick="openSavedAccounts()">
-                <span class="material-symbols-outlined">person</span>
-                Выбрать аккаунт
-            </button>
         </div>
     </div>
 </div>
@@ -1197,7 +1193,6 @@
             if (loader) { loader.style.opacity = '0'; setTimeout(() => loader.style.display = 'none', 300); }
             document.getElementById('app').style.display = 'none';
             document.getElementById('authScreen').style.display = 'flex';
-            updateSavedAccountsBtn();
             showToast('Не удалось подключиться к серверу. Проверьте интернет.');
         }
     }, 12000);
@@ -1324,19 +1319,10 @@
                     localStorage.removeItem('Nexagram_Session_UID'); 
                     document.getElementById('app').style.display = 'none'; 
                     document.getElementById('authScreen').style.display = 'flex';
-                    updateSavedAccountsBtn();
-                    // Для Sketchware: если есть сохранённые аккаунты — сразу показываем выбор
-                    if (savedAccounts && savedAccounts.length > 0) {
-                        setTimeout(() => openSavedAccounts(), 400);
-                    }
                 }
             } else {
                 document.getElementById('app').style.display = 'none'; 
                 document.getElementById('authScreen').style.display = 'flex';
-                updateSavedAccountsBtn();
-                if (savedAccounts && savedAccounts.length > 0) {
-                    setTimeout(() => openSavedAccounts(), 400);
-                }
             }
         } catch (err) {
             console.error('Ошибка обработки данных Firebase:', err);
@@ -1347,7 +1333,6 @@
             if (loader) { loader.style.opacity = '0'; setTimeout(() => loader.style.display = 'none', 300); }
             document.getElementById('app').style.display = 'none';
             document.getElementById('authScreen').style.display = 'flex';
-            updateSavedAccountsBtn();
             showToast('Ошибка загрузки данных. Попробуйте обновить страницу.');
         }
     }, (error) => {
@@ -1358,7 +1343,6 @@
         if (loader) { loader.style.opacity = '0'; setTimeout(() => loader.style.display = 'none', 300); }
         document.getElementById('app').style.display = 'none';
         document.getElementById('authScreen').style.display = 'flex';
-        updateSavedAccountsBtn();
         alert("Ошибка подключения к серверу: " + (error.message || error));
     });
 
@@ -2083,11 +2067,6 @@
             authScr.style.display = 'flex'; setTimeout(()=>authScr.style.opacity='1', 50);
             document.getElementById('chat-window').classList.remove('active');
             document.getElementById('loginUsername').value = ''; document.getElementById('loginPassword').value = '';
-            updateSavedAccountsBtn();
-            // После выхода сразу предлагаем выбрать аккаунт (удобно для Sketchware)
-            if (savedAccounts && savedAccounts.length > 0) {
-                setTimeout(() => openSavedAccounts(), 300);
-            }
         }
     }
 
@@ -2726,7 +2705,6 @@
         savedAccounts = savedAccounts.filter(a => a.id !== uid);
         localStorage.setItem('Nexagram_Accounts', JSON.stringify(savedAccounts));
         openSavedAccounts(); // перерисовать
-        updateSavedAccountsBtn();
     }
 
     function forceLogin(uid) { 
@@ -2750,10 +2728,7 @@
     }
 
     function updateSavedAccountsBtn() {
-        const btn = document.getElementById('savedAccountsBtn');
-        if (btn) {
-            btn.style.display = (savedAccounts && savedAccounts.length > 0) ? 'flex' : 'none';
-        }
+        // Отключено — используем только нативную Google авторизацию
     }
     function renderAdminPanel() { const list = document.getElementById('adminUserList'); const usersList = db.users.filter(u => u.id !== me.id); if (usersList.length === 0) { list.innerHTML = '<div class="empty-state">Нет пользователей</div>'; return; } list.innerHTML = usersList.map(u => ` <div class="account-item" style="flex-direction: column; align-items: stretch; gap: 12px; margin-bottom: 8px;"> <div style="display: flex; align-items: center; gap: 14px;"> <div class="account-avatar">${getAvatarHtml(u.avatarType, u.avatarValue)}</div> <div class="account-info"> <div class="account-name" style="${u.isBanned ? 'text-decoration: line-through; color: var(--mut);' : ''}">${escapeHtml(u.name)} ${isSuperAdmin(u) ? '👑' : ''}</div> <div class="account-login">@${escapeHtml(u.login)}</div> </div> </div> <div style="display: flex; gap: 8px; flex-wrap: wrap;"> <button class="auth-btn" style="flex:1; min-width: 45%; padding: 10px; font-size: 13px; margin: 0; background: ${u.isBanned ? 'var(--online)' : 'var(--red)'};" onclick="toggleBan('${u.id}')">${u.isBanned ? 'Разбанить' : 'Забанить'}</button> <button class="auth-btn" style="flex:1; min-width: 45%; padding: 10px; font-size: 13px; margin: 0; background: var(--p);" onclick="toggleGlobalAdmin('${u.id}')">${u.isGlobalAdmin ? 'Снять админа' : 'Дать админа'}</button> <button class="auth-btn" style="flex:1; min-width: 100%; padding: 10px; font-size: 13px; margin: 0; background: transparent; border: 1px solid var(--red); color: var(--red);" onclick="deleteUser('${u.id}')">Удалить</button> </div> </div> `).join(''); }
     
@@ -2915,7 +2890,6 @@
         activeChat = null;
         document.getElementById('app').style.display = 'none';
         document.getElementById('authScreen').style.display = 'flex';
-        updateSavedAccountsBtn();
         showToast('Аккаунт удалён');
     }
 
