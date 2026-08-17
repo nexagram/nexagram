@@ -516,7 +516,7 @@
         .call-btn-circle.white { background: #fff !important; color: #111 !important; }
         .call-btn-circle.dark { background: rgba(255,255,255,0.18) !important; color: #fff !important; }
         .call-btn-circle.red { background: #e5395c !important; color: #fff !important; width: 58px !important; height: 58px !important; }
-        .call-btn-label { display: none !important; }
+        .call-btn-label { display: block; font-size: 11px; color: rgba(255,255,255,0.75); margin-top: 4px; }
         .call-btn-group { display: flex; flex-direction: column; align-items: center; gap: 6px; }
 
     </style>
@@ -529,50 +529,50 @@
     <div class="auth-card">
         <div class="auth-logo">
             <div class="logo-text">NEXAGRAM</div>
-            <small>Где рождается общение</small>
+            <small data-i18n="tagline">Где рождается общение</small>
         </div>
         <div class="auth-tabs">
-            <div class="auth-tab active" data-tab="login" onclick="switchAuthTab('login')">Вход</div>
-            <div class="auth-tab" data-tab="register" onclick="switchAuthTab('register')">Регистрация</div>
+            <div class="auth-tab active" data-tab="login" onclick="switchAuthTab('login')" data-i18n="tab_login">Вход</div>
+            <div class="auth-tab" data-tab="register" onclick="switchAuthTab('register')" data-i18n="tab_register">Регистрация</div>
         </div>
         
         <div class="auth-form active" id="loginForm">
             <div class="input-group">
-                <label>Логин или Email</label>
-                <input type="text" id="loginUsername" placeholder="Email или логин" autocomplete="username">
+                <label data-i18n="login_label">Логин или Email</label>
+                <input type="text" id="loginUsername" data-i18n-placeholder="ph_login" placeholder="Email или логин" autocomplete="username">
             </div>
             <div class="input-group">
-                <label>Пароль</label>
-                <input type="password" id="loginPassword" placeholder="Введите пароль" autocomplete="current-password" onkeypress="if(event.key==='Enter') doLogin()">
+                <label data-i18n="pass_label">Пароль</label>
+                <input type="password" id="loginPassword" data-i18n-placeholder="ph_pass" placeholder="Введите пароль" autocomplete="current-password" onkeypress="if(event.key==='Enter') doLogin()">
             </div>
-            <button class="auth-btn" onclick="doLogin()">Войти →</button>
-            <div class="auth-switch" onclick="showForgotPassword()">Забыли пароль?</div>
+            <button class="auth-btn" onclick="doLogin()" data-i18n="btn_login">Войти →</button>
+            <div class="auth-switch" onclick="showForgotPassword()" data-i18n="forgot">Забыли пароль?</div>
         </div>
         
         <div class="auth-form" id="registerForm">
             <div class="input-group">
-                <label>Логин (без @) или Email</label>
-                <input type="text" id="regUsername" placeholder="Email или логин" autocomplete="username">
+                <label data-i18n="login_label">Логин (без @) или Email</label>
+                <input type="text" id="regUsername" data-i18n-placeholder="ph_login" placeholder="Email или логин" autocomplete="username">
             </div>
             <div class="input-group">
-                <label>Пароль</label>
-                <input type="password" id="regPassword" placeholder="Введите пароль (мин. 4)" autocomplete="new-password">
+                <label data-i18n="pass_label">Пароль</label>
+                <input type="password" id="regPassword" data-i18n-placeholder="ph_pass_new" placeholder="Введите пароль (мин. 4)" autocomplete="new-password">
             </div>
             <div class="input-group">
-                <label>Подтверждение пароля</label>
-                <input type="password" id="regConfirm" placeholder="Повторите пароль" autocomplete="new-password">
+                <label data-i18n="pass_confirm">Подтверждение пароля</label>
+                <input type="password" id="regConfirm" data-i18n-placeholder="ph_pass_confirm" placeholder="Повторите пароль" autocomplete="new-password">
             </div>
             <div class="input-group secret-field visible" id="secretGroup">
-                <label>Секретное слово (если без Email)</label>
-                <input type="text" id="regSecret" placeholder="Для восстановления аккаунта">
+                <label data-i18n="secret_label">Секретное слово (если без Email)</label>
+                <input type="text" id="regSecret" data-i18n-placeholder="ph_secret" placeholder="Для восстановления аккаунта">
             </div>
-            <button class="auth-btn" onclick="doRegister()">Зарегистрироваться →</button>
+            <button class="auth-btn" onclick="doRegister()" data-i18n="btn_register">Зарегистрироваться →</button>
         </div>
         
         <div class="social-login-container">
             <button class="social-btn google" onclick="loginWithGoogle()">
                 <svg class="social-icon" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-                Продолжить с Google
+                <span data-i18n="google">Продолжить с Google</span>
             </button>
             <button class="social-btn github" onclick="loginWithGitHub()">
                 <svg class="social-icon" viewBox="0 0 24 24"><path fill="#ffffff" d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-3.975-1.395-.09-.225-.48-1.395-1.065-1.65-.45-.195-1.095-.735-.015-.75.975-.015 1.74.9 2.01 1.335 1.14 1.965 3.045 1.395 3.795 1.065.105-.855.45-1.395.825-1.71-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.465.39.87 1.185.87 2.385 0 1.725-.015 3.105-.015 3.525 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
@@ -626,7 +626,7 @@
         <div class="screen" id="friends-screen">
             <div class="head">Контакты</div>
             <div id="f-requests"></div>
-            <div class="search-bar"><input type="text" id="search-friends" class="search-input" placeholder="Поиск контактов..." onkeyup="filterFriends()"></div>
+            <div class="search-bar"><input type="text" id="search-friends" class="search-input" data-i18n-placeholder="search_contacts" placeholder="Поиск контактов..." onkeyup="filterFriends()"></div>
             <div id="f-list"></div>
             <button class="add-friend-btn" onclick="addFriend()"><span class="material-symbols-outlined">person_add</span> Добавить контакт</button>
         </div>
@@ -642,7 +642,7 @@
             <div class="stories-container" id="stories-bar"></div>
             <input type="file" id="story-upload-input" accept="*/*" style="display:none" onchange="handleStoryUpload(event)">
 
-            <div class="search-bar"><input type="text" id="search-chats" class="search-input" placeholder="Поиск чатов, @каналов..." onkeyup="filterChats()"></div>
+            <div class="search-bar"><input type="text" id="search-chats" class="search-input" data-i18n-placeholder="search_chats" placeholder="Поиск чатов, @каналов..." onkeyup="filterChats()"></div>
             <div id="c-list"></div>
         </div>
 
@@ -665,21 +665,21 @@
                 <div id="p-bio" style="color:var(--txt); margin-top: 8px; font-size: 14px; opacity: 0.9; max-width: 80%; margin-left: auto; margin-right: auto; line-height: 1.4;"></div>
             </div>
 
-            <div class="section-header">Профиль</div>
+            <div class="section-header" data-i18n="sec_profile">Профиль</div>
             <div class="sett-box">
                 <div class="sett-row" onclick="editName()"><span class="material-symbols-outlined">badge</span> Изменить имя</div>
                 <div class="sett-row" onclick="changeUsername()"><span class="material-symbols-outlined">edit</span> Изменить логин</div>
                 <div class="sett-row" onclick="editBio()"><span class="material-symbols-outlined">description</span> Изменить 'О себе'</div>
             </div>
 
-            <div class="section-header">Безопасность</div>
+            <div class="section-header" data-i18n="sec_security">Безопасность</div>
             <div class="sett-box">
                 <div class="sett-row" onclick="linkEmail()"><span class="material-symbols-outlined">email</span> Привязать Email</div>
                 <div class="sett-row" onclick="changePassword()"><span class="material-symbols-outlined">lock</span> Сменить пароль</div>
                 <div class="sett-row" onclick="changeSecretWord()"><span class="material-symbols-outlined">key</span> Сменить секретное слово</div>
             </div>
 
-            <div class="section-header">Внешний вид</div>
+            <div class="section-header" data-i18n="sec_appearance">Внешний вид</div>
             <div class="sett-box">
                 <div class="theme-grid">
                     <div class="t-dot" id="dot-green" style="background:#30d158" onclick="applyTheme('green')"></div>
@@ -696,7 +696,7 @@
                 <div class="sett-row" onclick="clearGlobalWallpaper()"><span class="material-symbols-outlined">close</span> Сбросить обои</div>
             </div>
 
-            <div class="section-header">Система</div>
+            <div class="section-header" data-i18n="sec_system">Система</div>
             <div class="sett-box">
                 <div class="sett-row" style="justify-content:space-between;">
                     <span style="display:flex;align-items:center;gap:12px;"><span class="material-symbols-outlined">language</span> <span data-i18n="sett_lang">Язык интерфейса</span></span>
@@ -705,13 +705,13 @@
                         <option value="en">English</option>
                     </select>
                 </div>
-                <div class="sett-row" onclick="openSoundSettings()"><span class="material-symbols-outlined">volume_up</span> Настройки звука</div>
-                <div class="sett-row" onclick="requestNotifications()"><span class="material-symbols-outlined">notifications_active</span> Включить уведомления</div>
-                <div class="sett-row" onclick="openSupportChat()"><span class="material-symbols-outlined">support_agent</span> Чат с поддержкой</div>
+                <div class="sett-row" onclick="openSoundSettings()"><span class="material-symbols-outlined">volume_up</span> <span data-i18n="sett_sound">Настройки звука</span></div>
+                <div class="sett-row" onclick="requestNotifications()"><span class="material-symbols-outlined">notifications_active</span> <span data-i18n="sett_notif">Включить уведомления</span></div>
+                <div class="sett-row" onclick="openSupportChat()"><span class="material-symbols-outlined">support_agent</span> <span data-i18n="sett_support">Чат с поддержкой</span></div>
                 <div class="sett-row" id="admin-switch-btn" style="display: none;" onclick="switchAccount()"><span class="material-symbols-outlined">swap_horiz</span> Сменить аккаунт (Админ)</div>
                 <div class="sett-row" id="admin-panel-btn" style="display: none; color: #a855f7; font-weight: bold;" onclick="openAdminPanel()"><span class="material-symbols-outlined">admin_panel_settings</span> Управление пользователями</div>
-                <div class="sett-row logout-btn" onclick="logout()"><span class="material-symbols-outlined">logout</span> Выйти</div>
-                <div class="sett-row" style="color:var(--red)" onclick="deleteMyAccount()"><span class="material-symbols-outlined">person_off</span> Удалить аккаунт</div>
+                <div class="sett-row logout-btn" onclick="logout()"><span class="material-symbols-outlined">logout</span> <span data-i18n="sett_logout">Выйти</span></div>
+                <div class="sett-row" style="color:var(--red)" onclick="deleteMyAccount()"><span class="material-symbols-outlined">person_off</span> <span data-i18n="sett_delete_acc">Удалить аккаунт</span></div>
                 <div class="sett-row" style="color:var(--red)" onclick="resetAllData()"><span class="material-symbols-outlined">delete_forever</span> Полный сброс (Локально)</div>
             </div>
         </div>
@@ -721,19 +721,19 @@
     <nav class="nav">
         <div class="nav-btn" id="nb-friends" onclick="setTab('friends')">
             <div class="nav-icon-wrap"><span class="material-symbols-outlined">group</span><div id="friends-badge" class="nav-badge" style="display:none;"></div></div>
-            <span class="nav-text">Контакты</span>
+            <span class="nav-text" data-i18n="nav_contacts">Контакты</span>
         </div>
         <div class="nav-btn active" id="nb-chats" onclick="setTab('chats')">
             <div class="nav-icon-wrap"><span class="material-symbols-outlined">chat</span><div id="chats-badge" class="nav-badge" style="display:none;"></div></div>
-            <span class="nav-text">Чаты</span>
+            <span class="nav-text" data-i18n="nav_chats">Чаты</span>
         </div>
         <div class="nav-btn" id="nb-calls" onclick="setTab('calls')">
             <div class="nav-icon-wrap"><span class="material-symbols-outlined">call</span></div>
-            <span class="nav-text">Звонки</span>
+            <span class="nav-text" data-i18n="nav_calls">Звонки</span>
         </div>
         <div class="nav-btn" id="nb-profile" onclick="setTab('profile')">
             <div class="nav-icon-wrap"><span class="material-symbols-outlined">settings</span></div>
-            <span class="nav-text">Профиль</span>
+            <span class="nav-text" data-i18n="nav_profile">Профиль</span>
         </div>
     </nav>
 
@@ -752,7 +752,7 @@
         </div>
         
         <div id="chat-search-bar" style="display:none; padding: 8px 16px; background: var(--bg); border-bottom: 1px solid var(--brd); position: sticky; top: 56px; z-index: 9;">
-            <input type="text" id="msg-search-input" class="search-input" placeholder="Поиск сообщений..." oninput="renderMsgs()">
+            <input type="text" id="msg-search-input" class="search-input" data-i18n-placeholder="search_msgs" placeholder="Поиск сообщений..." oninput="renderMsgs()">
         </div>
         
         <div id="typing-indicator">Кто-то печатает...</div>
@@ -785,7 +785,7 @@
                 <button class="icon-btn" onclick="document.getElementById('attach-input').click()"><span class="material-symbols-outlined">attach_file</span></button>
                 <input type="file" id="attach-input" accept="*/*" style="display:none" onchange="handleAttachment(event)">
                 
-                <input type="text" id="m-in" class="chat-input" placeholder="Сообщение..." onkeypress="if(event.key==='Enter') send()" oninput="handleTyping()">
+                <input type="text" id="m-in" class="chat-input" data-i18n-placeholder="ph_message" placeholder="Сообщение..." onkeypress="if(event.key==='Enter') send()" oninput="handleTyping()">
                 
                 <div class="input-actions">
                     <button class="icon-btn" id="btn-circle" onclick="toggleVideoCircle()"><span class="material-symbols-outlined">videocam</span></button>
@@ -1000,31 +1000,63 @@
             tagline: 'Где рождается общение',
             tab_login: 'Вход', tab_register: 'Регистрация',
             login_label: 'Логин или Email', pass_label: 'Пароль',
-            btn_login: 'Войти', forgot: 'Забыли пароль?',
+            pass_confirm: 'Подтверждение пароля', secret_label: 'Секретное слово (если без Email)',
+            btn_login: 'Войти →', btn_register: 'Зарегистрироваться →',
+            forgot: 'Забыли пароль?',
             google: 'Продолжить с Google', github: 'Продолжить с GitHub',
             terms: 'Условия', privacy: 'Конфиденциальность',
+            ph_login: 'Email или логин', ph_pass: 'Введите пароль', ph_pass_new: 'Введите пароль (мин. 4)', ph_pass_confirm: 'Повторите пароль', ph_secret: 'Для восстановления аккаунта',
+            nav_contacts: 'Контакты', nav_chats: 'Чаты', nav_calls: 'Звонки', nav_profile: 'Профиль',
+            head_contacts: 'Контакты', head_chats: 'Чаты', head_calls: 'Журнал вызовов', head_settings: 'Настройки',
+            search_contacts: 'Поиск контактов...', search_chats: 'Поиск чатов, @каналов...', search_msgs: 'Поиск сообщений...',
+            ph_message: 'Сообщение...',
+            add_contact: 'Добавить контакт', clear_calls: 'Очистить',
+            sec_profile: 'Профиль', sec_security: 'Безопасность', sec_appearance: 'Внешний вид', sec_system: 'Система',
+            sett_lang: 'Язык интерфейса', sett_sound: 'Настройки звука', sett_notif: 'Включить уведомления',
+            sett_support: 'Чат с поддержкой', sett_logout: 'Выйти', sett_delete_acc: 'Удалить аккаунт',
+            sett_reset: 'Полный сброс (Локально)', sett_theme: 'Переключить тему',
+            sett_name: 'Имя', sett_username: 'Логин', sett_bio: 'О себе', sett_password: 'Сменить пароль',
+            sett_wallpaper: 'Обои чатов', sett_clear_wallpaper: 'Сбросить обои',
             call_calling: 'Звоним...', call_incoming: 'Входящий вызов...',
-            call_connecting: 'Соединение...', call_talking: 'Разговор',
-            call_mic_error: 'Ошибка микрофона',
-            call_accept: 'Принять', call_decline: 'Отклонить',
-            call_end: 'Сброс', call_speaker: 'Динамик', call_mute: 'Микрофон',
-            call_video: 'Видео', call_flip: 'Камера',
-            sett_lang: 'Язык интерфейса'
+            call_connecting: 'Соединение...', call_talking: 'Разговор', call_waiting: 'Ожидание...',
+            call_mic_error: 'Ошибка микрофона', call_error: 'Ошибка звонка',
+            call_accept: 'Принять', call_decline: 'Отклонить', call_end: 'Завершить',
+            call_speaker: 'Динамик', call_mute: 'Микрофон', call_unmute: 'Вкл. звук',
+            call_video_on: 'Вкл. видео', call_video_off: 'Выкл. видео', call_flip: 'Повернуть',
+            sync: 'Синхронизация...', unlock_audio: 'Нажмите, чтобы включить звук звонка',
+            empty_chat: 'Выберите чат, чтобы начать переписку',
+            create_chat: 'Создать', contacts_btn: 'Контакты'
         },
         en: {
             tagline: 'Where conversation begins',
             tab_login: 'Sign in', tab_register: 'Sign up',
             login_label: 'Username or Email', pass_label: 'Password',
-            btn_login: 'Sign in', forgot: 'Forgot password?',
+            pass_confirm: 'Confirm password', secret_label: 'Secret word (if no Email)',
+            btn_login: 'Sign in →', btn_register: 'Create account →',
+            forgot: 'Forgot password?',
             google: 'Continue with Google', github: 'Continue with GitHub',
             terms: 'Terms', privacy: 'Privacy',
+            ph_login: 'Email or username', ph_pass: 'Enter password', ph_pass_new: 'Password (min. 4)', ph_pass_confirm: 'Repeat password', ph_secret: 'For account recovery',
+            nav_contacts: 'Contacts', nav_chats: 'Chats', nav_calls: 'Calls', nav_profile: 'Profile',
+            head_contacts: 'Contacts', head_chats: 'Chats', head_calls: 'Call history', head_settings: 'Settings',
+            search_contacts: 'Search contacts...', search_chats: 'Search chats, @channels...', search_msgs: 'Search messages...',
+            ph_message: 'Message...',
+            add_contact: 'Add contact', clear_calls: 'Clear',
+            sec_profile: 'Profile', sec_security: 'Security', sec_appearance: 'Appearance', sec_system: 'System',
+            sett_lang: 'Interface language', sett_sound: 'Sound settings', sett_notif: 'Enable notifications',
+            sett_support: 'Support chat', sett_logout: 'Log out', sett_delete_acc: 'Delete account',
+            sett_reset: 'Full reset (Local)', sett_theme: 'Toggle theme',
+            sett_name: 'Name', sett_username: 'Username', sett_bio: 'Bio', sett_password: 'Change password',
+            sett_wallpaper: 'Chat wallpaper', sett_clear_wallpaper: 'Reset wallpaper',
             call_calling: 'Calling...', call_incoming: 'Incoming call...',
-            call_connecting: 'Connecting...', call_talking: 'In call',
-            call_mic_error: 'Microphone error',
-            call_accept: 'Accept', call_decline: 'Decline',
-            call_end: 'End', call_speaker: 'Speaker', call_mute: 'Mute',
-            call_video: 'Video', call_flip: 'Flip',
-            sett_lang: 'Interface language'
+            call_connecting: 'Connecting...', call_talking: 'In call', call_waiting: 'Waiting...',
+            call_mic_error: 'Microphone error', call_error: 'Call error',
+            call_accept: 'Accept', call_decline: 'Decline', call_end: 'End',
+            call_speaker: 'Speaker', call_mute: 'Mute', call_unmute: 'Unmute',
+            call_video_on: 'Video on', call_video_off: 'Video off', call_flip: 'Flip',
+            sync: 'Syncing...', unlock_audio: 'Tap to enable call sound',
+            empty_chat: 'Select a chat to start messaging',
+            create_chat: 'Create', contacts_btn: 'Contacts'
         }
     };
     let appLang = localStorage.getItem('Nexagram_Lang') || 'ru';
@@ -1043,11 +1075,74 @@
             const key = el.getAttribute('data-i18n');
             if (key) el.textContent = t(key);
         });
+        document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+            const key = el.getAttribute('data-i18n-placeholder');
+            if (key) el.setAttribute('placeholder', t(key));
+        });
+        document.querySelectorAll('[data-i18n-title]').forEach(el => {
+            const key = el.getAttribute('data-i18n-title');
+            if (key) el.setAttribute('title', t(key));
+        });
+        // прямые элементы по id
+        const mapText = {
+            'nb-friends': null, // child .nav-text
+        };
+        const setNav = (id, key) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const nt = el.querySelector('.nav-text');
+            if (nt) nt.textContent = t(key);
+        };
+        setNav('nb-friends', 'nav_contacts');
+        setNav('nb-chats', 'nav_chats');
+        setNav('nb-calls', 'nav_calls');
+        setNav('nb-profile', 'nav_profile');
+
+        const headContacts = document.querySelector('#friends-screen .head');
+        if (headContacts && headContacts.childNodes.length) {
+            // may contain only text
+            if (headContacts.children.length === 0) headContacts.textContent = t('head_contacts');
+            else {
+                for (const n of headContacts.childNodes) {
+                    if (n.nodeType === 3 && n.textContent.trim()) { n.textContent = t('head_contacts'); break; }
+                }
+            }
+        }
+        const chatsHead = document.querySelector('#chats-screen .head');
+        if (chatsHead) {
+            for (const n of chatsHead.childNodes) {
+                if (n.nodeType === 3 && n.textContent.trim()) { n.textContent = '\n                ' + t('head_chats') + '\n                '; break; }
+            }
+        }
+        const callsHead = document.querySelector('#calls-screen .head');
+        if (callsHead) {
+            for (const n of callsHead.childNodes) {
+                if (n.nodeType === 3 && n.textContent.trim()) { n.textContent = t('head_calls'); break; }
+            }
+        }
+        const settHead = document.querySelector('#profile-screen .head');
+        if (settHead) settHead.textContent = t('head_settings');
+
+        const loaderText = document.querySelector('#loader div:last-child');
+        if (loaderText) loaderText.textContent = t('sync');
+        const unlock = document.getElementById('audio-unlock-toast');
+        if (unlock) unlock.textContent = '🔊 ' + t('unlock_audio');
+
         const sel = document.getElementById('langSelect');
         if (sel) sel.value = appLang;
         const selAuth = document.getElementById('authLangSelect');
         if (selAuth) selAuth.value = appLang;
         try { document.documentElement.lang = appLang === 'en' ? 'en' : 'ru'; } catch(e) {}
+
+        // перерисовать динамические списки
+        try {
+            if (typeof me !== 'undefined' && me) {
+                if (typeof renderChats === 'function') renderChats();
+                if (typeof renderFriends === 'function') renderFriends();
+                if (typeof renderCalls === 'function') renderCalls();
+                if (typeof updUI === 'function') updUI();
+            }
+        } catch (e) {}
     }
 
     // === SERVICE WORKER ДЛЯ УВЕДОМЛЕНИЙ ===
@@ -1217,14 +1312,29 @@
         if (currentRingtone === 'none') return;
         unlockAudioContext();
         stopBuiltinRing();
-        // Кастомный файл
-        if (currentRingtone === 'custom' && localSettings.customRingtone) {
-            const el = document.getElementById(isOutgoing ? 'outgoingRingtone' : 'incomingRingtone');
-            if (el) {
-                el.src = localSettings.customRingtone;
-                safePlayAudio(el, true);
-                return;
-            }
+        // Кастомный файл (IndexedDB / память)
+        if (currentRingtone === 'custom') {
+            const playCustom = (src) => {
+                if (!src) return false;
+                const el = document.getElementById(isOutgoing ? 'outgoingRingtone' : 'incomingRingtone');
+                if (!el) return false;
+                try {
+                    el.loop = true;
+                    if (el.src !== src) el.src = src;
+                    safePlayAudio(el, true);
+                    return true;
+                } catch (e) { return false; }
+            };
+            if (customRingtoneData && playCustom(customRingtoneData)) return;
+            // подгрузить из IDB и сыграть
+            loadCustomRingtoneFromDB().then(src => {
+                if (src) playCustom(src);
+                else if (WEB_RING['builtin:classic']) {
+                    WEB_RING['builtin:classic']();
+                    _ringTimer = setInterval(WEB_RING['builtin:classic'], 2000);
+                }
+            });
+            return;
         }
         if (currentRingtone.indexOf('builtin:') === 0 && WEB_RING[currentRingtone]) {
             const fn = WEB_RING[currentRingtone];
@@ -1418,7 +1528,7 @@
     function resolveSoundSrc(key) {
         if (!key || key === 'none') return null;
         if (key === 'custom') {
-            return localSettings.customRingtone || null;
+            return customRingtoneData || localSettings.customRingtone || null;
         }
         if (key.indexOf('builtin:') === 0) {
             try { return BUILTIN_SOUNDS[key] ? BUILTIN_SOUNDS[key]() : null; } catch (e) { return null; }
@@ -1430,7 +1540,7 @@
     // Если в настройках старый mixkit — переключаем на встроенный (без VPN)
     function migrateSoundKey(key, fallback) {
         if (!key || key === 'none') return key || fallback;
-        if (key === 'custom') return localSettings.customRingtone ? 'custom' : fallback;
+        if (key === 'custom') return (localSettings.hasCustomRingtone || localSettings.customRingtone || customRingtoneData) ? 'custom' : fallback;
         if (key.indexOf('mixkit.co') !== -1 || (key.indexOf('http') === 0 && key.indexOf('data:') !== 0)) return fallback;
         return key;
     }
@@ -1457,11 +1567,21 @@
             if (inRing) inRing.src = rSrc;
             if (outRing) outRing.src = rSrc;
         }
-        // показать пункт «Мой рингтон», если загружен
         const opt = document.getElementById('customRingtoneOpt');
-        if (opt) opt.style.display = localSettings.customRingtone ? 'block' : 'none';
+        if (opt) opt.style.display = (customRingtoneData || localSettings.hasCustomRingtone || localSettings.customRingtone) ? 'block' : 'none';
     }
-    applySounds();
+    // Подгружаем кастомный рингтон из IndexedDB, потом applySounds
+    (async function initCustomRing() {
+        try {
+            await loadCustomRingtoneFromDB();
+            if (customRingtoneData && (localSettings.ringtone === 'custom' || localSettings.hasCustomRingtone)) {
+                currentRingtone = 'custom';
+                localSettings.ringtone = 'custom';
+                localSettings.hasCustomRingtone = true;
+            }
+        } catch (e) { console.warn(e); }
+        applySounds();
+    })();
 
     let drafts = JSON.parse(localStorage.getItem('Nexagram_Drafts')) || {};
     let lastKnownMsgCounts = {}; 
@@ -1816,17 +1936,24 @@
         const controls = document.getElementById('callControls');
         if (!controls) return;
         const minMicBtn = document.getElementById('minCallMicBtn');
-        if (minMicBtn) { 
+        if (minMicBtn) {
             minMicBtn.innerHTML = isCallMicMuted ? '<span class="material-symbols-outlined">mic_off</span>' : '<span class="material-symbols-outlined">mic</span>';
             if (isCallMicMuted) minMicBtn.classList.add('muted'); else minMicBtn.classList.remove('muted');
         }
-        // UI как в Max: динамик · микрофон · видео · сброс
-        controls.innerHTML = `
-            <div class="call-btn-group"><button class="call-btn-circle ${isSpeakerOn ? 'white' : 'translucent'}" onclick="toggleCallSpeaker()"><span class="material-symbols-outlined">${isSpeakerOn ? 'volume_up' : 'volume_off'}</span></button></div>
-            <div class="call-btn-group"><button class="call-btn-circle ${isCallMicMuted ? 'white' : 'translucent'}" onclick="toggleCallMic()"><span class="material-symbols-outlined">${isCallMicMuted ? 'mic_off' : 'mic'}</span></button></div>
-            <div class="call-btn-group"><button class="call-btn-circle ${isCallCamOff || !currentCallIsVideo ? 'white' : 'translucent'}" onclick="toggleCallCam(false)"><span class="material-symbols-outlined">${(isCallCamOff || !currentCallIsVideo) ? 'videocam_off' : 'videocam'}</span></button></div>
-            <div class="call-btn-group"><button class="call-btn-circle red" onclick="endCall()"><span class="material-symbols-outlined">call_end</span></button></div>
-        `;
+        if (!currentCallIsVideo) {
+            controls.innerHTML = `
+                <div class="call-btn-group"><button class="call-btn-circle ${isSpeakerOn ? 'white' : 'translucent'}" onclick="toggleCallSpeaker()"><span class="material-symbols-outlined">volume_up</span></button><div class="call-btn-label">${t('call_speaker')}</div></div>
+                <div class="call-btn-group"><button class="call-btn-circle ${isCallMicMuted ? 'white' : 'translucent'}" onclick="toggleCallMic()"><span class="material-symbols-outlined">${isCallMicMuted ? 'mic_off' : 'mic'}</span></button><div class="call-btn-label">${isCallMicMuted ? t('call_unmute') : t('call_mute')}</div></div>
+                <div class="call-btn-group"><button class="call-btn-circle red" onclick="endCall()"><span class="material-symbols-outlined">call_end</span></button><div class="call-btn-label">${t('call_end')}</div></div>
+            `;
+        } else {
+            controls.innerHTML = `
+                <div class="call-btn-group"><button class="call-btn-circle white" onclick="flipCamera()"><span class="material-symbols-outlined">flip_camera_ios</span></button><div class="call-btn-label">${t('call_flip')}</div></div>
+                <div class="call-btn-group"><button class="call-btn-circle ${isCallCamOff ? 'white' : 'dark'}" onclick="toggleCallCam(false)"><span class="material-symbols-outlined">${isCallCamOff ? 'videocam_off' : 'videocam'}</span></button><div class="call-btn-label">${isCallCamOff ? t('call_video_on') : t('call_video_off')}</div></div>
+                <div class="call-btn-group"><button class="call-btn-circle ${isCallMicMuted ? 'white' : 'dark'}" onclick="toggleCallMic()"><span class="material-symbols-outlined">${isCallMicMuted ? 'mic_off' : 'mic'}</span></button><div class="call-btn-label">${isCallMicMuted ? t('call_unmute') : t('call_mute')}</div></div>
+                <div class="call-btn-group"><button class="call-btn-circle red" onclick="endCall()"><span class="material-symbols-outlined">call_end</span></button><div class="call-btn-label">${t('call_end')}</div></div>
+            `;
+        }
     }
 
     function listenForIncomingCalls() {
@@ -1850,8 +1977,8 @@
         document.getElementById('minimizedCallBar').style.display = 'none';
         document.getElementById('callCenterArea').style.display = 'flex'; document.getElementById('callTopCenter').style.display = 'none';
         document.getElementById('callControls').innerHTML = `
-            <div class="call-btn-group"><button class="call-btn-circle" style="background:#30d158;color:#fff;" onclick="acceptCall(${currentCallIsVideo})"><span class="material-symbols-outlined">${currentCallIsVideo ? 'videocam' : 'call'}</span></button></div>
-            <div class="call-btn-group"><button class="call-btn-circle red" onclick="endCall()"><span class="material-symbols-outlined">call_end</span></button></div>
+            <div class="call-btn-group"><button class="call-btn-circle" style="background:#30d158;color:#fff;" onclick="acceptCall(${currentCallIsVideo})"><span class="material-symbols-outlined">${currentCallIsVideo ? 'videocam' : 'call'}</span></button><div class="call-btn-label">${t('call_accept')}</div></div>
+            <div class="call-btn-group"><button class="call-btn-circle red" onclick="endCall()"><span class="material-symbols-outlined">call_end</span></button><div class="call-btn-label">${t('call_decline')}</div></div>
         `;
         document.getElementById('localVideo').style.display = 'none'; document.getElementById('remoteVideo').classList.remove('active-video');
         
@@ -1975,7 +2102,7 @@
         document.getElementById('callAvatar').innerHTML = getAvatarHtml(targetUser.avatarType, targetUser.avatarValue);
         document.getElementById('callName').textContent = targetUser.name;
         document.getElementById('callNameSmall').textContent = targetUser.name;
-        document.getElementById('minCallInfo').textContent = targetUser.name + ' · Ожидание...';
+        document.getElementById('minCallInfo').textContent = targetUser.name + ' · ' + t('call_waiting');
         setCallStatusText(t('call_calling'));
         isCallMicMuted = false; isCallCamOff = false; isSpeakerOn = true;
 
@@ -1987,11 +2114,19 @@
         renderCallControls();
 
         try {
-            // Микрофон/камеру НЕ включаем пока собеседник не ответит
             pendingIceCandidates = [];
+            const audioConstraints = { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
+            localStream = await navigator.mediaDevices.getUserMedia({
+                audio: audioConstraints,
+                video: isVideo ? { facingMode: currentFacingMode } : false
+            });
+            if (isVideo) {
+                const localVid = document.getElementById('localVideo');
+                if (localVid) { localVid.srcObject = localStream; localVid.style.display = 'block'; localVid.style.transform = 'scaleX(-1)'; }
+            }
+
             peerConnection = new RTCPeerConnection(rtcConfig);
-            peerConnection.addTransceiver('audio', { direction: 'sendrecv' });
-            if (isVideo) peerConnection.addTransceiver('video', { direction: 'sendrecv' });
+            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
 
             peerConnection.ontrack = (event) => handleRemoteTrack(event);
             peerConnection.onicecandidate = event => {
@@ -2014,8 +2149,7 @@
             callRef = rtdb.ref(`/dg_calls/${currentCallId}`);
             callRef.on('value', async snap => {
                 const data = snap.val();
-                if (!data) return; // не рвём звонок на кратковременный null
-
+                if (!data) return;
                 if (data.status === 'ended' || data.status === 'declined' || data.status === 'missed') {
                     cleanupCall();
                     if (data.caller === me.id) {
@@ -2025,23 +2159,17 @@
                     }
                     return;
                 }
-
                 if (data.answer && !isAnswerProcessed) {
                     isAnswerProcessed = true;
                     stopAllRingtones();
-                    setCallStatusText(t('call_connecting'));
+                    setCallStatusText(t('call_talking') + ' (0:00)');
+                    startCallTimer();
                     try {
                         await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
                         await flushPendingIce();
-                        // Микрофон только после ответа собеседника
-                        localStream = await acquireCallMedia(currentCallIsVideo);
-                        await attachLocalMediaToPeer(localStream);
-                        setCallStatusText(t('call_talking') + ' (0:00)');
-                        startCallTimer();
-                        renderCallControls();
                     } catch (err) {
                         console.error(err);
-                        showToast(t('call_mic_error') + ': ' + err.message);
+                        showToast(t('call_error') + ': ' + err.message);
                         endCall();
                     }
                 }
@@ -2052,7 +2180,7 @@
             });
 
         } catch (e) {
-            showToast('Ошибка звонка: ' + e.message);
+            showToast(t('call_mic_error') + ': ' + e.message);
             cleanupCall();
         }
     }
@@ -2067,8 +2195,15 @@
         renderCallControls();
 
         try {
-            // Микрофон только при нажатии «Принять»
-            localStream = await acquireCallMedia(isVideo);
+            const audioConstraints = { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
+            localStream = await navigator.mediaDevices.getUserMedia({
+                audio: audioConstraints,
+                video: isVideo ? { facingMode: currentFacingMode || 'user' } : false
+            });
+            if (isVideo) {
+                const localVid = document.getElementById('localVideo');
+                if (localVid) { localVid.srcObject = localStream; localVid.style.display = 'block'; localVid.style.transform = 'scaleX(-1)'; }
+            }
 
             peerConnection = new RTCPeerConnection(rtcConfig);
             localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
@@ -2080,7 +2215,7 @@
 
             const callSnap = await rtdb.ref(`/dg_calls/${currentCallId}`).once('value');
             const callData = callSnap.val();
-            if (!callData || !callData.offer) throw new Error('Звонок уже завершён');
+            if (!callData || !callData.offer) throw new Error(t('call_error'));
 
             pendingIceCandidates = [];
             await peerConnection.setRemoteDescription(new RTCSessionDescription(callData.offer));
@@ -2109,7 +2244,7 @@
             });
 
         } catch (e) {
-            showToast('Ошибка микрофона: ' + e.message);
+            showToast(t('call_mic_error') + ': ' + e.message);
             endCall();
         }
     }
@@ -4172,11 +4307,83 @@
     }
     function closeAvatarModal() { document.getElementById('avatarModal').classList.remove('active'); }
 
-    // === Кастомный рингтон ===
+    // === Кастомный рингтон (IndexedDB — localStorage не тянет большие аудио) ===
+    let customRingtoneData = null; // dataURL или blob: URL в памяти
+    let customRingtoneObjectUrl = null;
+
+    function openRingtoneDB() {
+        return new Promise((resolve, reject) => {
+            try {
+                const req = indexedDB.open('NexagramSounds', 1);
+                req.onupgradeneeded = () => {
+                    const db = req.result;
+                    if (!db.objectStoreNames.contains('rings')) db.createObjectStore('rings');
+                };
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error || new Error('IDB open failed'));
+            } catch (e) { reject(e); }
+        });
+    }
+    async function idbPutRingtone(blob) {
+        const db = await openRingtoneDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction('rings', 'readwrite');
+            tx.objectStore('rings').put(blob, 'custom');
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error);
+        });
+    }
+    async function idbGetRingtone() {
+        const db = await openRingtoneDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction('rings', 'readonly');
+            const req = tx.objectStore('rings').get('custom');
+            req.onsuccess = () => resolve(req.result || null);
+            req.onerror = () => reject(req.error);
+        });
+    }
+    async function idbDeleteRingtone() {
+        try {
+            const db = await openRingtoneDB();
+            return new Promise((resolve) => {
+                const tx = db.transaction('rings', 'readwrite');
+                tx.objectStore('rings').delete('custom');
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => resolve();
+            });
+        } catch (e) {}
+    }
+    function revokeCustomObjectUrl() {
+        if (customRingtoneObjectUrl) {
+            try { URL.revokeObjectURL(customRingtoneObjectUrl); } catch (_) {}
+            customRingtoneObjectUrl = null;
+        }
+    }
+    async function loadCustomRingtoneFromDB() {
+        try {
+            const blob = await idbGetRingtone();
+            if (!blob) {
+                // fallback: старое хранение в localSettings (маленькие файлы)
+                if (localSettings.customRingtone && typeof localSettings.customRingtone === 'string' && localSettings.customRingtone.indexOf('data:') === 0) {
+                    customRingtoneData = localSettings.customRingtone;
+                    return customRingtoneData;
+                }
+                customRingtoneData = null;
+                return null;
+            }
+            revokeCustomObjectUrl();
+            customRingtoneObjectUrl = URL.createObjectURL(blob);
+            customRingtoneData = customRingtoneObjectUrl;
+            return customRingtoneData;
+        } catch (e) {
+            console.warn('loadCustomRingtone', e);
+            return null;
+        }
+    }
     function uploadCustomRingtone() {
         const input = document.createElement('input');
         input.type = 'file';
-        input.accept = 'audio/*,.mp3,.wav,.ogg,.m4a';
+        input.accept = 'audio/mpeg,audio/mp3,audio/wav,audio/ogg,audio/mp4,audio/x-m4a,audio/aac,audio/*,.mp3,.wav,.ogg,.m4a,.aac';
         input.onchange = async (e) => {
             const file = e.target.files && e.target.files[0];
             if (!file) return;
@@ -4184,30 +4391,56 @@
                 showToast('Файл слишком большой (макс. ~8 МБ)');
                 return;
             }
+            if (!file.type || (file.type.indexOf('audio') === -1 && !/\.(mp3|wav|ogg|m4a|aac)$/i.test(file.name))) {
+                // некоторые телефоны отдают пустой type — не блокируем по расширению
+                if (file.type && file.type.indexOf('audio') === -1 && file.type.indexOf('video') === -1) {
+                    showToast('Нужен аудиофайл (mp3, wav, ogg, m4a)');
+                    return;
+                }
+            }
+            showToast('Загрузка рингтона...');
             try {
-                const reader = new FileReader();
-                reader.onload = () => {
-                    const dataUrl = reader.result;
-                    localSettings.customRingtone = dataUrl;
-                    localSettings.ringtone = 'custom';
-                    currentRingtone = 'custom';
+                // Сохраняем Blob в IndexedDB (не раздуваем localStorage)
+                await idbPutRingtone(file);
+                // Убираем старый dataURL из настроек, чтобы не ломать JSON/квоту
+                if (localSettings.customRingtone) {
+                    delete localSettings.customRingtone;
+                }
+                localSettings.hasCustomRingtone = true;
+                localSettings.ringtone = 'custom';
+                currentRingtone = 'custom';
+                try {
                     localStorage.setItem('Nexagram_Settings', JSON.stringify(localSettings));
-                    const opt = document.getElementById('customRingtoneOpt');
-                    if (opt) { opt.style.display = 'block'; opt.selected = true; }
-                    const sel = document.getElementById('ringtoneSelect');
-                    if (sel) sel.value = 'custom';
-                    applySounds();
-                    showToast('Рингтон загружен!');
-                    // превью
-                    try {
-                        const a = document.getElementById('incomingRingtone');
-                        if (a) { a.src = dataUrl; a.loop = false; a.play().catch(()=>{}); setTimeout(()=>{ a.pause(); a.currentTime = 0; }, 3000); }
-                    } catch (_) {}
-                };
-                reader.onerror = () => showToast('Не удалось прочитать файл');
-                reader.readAsDataURL(file);
+                } catch (qe) {
+                    // даже если settings не влезли — рингтон в IDB уже есть
+                    console.warn('settings save', qe);
+                }
+                revokeCustomObjectUrl();
+                customRingtoneObjectUrl = URL.createObjectURL(file);
+                customRingtoneData = customRingtoneObjectUrl;
+
+                const opt = document.getElementById('customRingtoneOpt');
+                if (opt) opt.style.display = 'block';
+                const sel = document.getElementById('ringtoneSelect');
+                if (sel) sel.value = 'custom';
+                applySounds();
+                showToast('Рингтон загружен!');
+                // превью 3 сек
+                try {
+                    unlockAudioContext();
+                    const a = document.getElementById('incomingRingtone');
+                    if (a) {
+                        a.pause();
+                        a.src = customRingtoneData;
+                        a.loop = false;
+                        a.currentTime = 0;
+                        a.play().catch(err => console.warn('preview', err));
+                        setTimeout(() => { try { a.pause(); a.currentTime = 0; } catch(_){} }, 3000);
+                    }
+                } catch (_) {}
             } catch (err) {
-                showToast('Ошибка: ' + err.message);
+                console.error(err);
+                showToast('Не удалось сохранить рингтон: ' + (err.message || err));
             }
         };
         input.click();
@@ -4218,10 +4451,15 @@
     function openSoundSettings() {
         document.getElementById('notifSelect').value = currentNotif;
         const opt = document.getElementById('customRingtoneOpt');
-        if (opt) opt.style.display = localSettings.customRingtone ? 'block' : 'none';
+        const hasCustom = !!(customRingtoneData || localSettings.hasCustomRingtone || localSettings.customRingtone);
+        if (opt) opt.style.display = hasCustom ? 'block' : 'none';
         const rtSelect = document.getElementById('ringtoneSelect');
         if (rtSelect) {
             try { rtSelect.value = currentRingtone; } catch (_) {}
+        }
+        // если custom выбран, но данных ещё нет — подтянуть из IDB
+        if (currentRingtone === 'custom' && !customRingtoneData) {
+            loadCustomRingtoneFromDB().then(() => applySounds());
         }
         document.getElementById('soundModal').classList.add('active');
     }
@@ -4255,12 +4493,23 @@
             setTimeout(() => stopAllRingtones(), 3000);
             return;
         }
-        const src = resolveSoundSrc(val);
-        if (!src) return;
-        inRing.src = src;
-        inRing.loop = false;
-        inRing.play().catch(e => console.warn('Ringtone preview blocked:', e));
-        setTimeout(() => stopAllRingtones(), 3000);
+        const playSrc = (src) => {
+            if (!src) { showToast('Рингтон ещё не загружен'); return; }
+            const el = document.getElementById('incomingRingtone');
+            if (!el) return;
+            el.src = src;
+            el.loop = false;
+            el.currentTime = 0;
+            unlockAudioContext();
+            el.play().catch(e => console.warn('Ringtone preview blocked:', e));
+            setTimeout(() => stopAllRingtones(), 3000);
+        };
+        if (val === 'custom') {
+            if (customRingtoneData) playSrc(customRingtoneData);
+            else loadCustomRingtoneFromDB().then(playSrc);
+            return;
+        }
+        playSrc(resolveSoundSrc(val));
     }
 
     function saveSoundSettings() {
@@ -4273,7 +4522,15 @@
         currentRingtone = document.getElementById('ringtoneSelect').value;
         localSettings.notifSound = currentNotif;
         localSettings.ringtone = currentRingtone;
-        localStorage.setItem('Nexagram_Settings', JSON.stringify(localSettings));
+        if (currentRingtone === 'custom') localSettings.hasCustomRingtone = true;
+        try {
+            // не пишем огромный dataURL в localStorage
+            const toSave = Object.assign({}, localSettings);
+            if (toSave.customRingtone && String(toSave.customRingtone).length > 10000) delete toSave.customRingtone;
+            localStorage.setItem('Nexagram_Settings', JSON.stringify(toSave));
+        } catch (e) {
+            console.warn('save settings', e);
+        }
         applySounds();
         document.getElementById('soundModal').classList.remove('active');
         showToast("Настройки звука сохранены!");
