@@ -821,17 +821,20 @@
 <div id="profileMenuModal" class="modal" onclick="closeProfileMenu()" style="align-items: flex-end;">
     <div class="modal-content bottom-sheet" onclick="event.stopPropagation()">
         <h3 style="margin-bottom: 16px;" id="profileMenuTitle">Действия</h3>
-        <button class="auth-btn" style="background:var(--in); color:var(--txt); margin-bottom: 10px; display:flex; align-items:center; justify-content:center; gap:10px;" onclick="clearCurrentChatHistory()">
+        <button class="auth-btn" id="btn-clear-history" style="background:var(--in); color:var(--txt); margin-bottom: 10px; display:flex; align-items:center; justify-content:center; gap:10px;" onclick="clearCurrentChatHistory()">
             <span class="material-symbols-outlined">delete_sweep</span> Очистить историю чата
         </button>
+        <button class="auth-btn" id="btn-mute-chat" style="background:var(--in); color:var(--txt); margin-bottom: 10px; display:flex; align-items:center; justify-content:center; gap:10px;" onclick="toggleMuteChat()">
+            <span class="material-symbols-outlined">notifications_off</span> <span id="muteChatText">Без звука</span>
+        </button>
         <button class="auth-btn" style="background:var(--in); color:var(--txt); margin-bottom: 10px; display:flex; align-items:center; justify-content:center; gap:10px;" onclick="copyContactLogin()">
-            <span class="material-symbols-outlined">content_copy</span> Скопировать логин
+            <span class="material-symbols-outlined">content_copy</span> <span id="copyLoginText">Скопировать логин</span>
         </button>
         <button class="auth-btn" style="background:var(--in); color:var(--txt); margin-bottom: 10px; display:flex; align-items:center; justify-content:center; gap:10px;" id="btn-block-user" onclick="toggleBlockUser()">
             <span class="material-symbols-outlined">block</span> <span id="blockUserText">Заблокировать</span>
         </button>
-        <button class="auth-btn" style="background:var(--red); color:white; margin-bottom: 10px; display:flex; align-items:center; justify-content:center; gap:10px;" onclick="deleteCurrentChatFromProfile()">
-            <span class="material-symbols-outlined">delete</span> Удалить чат
+        <button class="auth-btn" id="btn-delete-chat-menu" style="background:var(--red); color:white; margin-bottom: 10px; display:flex; align-items:center; justify-content:center; gap:10px;" onclick="deleteCurrentChatFromProfile()">
+            <span class="material-symbols-outlined">delete</span> <span id="deleteChatMenuText">Удалить чат</span>
         </button>
         <button class="auth-btn" style="background:transparent; border:1px solid var(--brd); color:var(--mut); margin-top: 6px;" onclick="closeProfileMenu()">Отмена</button>
     </div>
@@ -1028,23 +1031,29 @@
     function playWebTone(freqs, durs, gaps, vol) {
         try {
             unlockAudioContext();
-            if (!audioCtx) return;
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
             const ctx = audioCtx;
-            let t = ctx.currentTime;
+            let t = ctx.currentTime + 0.02;
+            const v = Math.max(0.05, Math.min(0.5, vol || 0.25));
             for (let i = 0; i < freqs.length; i++) {
                 const osc = ctx.createOscillator();
                 const gain = ctx.createGain();
                 osc.type = 'sine';
-                osc.frequency.value = freqs[i];
-                gain.gain.setValueAtTime(0.0001, t);
-                gain.gain.exponentialRampToValueAtTime(vol, t + 0.01);
-                const dur = (durs[i] || 100) / 1000;
-                gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+                osc.frequency.setValueAtTime(freqs[i], t);
+                const dur = Math.max(0.04, (durs[i] || 100) / 1000);
+                gain.gain.setValueAtTime(0.001, t);
+                gain.gain.linearRampToValueAtTime(v, t + 0.015);
+                gain.gain.linearRampToValueAtTime(0.001, t + dur);
                 osc.connect(gain);
                 gain.connect(ctx.destination);
                 osc.start(t);
-                osc.stop(t + dur + 0.02);
-                t += dur + ((gaps && gaps[i]) ? gaps[i] / 1000 : 0);
+                osc.stop(t + dur + 0.03);
+                t += dur + ((gaps && gaps[i]) ? gaps[i] / 1000 : 0.02);
             }
         } catch (e) { console.warn('WebTone error', e); }
     }
@@ -1412,10 +1421,11 @@
                     if (isInitialLoadDone && currentCount > prevCount) {
                         const lastMsg = c.msgs[currentCount - 1];
                         if (lastMsg.uid !== me.id && lastMsg.uid !== 'system' && (document.hidden || !activeChat || activeChat.id !== c.id)) {
-                            
-                            playNotifSound();
+                            if (!isChatMuted(c.id)) {
+                                playNotifSound();
+                            }
 
-                            if ("Notification" in window && Notification.permission === "granted") {
+                            if ("Notification" in window && Notification.permission === "granted" && !isChatMuted(c.id)) {
                                 let senderName = "Nexagram";
                                 const sender = db.users.find(u => u.id === lastMsg.uid);
                                 if (sender) senderName = sender.name;
@@ -3192,16 +3202,55 @@
     let profileMenuTargetUserId = null;
     function openProfileMenu(userId) {
         profileMenuTargetUserId = userId;
-        const isGroup = !userId;
-        document.getElementById('profileMenuTitle').textContent = isGroup ? 'Действия с чатом' : 'Действия';
-        // Показываем/скрываем блок для контактов
+        const isChatMenu = !userId;
+        document.getElementById('profileMenuTitle').textContent = isChatMenu ? 'Действия с чатом' : 'Действия';
         const blockBtn = document.getElementById('btn-block-user');
         const blockText = document.getElementById('blockUserText');
-        if (isGroup || !userId) {
+        const clearBtn = document.getElementById('btn-clear-history');
+        const delBtn = document.getElementById('btn-delete-chat-menu');
+        const delText = document.getElementById('deleteChatMenuText');
+        const muteBtn = document.getElementById('btn-mute-chat');
+        const muteText = document.getElementById('muteChatText');
+        const copyText = document.getElementById('copyLoginText');
+        const isAdmin = isActiveChatAdmin();
+        const isCreator = activeChat && activeChat.admin === me.id;
+
+        if (isChatMenu) {
             blockBtn.style.display = 'none';
+            // Очистка истории: в канале/группе — только админ; в личке — можно
+            if (activeChat && (activeChat.type === 'channel' || activeChat.type === 'group')) {
+                clearBtn.style.display = isAdmin ? 'flex' : 'none';
+            } else {
+                clearBtn.style.display = 'flex';
+            }
+            // Удалить: создатель удаляет канал/группу; остальные — «Покинуть»
+            if (activeChat && (activeChat.type === 'channel' || activeChat.type === 'group')) {
+                if (isCreator) {
+                    delBtn.style.display = 'flex';
+                    delText.textContent = activeChat.type === 'channel' ? 'Удалить канал' : 'Удалить группу';
+                } else {
+                    delBtn.style.display = 'flex';
+                    delText.textContent = activeChat.type === 'channel' ? 'Отписаться' : 'Покинуть группу';
+                }
+            } else {
+                delBtn.style.display = 'flex';
+                delText.textContent = 'Удалить чат';
+            }
+            muteBtn.style.display = activeChat ? 'flex' : 'none';
+            if (activeChat && muteText) {
+                const muted = isChatMuted(activeChat.id);
+                muteText.textContent = muted ? 'Включить звук' : 'Без звука';
+            }
+            if (copyText) {
+                copyText.textContent = (activeChat && activeChat.type === 'channel' && activeChat.username)
+                    ? 'Скопировать @юзернейм' : 'Скопировать название';
+            }
         } else {
             blockBtn.style.display = 'flex';
-            const target = db.users.find(u => u.id === userId);
+            clearBtn.style.display = 'none';
+            delBtn.style.display = 'none';
+            muteBtn.style.display = 'none';
+            if (copyText) copyText.textContent = 'Скопировать логин';
             const isBlocked = me.blocked && me.blocked.includes(userId);
             blockText.textContent = isBlocked ? 'Разблокировать' : 'Заблокировать';
         }
@@ -3209,16 +3258,48 @@
     }
     function closeProfileMenu() { document.getElementById('profileMenuModal').classList.remove('active'); profileMenuTargetUserId = null; }
 
+    // === Мут чата (локально) ===
+    function getMutedChats() {
+        try { return JSON.parse(localStorage.getItem('Nexagram_Muted') || '[]'); } catch (e) { return []; }
+    }
+    function isChatMuted(chatId) {
+        return getMutedChats().indexOf(chatId) !== -1;
+    }
+    function toggleMuteChat() {
+        if (!activeChat) return;
+        let muted = getMutedChats();
+        const i = muted.indexOf(activeChat.id);
+        if (i > -1) {
+            muted.splice(i, 1);
+            showToast('Звук чата включён');
+        } else {
+            muted.push(activeChat.id);
+            showToast('Чат без звука');
+        }
+        localStorage.setItem('Nexagram_Muted', JSON.stringify(muted));
+        closeProfileMenu();
+    }
+
     function clearCurrentChatHistory() {
         if (!activeChat) return showToast('Чат не открыт');
+        // В канале/группе — только админ
+        if ((activeChat.type === 'channel' || activeChat.type === 'group') && !isActiveChatAdmin()) {
+            showToast('Только админ может очистить историю');
+            closeProfileMenu();
+            return;
+        }
         if (activeChat.isTemp) { activeChat.msgs = []; renderMsgs(); closeProfileMenu(); showToast('История очищена'); return; }
         if (!confirm('Очистить всю историю этого чата? Сообщения удалятся у всех участников.')) return;
         const chatIndex = db.chats.findIndex(c => c.id === activeChat.id);
         if (chatIndex > -1) {
             db.chats[chatIndex].msgs = [];
+            db.chats[chatIndex].pinned = [];
             rtdb.ref(`/dg_app_data/chats/${chatIndex}/msgs`).set([]);
+            rtdb.ref(`/dg_app_data/chats/${chatIndex}/pinned`).set([]);
             activeChat.msgs = [];
+            activeChat.pinned = [];
             renderMsgs();
+            updatePinnedBar();
             showToast('История чата очищена');
         }
         closeProfileMenu();
@@ -3227,9 +3308,11 @@
 
     function copyContactLogin() {
         if (!profileMenuTargetUserId) {
-            // для группы — копируем название
-            if (activeChat && activeChat.name) {
-                navigator.clipboard.writeText(activeChat.name).then(() => showToast('Название скопировано')).catch(() => showToast(activeChat.name));
+            if (activeChat) {
+                const text = (activeChat.type === 'channel' && activeChat.username)
+                    ? '@' + activeChat.username
+                    : (activeChat.name || '');
+                if (text) navigator.clipboard.writeText(text).then(() => showToast('Скопировано: ' + text)).catch(() => showToast(text));
             }
             closeProfileMenu();
             return;
@@ -3266,20 +3349,49 @@
             return;
         }
         const chatId = activeChat.id;
-        let chatName = activeChat.type === 'direct' ? 'чат' : (activeChat.type === 'channel' ? 'канал' : 'группу');
-        if (!confirm(`Удалить ${chatName}?`)) return;
-        if (activeChat.type === 'direct' || activeChat.admin === me.id) {
+        const isChannel = activeChat.type === 'channel';
+        const isGroup = activeChat.type === 'group';
+        const isCreator = activeChat.admin === me.id;
+
+        // Канал/группа: полностью удалить может только создатель
+        if ((isChannel || isGroup) && isCreator) {
+            if (!confirm(isChannel ? 'Удалить канал для всех?' : 'Удалить группу для всех?')) return;
             const chatIndex = db.chats.findIndex(c => c.id === chatId);
             if (chatIndex > -1) {
                 db.chats.splice(chatIndex, 1);
                 rtdb.ref('/dg_app_data/chats').set(db.chats);
             }
-        } else {
+            closeProfileMenu();
+            closeModernProfile();
+            closeChat();
+            renderChats();
+            showToast(isChannel ? 'Канал удалён' : 'Группа удалена');
+            return;
+        }
+
+        // Канал/группа, не создатель → только выйти
+        if (isChannel || isGroup) {
+            if (!confirm(isChannel ? 'Отписаться от канала?' : 'Покинуть группу?')) return;
             const chatIndex = db.chats.findIndex(c => c.id === chatId);
             if (chatIndex > -1) {
-                db.chats[chatIndex].members = activeChat.members.filter(id => id !== me.id);
-                rtdb.ref(`/dg_app_data/chats/${chatIndex}/members`).set(db.chats[chatIndex].members);
+                const members = (db.chats[chatIndex].members || []).filter(id => id !== me.id);
+                db.chats[chatIndex].members = members;
+                rtdb.ref(`/dg_app_data/chats/${chatIndex}/members`).set(members);
             }
+            closeProfileMenu();
+            closeModernProfile();
+            closeChat();
+            renderChats();
+            showToast(isChannel ? 'Вы отписались' : 'Вы покинули группу');
+            return;
+        }
+
+        // Личка — удалить у себя (из списка, сообщения остаются у собеседника)
+        if (!confirm('Удалить чат из списка?')) return;
+        const chatIndex = db.chats.findIndex(c => c.id === chatId);
+        if (chatIndex > -1) {
+            db.chats.splice(chatIndex, 1);
+            rtdb.ref('/dg_app_data/chats').set(db.chats);
         }
         closeProfileMenu();
         closeModernProfile();
@@ -3414,25 +3526,44 @@
                 adminButtons += `<div class="mp-action-row" onclick="editChatName()"><span class="material-symbols-outlined">edit</span> Изменить название</div><div class="mp-action-row" onclick="editChatDesc()"><span class="material-symbols-outlined">description</span> Изменить описание</div>`; 
             } 
             if (isCreator) { adminButtons += `<div class="mp-action-row" onclick="deleteChat()" style="color:var(--red);"><span class="material-symbols-outlined">delete</span> Удалить ${activeChat.type === 'channel' ? 'канал' : 'группу'}</div>`; } 
-            else { adminButtons += `<div class="mp-action-row" onclick="leaveChat()" style="color:var(--red);"><span class="material-symbols-outlined">logout</span> Покинуть чат</div>`; }
+            else { adminButtons += `<div class="mp-action-row" onclick="leaveChat()" style="color:var(--red);"><span class="material-symbols-outlined">logout</span> ${activeChat.type === 'channel' ? 'Отписаться' : 'Покинуть группу'}</div>`; }
 
-            let membersHtml = `<div style="text-align: center; margin: 24px 0 12px;"><span style="background: rgba(255,255,255,0.1); padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 600;">Участники (${activeChat.members.length})</span></div>`;
-            membersHtml += `<div class="mp-info-card" style="margin-bottom:0; border-radius: 20px 20px 0 0;">`;
-            activeChat.members.forEach(memberId => { 
-                const mUser = db.users.find(u => u.id === memberId); if (!mUser) return; 
-                const isMemAdmin = activeChat.admin === memberId || (activeChat.admins && activeChat.admins.includes(memberId)); 
-                const isMemCreator = activeChat.admin === memberId; 
-                let actionBtn = ''; 
-                if (isCreator && memberId !== me.id) { actionBtn = `<span style="font-size:18px; margin-right: 12px; cursor:pointer;" onclick="toggleGroupAdmin('${memberId}')"><span class="material-symbols-outlined">admin_panel_settings</span></span><span style="color:var(--red); font-size:18px; cursor:pointer;" onclick="kickMember('${memberId}')"><span class="material-symbols-outlined">close</span></span>`; } 
-                membersHtml += `<div class="mp-info-row" style="padding: 12px 16px;">
-                    <div style="display:flex; align-items:center; gap: 12px;">
-                        <div style="width:40px; height:40px; border-radius:50%; overflow:hidden; background:var(--in); display:flex; align-items:center; justify-content:center; font-size:18px;">${getAvatarHtml(mUser.avatarType, mUser.avatarValue)}</div>
-                        <div class="mp-info-text"><div class="mp-info-title" style="font-size:15px;">${escapeHtml(mUser.name)} ${isMemCreator ? '⭐️' : (isMemAdmin ? '👑' : '')}</div></div>
-                    </div>
-                    <div>${actionBtn}</div>
-                </div>`; 
-            });
-            membersHtml += `</div>`;
+            // Список участников: в КАНАЛЕ — только админам; в ГРУППЕ — всем
+            let membersHtml = '';
+            const showMembers = activeChat.type === 'group' || (activeChat.type === 'channel' && isAdmin);
+            if (showMembers) {
+                const memLabel = activeChat.type === 'channel' ? 'Подписчики' : 'Участники';
+                const validMembers = (activeChat.members || []).map(id => db.users.find(u => u.id === id)).filter(Boolean);
+                membersHtml = `<div style="text-align: center; margin: 24px 0 12px;"><span style="background: rgba(255,255,255,0.1); padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 600;">${memLabel} (${validMembers.length})</span></div>`;
+                membersHtml += `<div class="mp-info-card" style="margin-bottom:0; border-radius: 20px; overflow: hidden; padding: 0;">`;
+                validMembers.forEach((mUser, mi) => {
+                    const memberId = mUser.id;
+                    const isMemAdmin = activeChat.admin === memberId || (activeChat.admins && activeChat.admins.includes(memberId)); 
+                    const isMemCreator = activeChat.admin === memberId; 
+                    let actionBtn = ''; 
+                    if (isCreator && memberId !== me.id) {
+                        actionBtn = `<span style="font-size:18px; margin-right: 12px; cursor:pointer;" onclick="toggleGroupAdmin('${memberId}')"><span class="material-symbols-outlined">admin_panel_settings</span></span><span style="color:var(--red); font-size:18px; cursor:pointer;" onclick="kickMember('${memberId}')"><span class="material-symbols-outlined">close</span></span>`;
+                    }
+                    const isFirst = mi === 0;
+                    const isLast = mi === validMembers.length - 1;
+                    let radius = '0';
+                    if (isFirst && isLast) radius = '20px';
+                    else if (isFirst) radius = '20px 20px 0 0';
+                    else if (isLast) radius = '0 0 20px 20px';
+                    membersHtml += `<div class="mp-info-row" style="padding: 12px 16px; border-radius: ${radius};">
+                        <div style="display:flex; align-items:center; gap: 12px;">
+                            <div style="width:40px; height:40px; border-radius:50%; overflow:hidden; background:var(--in); display:flex; align-items:center; justify-content:center; font-size:18px;">${getAvatarHtml(mUser.avatarType, mUser.avatarValue)}</div>
+                            <div class="mp-info-text"><div class="mp-info-title" style="font-size:15px;">${escapeHtml(mUser.name)} ${isMemCreator ? '⭐️' : (isMemAdmin ? '👑' : '')}</div></div>
+                        </div>
+                        <div>${actionBtn}</div>
+                    </div>`; 
+                });
+                membersHtml += `</div>`;
+            } else if (activeChat.type === 'channel') {
+                // Обычным подписчикам — только счётчик
+                const cnt = (activeChat.members || []).length;
+                membersHtml = `<div style="text-align: center; margin: 24px 0 12px; color: var(--mut); font-size: 14px;">${cnt} подписчик${cnt % 10 === 1 && cnt % 100 !== 11 ? '' : (cnt % 10 >= 2 && cnt % 10 <= 4 && (cnt % 100 < 10 || cnt % 100 >= 20) ? 'а' : 'ов')}</div>`;
+            }
 
             const unameRow = (activeChat.type === 'channel' && activeChat.username) ? `
                     <div class="mp-info-row">
@@ -3476,8 +3607,32 @@
     function editChatDesc() { if (!activeChat) return; const isAdmin = activeChat.admin === me.id || (activeChat.admins && activeChat.admins.includes(me.id)); if (!isAdmin) return; const newDesc = prompt('Новое описание:', activeChat.desc || ''); if (newDesc !== null) { activeChat.desc = newDesc.trim(); const chatIndex = db.chats.findIndex(c => c.id === activeChat.id); if (chatIndex > -1) { rtdb.ref(`/dg_app_data/chats/${chatIndex}/desc`).set(activeChat.desc); viewChatInfo(); } } }
     function uploadChatAvatar() { if (!activeChat) return; const isAdmin = activeChat.admin === me.id || (activeChat.admins && activeChat.admins.includes(me.id)); if (!isAdmin) return; const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = async e => { if(e.target.files[0]) { const url = await uploadToCloud(e.target.files[0]); if (url) { activeChat.avatarType = 'url'; activeChat.avatarValue = url; const chatIndex = db.chats.findIndex(c => c.id === activeChat.id); if (chatIndex > -1) rtdb.ref(`/dg_app_data/chats/${chatIndex}`).set(db.chats[chatIndex]); viewChatInfo(); renderChats(); const hAv = document.getElementById('h-av'); if (hAv) hAv.innerHTML = getAvatarHtml(activeChat.avatarType, activeChat.avatarValue); } } }; input.click(); }
     
-    function deleteChat() { if (!confirm('Точно удалить для всех?')) return; db.chats = db.chats.filter(c => c.id !== activeChat.id); rtdb.ref('/dg_app_data/chats').set(db.chats); closeModernProfile(); closeChat(); }
-    function leaveChat() { if (!confirm('Покинуть чат?')) return; activeChat.members = activeChat.members.filter(id => id !== me.id); const chatIndex = db.chats.findIndex(c => c.id === activeChat.id); if(chatIndex > -1) rtdb.ref(`/dg_app_data/chats/${chatIndex}/members`).set(db.chats[chatIndex].members); closeModernProfile(); closeChat(); }
+    function deleteChat() {
+        if (!activeChat) return;
+        if (activeChat.admin !== me.id && !isSuperAdmin(me)) {
+            showToast('Только создатель может удалить');
+            return;
+        }
+        if (!confirm('Точно удалить для всех?')) return;
+        db.chats = db.chats.filter(c => c.id !== activeChat.id);
+        rtdb.ref('/dg_app_data/chats').set(db.chats);
+        closeModernProfile();
+        closeChat();
+        renderChats();
+    }
+    function leaveChat() {
+        if (!activeChat) return;
+        if (!confirm(activeChat.type === 'channel' ? 'Отписаться от канала?' : 'Покинуть группу?')) return;
+        const chatIndex = db.chats.findIndex(c => c.id === activeChat.id);
+        if (chatIndex > -1) {
+            const members = (db.chats[chatIndex].members || []).filter(id => id !== me.id);
+            db.chats[chatIndex].members = members;
+            rtdb.ref(`/dg_app_data/chats/${chatIndex}/members`).set(members);
+        }
+        closeModernProfile();
+        closeChat();
+        renderChats();
+    }
     
     function applyTheme(t) {
         localSettings.theme = t;
@@ -3523,10 +3678,7 @@
         if (!me) return;
         const hasRealEmail = me.email && String(me.email).includes('@');
         if (hasRealEmail) {
-            const change = confirm('Сейчас привязано:
-' + me.email + '
-
-Привязать другую почту? (старая останется в Firebase Auth)');
+            const change = confirm('Сейчас привязано:\n' + me.email + '\n\nПривязать другую почту? (старая останется в Firebase Auth)');
             if (!change) return;
         } else if (me.firebaseUid || me.googleUid) {
             // Был вход через Google/GitHub без явной почты в профиле — можно привязать email
