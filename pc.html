@@ -2,12 +2,12 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#000000">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="description" content="Nexagram — современный мессенджер для общения. Присоединяйтесь, находите новых друзей, создавайте чаты и делитесь историями.">
-    <title>Nexagram Web</title>
+    <title>Nexagram — где рождается общение</title>
     
     <link rel="icon" type="image/png" sizes="512x512" href="icon.png">
     <link rel="icon" href="/favicon.ico" sizes="any">
@@ -47,7 +47,7 @@
         /* === ЭКРАН АВТОРИЗАЦИИ === */
         @keyframes slideUp { from { opacity: 0; transform: translateY(40px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
         .auth-screen { position: fixed; inset: 0; background: linear-gradient(145deg, #1a0800 0%, #000 40%, #2a0505 100%); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .auth-card { width: 100%; max-width: 320px; background: rgba(17,17,17,0.95); backdrop-filter: blur(10px); border-radius: 32px; padding: 30px 20px; border: 1px solid rgba(255,149,0,0.3); box-shadow: 0 0 40px rgba(255,59,48,0.15); animation: slideUp 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .auth-card { width: 100%; max-width: 320px; background: rgba(17,17,17,0.95); backdrop-filter: blur(10px); border-radius: 32px; padding: 30px 20px; border: 1px solid rgba(255,149,0,0.3); box-shadow: 0 0 50px rgba(255,59,48,0.15), 0 0 30px rgba(255,149,0,0.1); animation: slideUp 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); }
         .auth-logo { text-align: center; margin-bottom: 24px; }
         .logo-text { font-size: 32px; font-weight: 800; background: linear-gradient(135deg, #ff9500, #ff3b30); -webkit-background-clip: text; background-clip: text; color: transparent; letter-spacing: -1px; }
         .auth-logo small { font-size: 13px; color: var(--mut); display: block; margin-top: 6px; }
@@ -435,165 +435,54 @@
         .mp-action-row { background: var(--card); border-radius: 20px; margin: 0 16px 16px; padding: 16px; text-align: center; font-size: 16px; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; border: 1px solid var(--brd); transition: 0.2s;}
         .mp-action-row:active { transform: scale(0.98); background: var(--in); }
 
-        /* ================= ДЕСКТОП ВЕРСИЯ (PC) — в стиле Telegram Web ================= */
-        @media (min-width: 900px) {
-            html, body {
-                width: 100%;
-                height: 100%;
-                margin: 0;
-                overflow: hidden;
-                background: var(--bg);
-            }
-            body {
-                display: block;
-            }
-            #app {
-                display: flex !important;
-                flex-direction: row;
-                width: 100vw !important;
-                height: 100vh !important;
-                max-width: none !important;
-                max-height: none !important;
-                border-radius: 0 !important;
-                box-shadow: none !important;
-                border: none !important;
-                margin: 0 !important;
-                position: relative;
-                overflow: hidden;
-                opacity: 1 !important;
-            }
-            .auth-screen {
-                width: 100vw !important;
-                height: 100vh !important;
-                max-width: none !important;
-                max-height: none !important;
-                border-radius: 0 !important;
-                box-shadow: none !important;
-            }
-            /* Левая колонка — список чатов / друзья / звонки / профиль */
-            .screen {
-                position: relative !important;
-                width: 380px !important;
-                min-width: 320px;
-                max-width: 420px;
-                height: 100% !important;
-                flex-shrink: 0;
-                border-right: 1px solid var(--brd);
-                visibility: hidden;
-                opacity: 0;
-                transform: none !important;
-                padding-bottom: 64px !important;
-                overflow-y: auto;
-            }
-            .screen.active {
-                visibility: visible !important;
-                opacity: 1 !important;
-                z-index: 2;
-            }
-            /* Нижняя навигация — только в левой колонке */
-            .nav, .bottom-nav, #bottomNav {
-                width: 380px !important;
-                max-width: 420px;
-                left: 0 !important;
-                right: auto !important;
-                border-radius: 0 !important;
-                border-top: 1px solid var(--brd);
-                z-index: 50;
-            }
-            /* Правая колонка — окно чата (всегда видно) */
-            #chat-window {
-                position: relative !important;
-                flex: 1 1 auto !important;
-                width: auto !important;
-                height: 100% !important;
-                left: auto !important;
-                right: auto !important;
-                top: auto !important;
-                bottom: auto !important;
-                inset: auto !important;
-                transform: none !important;
-                visibility: visible !important;
-                display: flex !important;
-                flex-direction: column;
-                border-left: none;
-                border-radius: 0 !important;
-                background: var(--bg);
-                z-index: 10;
-            }
-            /* Заглушка когда чат не выбран */
-            #chat-window:not(.active)::before {
-                content: 'Выберите чат, чтобы начать общение';
-                position: absolute;
-                inset: 0;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                background: var(--bg);
-                color: var(--mut);
-                z-index: 20;
-                font-size: 17px;
-                font-weight: 500;
-                letter-spacing: 0.2px;
-            }
-            #chat-window.active::before {
-                display: none !important;
-            }
-            .back-btn {
-                display: none !important;
-            }
-            /* Профиль контакта поверх правой колонки */
-            #profile-view-screen {
-                position: absolute !important;
-                top: 0;
-                right: 0;
-                bottom: 0;
-                left: 380px;
-                border-left: 1px solid var(--brd);
-                z-index: 30;
-            }
-            #callOverlay, .modal, #storyViewer {
-                position: fixed;
-                border-radius: 0;
-            }
-            .chat-input-area {
-                padding-bottom: 16px !important;
-            }
-            /* Чуть крупнее элементы списка на ПК */
-            .list-item {
-                padding: 12px 18px;
-            }
-            .header-title {
-                font-size: 18px;
-            }
-            /* Скроллбары в стиле TG */
-            .screen::-webkit-scrollbar,
-            #m-area::-webkit-scrollbar {
-                width: 6px;
-            }
-            .screen::-webkit-scrollbar-thumb,
-            #m-area::-webkit-scrollbar-thumb {
-                background: rgba(255,255,255,0.15);
-                border-radius: 3px;
-            }
-            .screen::-webkit-scrollbar-track,
-            #m-area::-webkit-scrollbar-track {
-                background: transparent;
-            }
+        /* ================= ДЕСКТОП ВЕРСИЯ (PC) ================= */
+            
+        /* ===== PC VERSION: full-screen Telegram Web style ===== */
+        html, body { height: 100% !important; overflow: hidden !important; background: #0b0b0c !important; }
+        body { display: block !important; margin: 0 !important; }
+        .auth-screen {
+            position: fixed !important; inset: 0 !important; width: 100% !important; height: 100% !important;
+            max-width: none !important; max-height: none !important; border-radius: 0 !important; border: none !important;
+            box-shadow: none !important; display: flex !important; align-items: center !important; justify-content: center !important;
+            background: linear-gradient(145deg, #1a0800 0%, #0a0a0a 45%, #2a0505 100%) !important;
         }
-        /* На совсем широких экранах делаем сайдбар чуть шире */
-        @media (min-width: 1400px) {
-            .screen {
-                width: 420px !important;
-                max-width: 420px;
-            }
-            .nav, .bottom-nav, #bottomNav {
-                width: 420px !important;
-                max-width: 420px;
-            }
-            #profile-view-screen {
-                left: 420px;
-            }
+        .auth-card { max-width: 400px !important; width: 100%; padding: 40px 32px !important; }
+        #app {
+            display: none; position: fixed !important; inset: 0 !important; width: 100% !important; height: 100% !important;
+            max-width: none !important; max-height: none !important; border-radius: 0 !important; border: none !important;
+            box-shadow: none !important; margin: 0 !important; overflow: hidden !important; flex-direction: row !important;
+            background: var(--bg) !important;
         }
+        .content {
+            width: 400px !important; min-width: 320px; max-width: 480px; height: 100% !important;
+            border-right: 1px solid var(--brd) !important; padding-bottom: 64px !important;
+            position: relative; flex-shrink: 0; overflow: hidden; background: var(--bg);
+        }
+        .nav {
+            width: 400px !important; position: absolute !important; left: 0 !important; bottom: 0 !important;
+            right: auto !important; border-top: 1px solid var(--brd); border-radius: 0 !important; z-index: 20;
+        }
+        #chat-window {
+            position: absolute !important; top: 0 !important; right: 0 !important; bottom: 0 !important; left: 400px !important;
+            width: auto !important; transform: none !important; visibility: visible !important; display: flex !important;
+            flex-direction: column !important; border-radius: 0 !important; background: var(--bg) !important;
+            border-left: 1px solid var(--brd); z-index: 10;
+        }
+        #chat-window::before {
+            content: 'Выберите чат, чтобы начать переписку'; position: absolute; inset: 0; display: flex;
+            align-items: center; justify-content: center; background: var(--bg); color: var(--mut); z-index: 1000;
+            font-size: 16px; font-weight: 500; transition: opacity 0.25s ease; pointer-events: none;
+        }
+        #chat-window.active::before { opacity: 0; pointer-events: none; }
+        .back-btn { display: none !important; }
+        #profile-view-screen {
+            position: absolute !important; top: 0 !important; right: 0 !important; bottom: 0 !important; left: 400px !important;
+            width: auto !important; border-left: 1px solid var(--brd); border-radius: 0 !important; z-index: 600;
+        }
+        #callOverlay, .modal, #storyViewer { position: fixed !important; border-radius: 0 !important; }
+        .modal-content { max-width: 440px; }
+        .chat-input-area { padding-bottom: 12px !important; }
+
     </style>
 </head>
 <body>
@@ -884,9 +773,13 @@
                 <option value="builtin:modern">Современный (встроенный)</option>
                 <option value="builtin:pulse">Пульс (встроенный)</option>
                 <option value="builtin:soft_ring">Мягкий тон (встроенный)</option>
+                <option value="custom" id="customRingtoneOpt" style="display:none;">Мой рингтон</option>
                 <option value="none">Без звука</option>
             </select>
         </div>
+        <button class="auth-btn" style="background:var(--in); color:var(--txt); margin-top:12px;" onclick="uploadCustomRingtone()">
+            <span class="material-symbols-outlined" style="vertical-align:middle;font-size:18px;">upload</span> Загрузить свой рингтон
+        </button>
         <button class="auth-btn" onclick="saveSoundSettings()">Сохранить настройки</button>
         <button class="auth-btn" style="background: var(--in); color: var(--txt); margin-top: 12px;" onclick="closeSoundModal()">Отмена</button>
     </div>
@@ -942,19 +835,19 @@
 <div id="profileMenuModal" class="modal" onclick="closeProfileMenu()" style="align-items: flex-end;">
     <div class="modal-content bottom-sheet" onclick="event.stopPropagation()">
         <h3 style="margin-bottom: 16px;" id="profileMenuTitle">Действия</h3>
-        <button class="auth-btn" style="background:var(--in); color:var(--txt); margin-bottom: 10px; display:flex; align-items:center; justify-content:center; gap:10px;" id="btn-clear-history" style="background:var(--in); color:var(--txt); margin-bottom: 10px; display:flex; align-items:center; justify-content:center; gap:10px;" onclick="clearCurrentChatHistory()">
+        <button class="auth-btn" id="btn-clear-history" style="background:var(--in); color:var(--txt); margin-bottom: 10px; display:flex; align-items:center; justify-content:center; gap:10px;" onclick="clearCurrentChatHistory()">
             <span class="material-symbols-outlined">delete_sweep</span> Очистить историю чата
         </button>
         <button class="auth-btn" id="btn-mute-chat" style="background:var(--in); color:var(--txt); margin-bottom: 10px; display:flex; align-items:center; justify-content:center; gap:10px;" onclick="toggleMuteChat()">
             <span class="material-symbols-outlined">notifications_off</span> <span id="muteChatText">Без звука</span>
         </button>
         <button class="auth-btn" style="background:var(--in); color:var(--txt); margin-bottom: 10px; display:flex; align-items:center; justify-content:center; gap:10px;" onclick="copyContactLogin()">
-            <span class="material-symbols-outlined">content_copy</span> Скопировать логин
+            <span class="material-symbols-outlined">content_copy</span> <span id="copyLoginText">Скопировать логин</span>
         </button>
         <button class="auth-btn" style="background:var(--in); color:var(--txt); margin-bottom: 10px; display:flex; align-items:center; justify-content:center; gap:10px;" id="btn-block-user" onclick="toggleBlockUser()">
             <span class="material-symbols-outlined">block</span> <span id="blockUserText">Заблокировать</span>
         </button>
-        <button class="auth-btn" style="background:var(--red); color:white; margin-bottom: 10px; display:flex; align-items:center; justify-content:center; gap:10px;" id="btn-delete-chat-menu" style="background:var(--red); color:white; margin-bottom: 10px; display:flex; align-items:center; justify-content:center; gap:10px;" onclick="deleteCurrentChatFromProfile()">
+        <button class="auth-btn" id="btn-delete-chat-menu" style="background:var(--red); color:white; margin-bottom: 10px; display:flex; align-items:center; justify-content:center; gap:10px;" onclick="deleteCurrentChatFromProfile()">
             <span class="material-symbols-outlined">delete</span> <span id="deleteChatMenuText">Удалить чат</span>
         </button>
         <button class="auth-btn" style="background:transparent; border:1px solid var(--brd); color:var(--mut); margin-top: 6px;" onclick="closeProfileMenu()">Отмена</button>
@@ -1213,6 +1106,15 @@
         if (currentRingtone === 'none') return;
         unlockAudioContext();
         stopBuiltinRing();
+        // Кастомный файл
+        if (currentRingtone === 'custom' && localSettings.customRingtone) {
+            const el = document.getElementById(isOutgoing ? 'outgoingRingtone' : 'incomingRingtone');
+            if (el) {
+                el.src = localSettings.customRingtone;
+                safePlayAudio(el, true);
+                return;
+            }
+        }
         if (currentRingtone.indexOf('builtin:') === 0 && WEB_RING[currentRingtone]) {
             const fn = WEB_RING[currentRingtone];
             fn();
@@ -1253,6 +1155,12 @@
         if (playPromise !== undefined) {
             playPromise.catch(error => {
                 console.warn("Браузер заблокировал звук:", error);
+                // fallback на web tone
+                if (isRingtone && WEB_RING['builtin:classic']) {
+                    startRingtone(audioElement.id === 'outgoingRingtone');
+                } else if (WEB_NOTIF['builtin:pop']) {
+                    WEB_NOTIF['builtin:pop']();
+                }
                 const toast = document.getElementById('audio-unlock-toast');
                 if (toast) { toast.style.display = 'block'; toast.classList.add('shake'); }
                 if (isRingtone) window.pendingRingtone = audioElement;
@@ -1337,7 +1245,7 @@
     
     let localSettings = JSON.parse(localStorage.getItem('Nexagram_Settings')) || { theme: 'orange', lightMode: false };
     let savedAccounts = JSON.parse(localStorage.getItem('Nexagram_Accounts') || '[]');
-    
+
     // === Встроенные звуки (WAV data URI) — работают без интернета/VPN ===
     function _wavDataUri(samples, sampleRate) {
         const numSamples = samples.length;
@@ -1398,17 +1306,21 @@
     };
     function resolveSoundSrc(key) {
         if (!key || key === 'none') return null;
+        if (key === 'custom') {
+            return localSettings.customRingtone || null;
+        }
         if (key.indexOf('builtin:') === 0) {
             try { return BUILTIN_SOUNDS[key] ? BUILTIN_SOUNDS[key]() : null; } catch (e) { return null; }
         }
-        // старые mixkit / любые http — оставляем (если VPN/доступ есть)
+        // data: или http
         return key;
     }
     
     // Если в настройках старый mixkit — переключаем на встроенный (без VPN)
     function migrateSoundKey(key, fallback) {
         if (!key || key === 'none') return key || fallback;
-        if (key.indexOf('mixkit.co') !== -1 || key.indexOf('http') === 0) return fallback;
+        if (key === 'custom') return localSettings.customRingtone ? 'custom' : fallback;
+        if (key.indexOf('mixkit.co') !== -1 || (key.indexOf('http') === 0 && key.indexOf('data:') !== 0)) return fallback;
         return key;
     }
     let currentNotif = migrateSoundKey(localSettings.notifSound, 'builtin:pop');
@@ -1434,6 +1346,9 @@
             if (inRing) inRing.src = rSrc;
             if (outRing) outRing.src = rSrc;
         }
+        // показать пункт «Мой рингтон», если загружен
+        const opt = document.getElementById('customRingtoneOpt');
+        if (opt) opt.style.display = localSettings.customRingtone ? 'block' : 'none';
     }
     applySounds();
 
@@ -1536,10 +1451,11 @@
                     if (isInitialLoadDone && currentCount > prevCount) {
                         const lastMsg = c.msgs[currentCount - 1];
                         if (lastMsg.uid !== me.id && lastMsg.uid !== 'system' && (document.hidden || !activeChat || activeChat.id !== c.id)) {
-                            
-                            safePlayAudio(notifSound, false);
+                            if (!isChatMuted(c.id)) {
+                                playNotifSound();
+                            }
 
-                            if ("Notification" in window && Notification.permission === "granted") {
+                            if ("Notification" in window && Notification.permission === "granted" && !isChatMuted(c.id)) {
                                 let senderName = "Nexagram";
                                 const sender = db.users.find(u => u.id === lastMsg.uid);
                                 if (sender) senderName = sender.name;
@@ -1827,7 +1743,7 @@
         `;
         document.getElementById('localVideo').style.display = 'none'; document.getElementById('remoteVideo').classList.remove('active-video');
         
-        safePlayAudio(inRing, true);
+        startRingtone(false);
         
         if ("Notification" in window && Notification.permission === "granted" && document.hidden) {
             showAppNotification('Входящий вызов', `Звонит ${caller.name}`, { tag: 'call-' + callId, requireInteraction: true });
@@ -1842,7 +1758,7 @@
     function hideCallUI() {
         const overlay = document.getElementById('callOverlay'); overlay.classList.remove('active'); overlay.classList.add('closing'); document.getElementById('minimizedCallBar').style.display = 'none';
         setTimeout(() => { overlay.classList.remove('closing'); document.getElementById('localVideo').style.display = 'none'; document.getElementById('remoteVideo').classList.remove('active-video'); document.getElementById('remoteVideo').srcObject = null; document.getElementById('callTopCenter').style.display = 'none'; document.getElementById('callCenterArea').style.display = 'flex'; }, 400);
-        inRing.pause(); inRing.currentTime = 0; outRing.pause(); outRing.currentTime = 0;
+        stopAllRingtones();
     }
 
     function renderCalls() {
@@ -1866,105 +1782,179 @@
         showToast('Журнал вызовов очищен');
     }
 
+    async function acquireCallMedia(isVideo) {
+        const audioConstraints = { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
+        const stream = await navigator.mediaDevices.getUserMedia({
+            audio: audioConstraints,
+            video: isVideo ? { facingMode: currentFacingMode || 'user' } : false
+        });
+        if (isVideo) {
+            const localVid = document.getElementById('localVideo');
+            if (localVid) {
+                localVid.srcObject = stream;
+                localVid.style.display = 'block';
+                localVid.style.transform = 'scaleX(-1)';
+            }
+        }
+        return stream;
+    }
+
+    async function attachLocalMediaToPeer(stream) {
+        if (!peerConnection || !stream) return;
+        const senders = peerConnection.getSenders();
+        for (const track of stream.getTracks()) {
+            const sender = senders.find(s => s.track && s.track.kind === track.kind);
+            if (sender) {
+                await sender.replaceTrack(track);
+            } else {
+                peerConnection.addTrack(track, stream);
+            }
+        }
+    }
+
     async function initiateCall(isVideo) {
         if (!activeChat || activeChat.type !== 'direct') return;
         unlockAudioContext();
-        const targetUserId = activeChat.u1 === me.id ? activeChat.u2 : activeChat.u1; const targetUser = db.users.find(u => u.id === targetUserId);
-        currentCallId = 'call_' + Date.now(); currentCallIsVideo = isVideo; currentFacingMode = 'user';
-        applyCallBackground(); 
-        document.getElementById('callAvatar').innerHTML = getAvatarHtml(targetUser.avatarType, targetUser.avatarValue); document.getElementById('callName').textContent = targetUser.name; document.getElementById('callNameSmall').textContent = targetUser.name; document.getElementById('minCallInfo').textContent = `${targetUser.name} · Ожидание...`;
-        setCallStatusText('Запрос . .'); isCallMicMuted = false; isCallCamOff = false; isSpeakerOn = true;
-        
+        const targetUserId = activeChat.u1 === me.id ? activeChat.u2 : activeChat.u1;
+        const targetUser = db.users.find(u => u.id === targetUserId);
+        if (!targetUser) return;
+        currentCallId = 'call_' + Date.now();
+        currentCallIsVideo = isVideo;
+        currentFacingMode = 'user';
+        applyCallBackground();
+        document.getElementById('callAvatar').innerHTML = getAvatarHtml(targetUser.avatarType, targetUser.avatarValue);
+        document.getElementById('callName').textContent = targetUser.name;
+        document.getElementById('callNameSmall').textContent = targetUser.name;
+        document.getElementById('minCallInfo').textContent = targetUser.name + ' · Ожидание...';
+        setCallStatusText('Вызов...');
+        isCallMicMuted = false; isCallCamOff = false; isSpeakerOn = true;
+
         const overlay = document.getElementById('callOverlay');
         overlay.classList.remove('closing'); overlay.classList.add('active');
         document.getElementById('minimizedCallBar').style.display = 'none';
-        document.getElementById('callCenterArea').style.display = 'flex'; document.getElementById('callTopCenter').style.display = 'none';
-        renderCallControls(); 
+        document.getElementById('callCenterArea').style.display = 'flex';
+        document.getElementById('callTopCenter').style.display = 'none';
+        renderCallControls();
 
         try {
-            const audioConstraints = { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
-            localStream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints, video: isVideo ? { facingMode: currentFacingMode } : false });
-            if (isVideo) { const localVid = document.getElementById('localVideo'); localVid.srcObject = localStream; localVid.style.display = 'block'; localVid.style.transform = 'scaleX(-1)'; }
-            
-            peerConnection = new RTCPeerConnection(rtcConfig); 
-            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-            
-            peerConnection.ontrack = (event) => handleRemoteTrack(event);
-            peerConnection.onicecandidate = event => { if (event.candidate) rtdb.ref(`/dg_calls/${currentCallId}/callerIce`).push(event.candidate.toJSON()); };
-            
-            const offer = await peerConnection.createOffer(); await peerConnection.setLocalDescription(offer);
-            
-            safePlayAudio(outRing, true);
+            // Микрофон/камеру НЕ включаем пока собеседник не ответит
+            peerConnection = new RTCPeerConnection(rtcConfig);
+            peerConnection.addTransceiver('audio', { direction: 'sendrecv' });
+            if (isVideo) peerConnection.addTransceiver('video', { direction: 'sendrecv' });
 
-            await rtdb.ref(`/dg_calls/${currentCallId}`).set({ caller: me.id, callee: targetUserId, offer: { type: offer.type, sdp: offer.sdp }, status: 'ringing', isVideo: isVideo });
+            peerConnection.ontrack = (event) => handleRemoteTrack(event);
+            peerConnection.onicecandidate = event => {
+                if (event.candidate) rtdb.ref(`/dg_calls/${currentCallId}/callerIce`).push(event.candidate.toJSON());
+            };
+
+            const offer = await peerConnection.createOffer();
+            await peerConnection.setLocalDescription(offer);
+
+            startRingtone(true);
+
+            await rtdb.ref(`/dg_calls/${currentCallId}`).set({
+                caller: me.id, callee: targetUserId,
+                offer: { type: offer.type, sdp: offer.sdp },
+                status: 'ringing', isVideo: isVideo
+            });
             await rtdb.ref(`/dg_user_calls/${targetUserId}`).set(currentCallId);
-            
+
             let isAnswerProcessed = false;
             callRef = rtdb.ref(`/dg_calls/${currentCallId}`);
             callRef.on('value', async snap => {
-                const data = snap.val(); if (!data) return cleanupCall();
-                
+                const data = snap.val();
+                if (!data) return cleanupCall();
+
                 if (data.status === 'ended' || data.status === 'declined' || data.status === 'missed') {
-                    cleanupCall(); 
-                    if (data.caller === me.id) { const newLog = { id: 'log_' + Date.now(), caller: data.caller, callee: data.callee, time: Date.now(), status: data.status, isVideo: data.isVideo, duration: callSeconds }; db.callLogs.push(newLog); rtdb.ref('/dg_app_data/callLogs').set(db.callLogs); }
+                    cleanupCall();
+                    if (data.caller === me.id) {
+                        const newLog = { id: 'log_' + Date.now(), caller: data.caller, callee: data.callee, time: Date.now(), status: data.status, isVideo: data.isVideo, duration: callSeconds };
+                        db.callLogs.push(newLog);
+                        rtdb.ref('/dg_app_data/callLogs').set(db.callLogs);
+                    }
                     return;
                 }
 
                 if (data.answer && !isAnswerProcessed) {
                     isAnswerProcessed = true;
-                    outRing.pause(); outRing.currentTime = 0;
-                    setCallStatusText('Разговор (0:00)');
-                    startCallTimer();
-                    await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+                    stopAllRingtones();
+                    setCallStatusText('Подключение...');
+                    try {
+                        // Только после ответа — включаем микрофон/камеру
+                        localStream = await acquireCallMedia(currentCallIsVideo);
+                        await attachLocalMediaToPeer(localStream);
+                        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+                        setCallStatusText('Разговор (0:00)');
+                        startCallTimer();
+                    } catch (err) {
+                        showToast('Не удалось включить микрофон: ' + err.message);
+                        endCall();
+                    }
                 }
             });
 
-            rtdb.ref(`/dg_calls/${currentCallId}/calleeIce`).on('child_added', snap => { if (snap.val() && peerConnection) peerConnection.addIceCandidate(new RTCIceCandidate(snap.val())).catch(e=>console.warn(e)); });
-            
-        } catch (e) { showToast('Ошибка микрофона: ' + e.message); cleanupCall(); }
+            rtdb.ref(`/dg_calls/${currentCallId}/calleeIce`).on('child_added', snap => {
+                if (snap.val() && peerConnection) peerConnection.addIceCandidate(new RTCIceCandidate(snap.val())).catch(e => console.warn(e));
+            });
+
+        } catch (e) {
+            showToast('Ошибка звонка: ' + e.message);
+            cleanupCall();
+        }
     }
 
     async function acceptCall(isVideo) {
         if (!currentCallId) return;
         unlockAudioContext();
-        inRing.pause(); inRing.currentTime = 0; currentCallIsVideo = isVideo; 
+        stopAllRingtones();
+        currentCallIsVideo = isVideo;
         setCallStatusText('Соединение...');
-        isCallMicMuted = false; isCallCamOff = false; isSpeakerOn = true; renderCallControls();
-        
+        isCallMicMuted = false; isCallCamOff = false; isSpeakerOn = true;
+        renderCallControls();
+
         try {
-            const audioConstraints = { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
-            localStream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints, video: isVideo ? { facingMode: currentFacingMode } : false });
-            if (isVideo) { const localVid = document.getElementById('localVideo'); localVid.srcObject = localStream; localVid.style.display = 'block'; localVid.style.transform = 'scaleX(-1)'; }
-            
-            peerConnection = new RTCPeerConnection(rtcConfig); 
+            // Микрофон только при нажатии «Принять»
+            localStream = await acquireCallMedia(isVideo);
+
+            peerConnection = new RTCPeerConnection(rtcConfig);
             localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-            
+
             peerConnection.ontrack = (event) => handleRemoteTrack(event);
-            peerConnection.onicecandidate = event => { if (event.candidate) rtdb.ref(`/dg_calls/${currentCallId}/calleeIce`).push(event.candidate.toJSON()); };
-            
-            const callSnap = await rtdb.ref(`/dg_calls/${currentCallId}`).once('value'); 
+            peerConnection.onicecandidate = event => {
+                if (event.candidate) rtdb.ref(`/dg_calls/${currentCallId}/calleeIce`).push(event.candidate.toJSON());
+            };
+
+            const callSnap = await rtdb.ref(`/dg_calls/${currentCallId}`).once('value');
             const callData = callSnap.val();
-            
+            if (!callData || !callData.offer) throw new Error('Звонок уже завершён');
+
             await peerConnection.setRemoteDescription(new RTCSessionDescription(callData.offer));
-            const answer = await peerConnection.createAnswer(); 
+            const answer = await peerConnection.createAnswer();
             await peerConnection.setLocalDescription(answer);
-            
-            await rtdb.ref(`/dg_calls/${currentCallId}`).update({ answer: { type: answer.type, sdp: answer.sdp }, status: 'connected' });
+
+            await rtdb.ref(`/dg_calls/${currentCallId}`).update({
+                answer: { type: answer.type, sdp: answer.sdp },
+                status: 'connected'
+            });
             await rtdb.ref(`/dg_user_calls/${me.id}`).remove();
-            
-            setCallStatusText('Разговор (0:00)'); startCallTimer();
+
+            setCallStatusText('Разговор (0:00)');
+            startCallTimer();
 
             callRef = rtdb.ref(`/dg_calls/${currentCallId}`);
             callRef.on('value', snap => {
-                const data = snap.val(); 
+                const data = snap.val();
                 if (!data || data.status === 'ended' || data.status === 'declined' || data.status === 'missed') return cleanupCall();
             });
-            
+
             rtdb.ref(`/dg_calls/${currentCallId}/callerIce`).on('child_added', snap => {
-                if (snap.val() && peerConnection) peerConnection.addIceCandidate(new RTCIceCandidate(snap.val())).catch(e=>console.warn(e));
+                if (snap.val() && peerConnection) peerConnection.addIceCandidate(new RTCIceCandidate(snap.val())).catch(e => console.warn(e));
             });
-            
-        } catch (e) { showToast('Ошибка микрофона: ' + e.message); endCall(); }
+
+        } catch (e) {
+            showToast('Ошибка микрофона: ' + e.message);
+            endCall();
+        }
     }
 
     async function endCall() {
@@ -2665,6 +2655,17 @@
             activeChat = db.chats.find(c => c.id === chatOrId);
             if (!activeChat) return;
         }
+        // Авто-подписка на канал, если открыли из поиска
+        if (activeChat.type === 'channel' && me && Array.isArray(activeChat.members) && !activeChat.members.includes(me.id)) {
+            const chatIndex = db.chats.findIndex(c => c.id === activeChat.id);
+            if (chatIndex > -1) {
+                if (!db.chats[chatIndex].members) db.chats[chatIndex].members = [];
+                db.chats[chatIndex].members.push(me.id);
+                activeChat.members = db.chats[chatIndex].members;
+                rtdb.ref(`/dg_app_data/chats/${chatIndex}/members`).set(db.chats[chatIndex].members);
+            }
+        }
+
         // Сброс ленивой загрузки и индекса закрепов
         visibleMsgLimit = typeof MSGS_PAGE !== 'undefined' ? MSGS_PAGE : 40;
         currentPinIndex = 0;
@@ -2713,60 +2714,100 @@
     }
 
     function renderChats() {
-        if (!me) return; const container = document.getElementById('c-list');
+        if (!me) return;
+        const container = document.getElementById('c-list');
         const rawFilter = (currentChatsFilter || '').toLowerCase().trim();
-        const filterQ = rawFilter.replace(/^@/, '');
+        const filter = rawFilter.replace(/^@/, ''); // @nexagram → nexagram
+        const isAtSearch = rawFilter.startsWith('@') || !!filter;
+
+        // Мои чаты
         let filteredChats = db.chats.filter(c => {
             if (c.type === 'direct') return c.u1 === me.id || c.u2 === me.id;
             return c.members && c.members.includes(me.id);
         });
-        if (filterQ) {
+
+        if (filter) {
             filteredChats = filteredChats.filter(chat => {
                 if (chat.type === 'direct' && chat.u1 === chat.u2) {
-                    return 'избранное'.includes(filterQ) || 'saved'.includes(filterQ);
+                    return 'избранное'.includes(filter) || 'saved'.includes(filter);
                 }
                 if (chat.type === 'direct') {
                     const other = db.users.find(u => u.id === (chat.u1 === me.id ? chat.u2 : chat.u1));
                     if (!other) return false;
                     const hay = ((other.name || '') + ' ' + (other.login || '')).toLowerCase();
-                    return hay.includes(filterQ);
+                    return hay.includes(filter);
                 }
                 const hay = ((chat.name || '') + ' ' + (chat.username || '')).toLowerCase();
-                return hay.includes(filterQ);
+                return hay.includes(filter);
             });
+            // Если ищем — также показываем публичные каналы, в которых ещё не состоим
             const myIds = new Set(filteredChats.map(c => c.id));
             const publicChannels = db.chats.filter(c => {
                 if (c.type !== 'channel') return false;
                 if (myIds.has(c.id)) return false;
                 if (c.members && c.members.includes(me.id)) return false;
                 const hay = ((c.name || '') + ' ' + (c.username || '')).toLowerCase();
-                return hay.includes(filterQ) || (c.username && c.username.toLowerCase() === filterQ);
+                return hay.includes(filter) || (c.username && c.username.toLowerCase() === filter);
             });
             filteredChats = filteredChats.concat(publicChannels);
         }
+
         filteredChats.sort((a, b) => {
             const timeA = a.msgs && a.msgs.length ? a.msgs[a.msgs.length - 1].time : parseInt(a.id.split('_')[1] || 0);
             const timeB = b.msgs && b.msgs.length ? b.msgs[b.msgs.length - 1].time : parseInt(b.id.split('_')[1] || 0);
             return timeB - timeA;
         });
-        
+
         updateNavBadges();
 
         if (filteredChats.length === 0) {
             container.innerHTML = '<div class="empty-state"><span class="material-symbols-outlined" style="font-size: 48px;">chat</span>' +
-                (filterQ ? 'Ничего не найдено' : 'Нет активных чатов') +
+                (filter ? 'Ничего не найдено' : 'Нет активных чатов') +
                 '<br><span style="font-size: 13px; margin-top: 8px;">' +
-                (filterQ ? 'Попробуй точный @юзернейм канала' : '(Удерживайте чат для удаления)') +
+                (filter ? 'Попробуй точный @юзернейм канала' : '(Удерживайте чат для удаления)') +
                 '</span></div>';
             return;
         }
-        
+
         container.innerHTML = filteredChats.map(chat => {
             let name, avType, avVal, badge = '';
-            if (chat.type === 'direct' && chat.u1 === chat.u2) { name = 'Избранное'; avType = 'emoji'; avVal = 'bookmark'; } else if (chat.type === 'direct') { const other = db.users.find(u => u.id === (chat.u1 === me.id ? chat.u2 : chat.u1)); name = other ? other.name : 'Удаленный аккаунт'; avType = other ? other.avatarType : 'emoji'; avVal = other ? other.avatarValue : 'person_off'; } else { name = chat.name || (chat.type === 'channel' ? 'Канал' : 'Группа'); avType = chat.avatarType; avVal = chat.avatarValue; badge = chat.type === 'channel' ? ' <span class="material-symbols-outlined" style="font-size: 14px;">campaign</span>' : ''; }
-            const lastMsg = chat.msgs && chat.msgs.length ? chat.msgs[chat.msgs.length - 1] : null; let preview = drafts[chat.id] ? `<span style="color:var(--red);">Черновик:</span> ${escapeHtml(drafts[chat.id])}` : 'Нет сообщений';
-            let isUnread = false; if (lastMsg && lastMsg.uid !== me.id) { const myReadTime = (chat.lastRead && chat.lastRead[me.id]) ? chat.lastRead[me.id] : 0; if (lastMsg.time > myReadTime) isUnread = true; } let unreadDot = isUnread ? '<span style="color:var(--p); font-size: 24px; margin-left: auto;">•</span>' : '';
-            if (lastMsg && !drafts[chat.id]) { let prefix = ''; if (chat.type === 'group' && lastMsg.uid !== 'system') { const author = db.users.find(u => u.id === lastMsg.uid); prefix = author ? `${author.name}: ` : ''; } if (lastMsg.type === 'system_call') preview = prefix + lastMsg.txt; else if (lastMsg.type === 'voice' || lastMsg.type === 'audio') preview = prefix + '🎙️ Аудио'; else if (lastMsg.type === 'video_circle') preview = prefix + '📹 Кружок'; else if (lastMsg.type === 'image') preview = prefix + '📷 Фото'; else if (lastMsg.type === 'video') preview = prefix + '🎥 Видео'; else if (lastMsg.type === 'file') preview = prefix + '📄 Файл'; else preview = prefix + (lastMsg.txt || ''); }
+            if (chat.type === 'direct' && chat.u1 === chat.u2) {
+                name = 'Избранное'; avType = 'emoji'; avVal = 'bookmark';
+            } else if (chat.type === 'direct') {
+                const other = db.users.find(u => u.id === (chat.u1 === me.id ? chat.u2 : chat.u1));
+                name = other ? other.name : 'Удаленный аккаунт';
+                avType = other ? other.avatarType : 'emoji';
+                avVal = other ? other.avatarValue : 'person_off';
+            } else {
+                name = chat.name || (chat.type === 'channel' ? 'Канал' : 'Группа');
+                avType = chat.avatarType; avVal = chat.avatarValue;
+                // Канал — иконка рупора, у групп без смайлика
+                badge = chat.type === 'channel'
+                    ? ' <span class="material-symbols-outlined" style="font-size: 14px;">campaign</span>'
+                    : '';
+            }
+            const lastMsg = chat.msgs && chat.msgs.length ? chat.msgs[chat.msgs.length - 1] : null;
+            let preview = drafts[chat.id] ? `<span style="color:var(--red);">Черновик:</span> ${escapeHtml(drafts[chat.id])}` : 'Нет сообщений';
+            let isUnread = false;
+            if (lastMsg && lastMsg.uid !== me.id) {
+                const myReadTime = (chat.lastRead && chat.lastRead[me.id]) ? chat.lastRead[me.id] : 0;
+                if (lastMsg.time > myReadTime) isUnread = true;
+            }
+            const unreadDot = isUnread ? '<span style="color:var(--p); font-size: 24px; margin-left: auto;">•</span>' : '';
+            if (lastMsg && !drafts[chat.id]) {
+                let prefix = '';
+                if (chat.type === 'group' && lastMsg.uid !== 'system') {
+                    const author = db.users.find(u => u.id === lastMsg.uid);
+                    prefix = author ? `${author.name}: ` : '';
+                }
+                if (lastMsg.type === 'system_call') preview = prefix + lastMsg.txt;
+                else if (lastMsg.type === 'voice' || lastMsg.type === 'audio') preview = prefix + '🎙️ Аудио';
+                else if (lastMsg.type === 'video_circle') preview = prefix + '📹 Кружок';
+                else if (lastMsg.type === 'image') preview = prefix + '📷 Фото';
+                else if (lastMsg.type === 'video') preview = prefix + '🎥 Видео';
+                else if (lastMsg.type === 'file') preview = prefix + '📄 Файл';
+                else preview = prefix + (lastMsg.txt || '');
+            }
             return `<div class="list-item" onclick="openChat('${chat.id}')" oncontextmenu="confirmDeleteChat(event, '${chat.id}')"><div class="av-sm">${getAvatarHtml(avType, avVal)}</div><div class="list-info"><div class="list-name">${escapeHtml(name)}${badge}</div><div class="list-preview" style="${isUnread || drafts[chat.id] ? 'font-weight:bold; color:var(--txt);' : ''}">${drafts[chat.id] ? preview : escapeHtml(preview)}</div></div>${unreadDot}</div>`;
         }).join('');
     }
@@ -3197,6 +3238,7 @@
     function renderAdminPanel() {
         const list = document.getElementById('adminUserList');
         if (!list) return;
+        // Чистим битые записи (пустой login / без id)
         const before = db.users.length;
         db.users = db.users.filter(isValidUser);
         if (db.users.length !== before) {
@@ -3370,9 +3412,11 @@
 
     function copyContactLogin() {
         if (!profileMenuTargetUserId) {
-            // для группы — копируем название
-            if (activeChat && activeChat.name) {
-                navigator.clipboard.writeText(activeChat.name).then(() => showToast('Название скопировано')).catch(() => showToast(activeChat.name));
+            if (activeChat) {
+                const text = (activeChat.type === 'channel' && activeChat.username)
+                    ? '@' + activeChat.username
+                    : (activeChat.name || '');
+                if (text) navigator.clipboard.writeText(text).then(() => showToast('Скопировано: ' + text)).catch(() => showToast(text));
             }
             closeProfileMenu();
             return;
@@ -3468,20 +3512,24 @@
 
         const myId = me.id;
 
+        // Отключаем presence
         try {
-            if (typeof presenceHeartbeat !== 'undefined' && presenceHeartbeat) { clearInterval(presenceHeartbeat); presenceHeartbeat = null; }
+            if (presenceHeartbeat) { clearInterval(presenceHeartbeat); presenceHeartbeat = null; }
             if (presenceRef) { presenceRef.onDisconnect().cancel(); presenceRef.set(Date.now()); }
             if (connectedRef) connectedRef.off();
         } catch (e) {}
 
-        db.users = db.users.filter(u => u.id !== myId && (typeof isValidUser === 'function' ? isValidUser(u) : true));
+        // Удаляем пользователя
+        db.users = db.users.filter(u => u.id !== myId && isValidUser(u));
 
+        // Чистим друзей и заявки у остальных
         db.users.forEach(u => {
             if (u.friends) u.friends = u.friends.filter(fid => fid !== myId);
             if (u.friendRequests) u.friendRequests = u.friendRequests.filter(fid => fid !== myId);
             if (u.blocked) u.blocked = u.blocked.filter(fid => fid !== myId);
         });
 
+        // Удаляем прямые чаты, из групп/каналов — выходим
         db.chats = db.chats.filter(c => {
             if (c.type === 'direct') return c.u1 !== myId && c.u2 !== myId;
             return true;
@@ -3621,7 +3669,7 @@
                 membersHtml = `<div style="text-align: center; margin: 24px 0 12px; color: var(--mut); font-size: 14px;">${cnt} подписчик${cnt % 10 === 1 && cnt % 100 !== 11 ? '' : (cnt % 10 >= 2 && cnt % 10 <= 4 && (cnt % 100 < 10 || cnt % 100 >= 20) ? 'а' : 'ов')}</div>`;
             }
 
-const unameRow = (activeChat.type === 'channel' && activeChat.username) ? `
+            const unameRow = (activeChat.type === 'channel' && activeChat.username) ? `
                     <div class="mp-info-row">
                         <div class="mp-info-text">
                             <div class="mp-info-title">@${escapeHtml(activeChat.username)}</div>
@@ -3688,7 +3736,7 @@ const unameRow = (activeChat.type === 'channel' && activeChat.username) ? `
         closeModernProfile();
         closeChat();
         renderChats();
-    }/members`).set(db.chats[chatIndex].members); closeModernProfile(); closeChat(); }
+    }
     
     function applyTheme(t) {
         localSettings.theme = t;
@@ -3734,10 +3782,7 @@ const unameRow = (activeChat.type === 'channel' && activeChat.username) ? `
         if (!me) return;
         const hasRealEmail = me.email && String(me.email).includes('@');
         if (hasRealEmail) {
-            const change = confirm('Сейчас привязано:
-' + me.email + '
-
-Привязать другую почту? (старая останется в Firebase Auth)');
+            const change = confirm('Сейчас привязано:\n' + me.email + '\n\nПривязать другую почту? (старая останется в Firebase Auth)');
             if (!change) return;
         } else if (me.firebaseUid || me.googleUid) {
             // Был вход через Google/GitHub без явной почты в профиле — можно привязать email
@@ -3828,18 +3873,156 @@ const unameRow = (activeChat.type === 'channel' && activeChat.username) ? `
     function editName() { if (!me) return; const newName = prompt("Новое имя:", me.name); if (newName && newName.trim()) { me.name = newName.trim(); const uIdx = db.users.findIndex(u => u.id === me.id); if (uIdx > -1) rtdb.ref(`/dg_app_data/users/${uIdx}/name`).set(me.name); updUI(); renderChats(); renderFriends(); } }
     function changeUsername() { if (!me) return; const newLogin = prompt('Новый логин:', me.login); if (!newLogin || newLogin === me.login) return; const loginLower = newLogin.toLowerCase(); if (loginLower.length < 3) return; if (loginLower === 'helper' || db.users.find(u => u.login === loginLower && u.id !== me.id)) return showToast('Логин занят'); me.login = loginLower; const uIdx = db.users.findIndex(u => u.id === me.id); if (uIdx > -1) rtdb.ref(`/dg_app_data/users/${uIdx}/login`).set(me.login); updUI(); showToast('Изменён!'); }
     function openSupportChat() { const helper = db.users.find(u => u.login === 'helper'); if (helper) { startChat(helper.id); setTab('chats'); } }
-    function openAvatarSelector() { const modal = document.getElementById('avatarModal'); document.getElementById('avatarList').innerHTML = builtInAvatars.map(name => `<div class="avatar-option" onclick="selectAvatar('emoji', '${escapeHtml(name)}')"><span class="material-symbols-outlined" style="font-size: 32px;">${escapeHtml(name)}</span></div>`).join('') + `<div class="avatar-option" onclick="uploadUserAvatar()" style="font-size: 24px;"><span class="material-symbols-outlined">photo_camera</span></div>` + `<div class="avatar-option" onclick="selectAvatarFromUrl()" style="font-size: 24px;"><span class="material-symbols-outlined">public</span></div>`; modal.classList.add('active'); }
-    function uploadUserAvatar() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = async e => { if(e.target.files[0]) { const url = await uploadToCloud(e.target.files[0]); if (url) selectAvatar('url', url); } }; input.click(); }
-    function selectAvatar(type, value) { me.avatarType = type; me.avatarValue = value; const uIdx = db.users.findIndex(u => u.id === me.id); if (uIdx > -1) { rtdb.ref(`/dg_app_data/users/${uIdx}/avatarType`).set(me.avatarType); rtdb.ref(`/dg_app_data/users/${uIdx}/avatarValue`).set(me.avatarValue); } updUI(); closeAvatarModal(); renderChats(); renderFriends(); }
-    function selectAvatarFromUrl() { const url = prompt('Прямая ссылка:'); if (url && url.trim()) selectAvatar('url', url.trim()); }
+    function openAvatarSelector() {
+        const modal = document.getElementById('avatarModal');
+        const list = document.getElementById('avatarList');
+        const icons = builtInAvatars.map(name =>
+            `<div class="avatar-option" onclick="selectAvatar('emoji', '${escapeHtml(name)}')"><span class="material-symbols-outlined" style="font-size: 32px;">${escapeHtml(name)}</span></div>`
+        ).join('');
+        list.innerHTML = icons +
+            `<div class="avatar-option" onclick="generateAiAvatar()" title="Сгенерировать аватар" style="font-size:24px;background:linear-gradient(135deg,#ff9500,#ff3b30);color:#000;"><span class="material-symbols-outlined">auto_awesome</span></div>` +
+            `<div class="avatar-option" onclick="uploadUserAvatar()" style="font-size: 24px;"><span class="material-symbols-outlined">photo_camera</span></div>` +
+            `<div class="avatar-option" onclick="selectAvatarFromUrl()" style="font-size: 24px;"><span class="material-symbols-outlined">public</span></div>`;
+        modal.classList.add('active');
+    }
+    function uploadUserAvatar() {
+        const input = document.createElement('input');
+        input.type = 'file'; input.accept = 'image/*';
+        input.onchange = async e => {
+            if (e.target.files[0]) {
+                const url = await uploadToCloud(e.target.files[0]);
+                if (url) selectAvatar('url', url);
+            }
+        };
+        input.click();
+    }
+    // «Нейросеть» аватарок: Dicebear (бесплатно) + локальный canvas-fallback
+    function generateAiAvatar() {
+        const styles = ['avataaars', 'bottts', 'lorelei', 'notionists', 'pixel-art', 'shapes', 'identicon', 'thumbs'];
+        const style = styles[Math.floor(Math.random() * styles.length)];
+        const seed = (me && me.login ? me.login : 'user') + '_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+        const url = 'https://api.dicebear.com/7.x/' + style + '/svg?seed=' + encodeURIComponent(seed) + '&backgroundColor=0a0a0a,1a1a1a,ff9500,ff3b30,007aff,30d158';
+        // Пробуем dicebear; если не грузится — локальный генератор
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        showToast('Генерирую аватар...');
+        img.onload = () => {
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = 256; canvas.height = 256;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, 256, 256);
+                const dataUrl = canvas.toDataURL('image/png');
+                selectAvatar('url', dataUrl);
+                showToast('Аватар готов!');
+            } catch (e) {
+                selectAvatar('url', url);
+                showToast('Аватар установлен');
+            }
+        };
+        img.onerror = () => {
+            const dataUrl = generateLocalAvatar(seed);
+            selectAvatar('url', dataUrl);
+            showToast('Аватар (локальный) готов!');
+        };
+        img.src = url;
+    }
+    function generateLocalAvatar(seed) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 256; canvas.height = 256;
+        const ctx = canvas.getContext('2d');
+        let h = 0;
+        for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+        const hue = h % 360;
+        const g = ctx.createLinearGradient(0, 0, 256, 256);
+        g.addColorStop(0, 'hsl(' + hue + ',80%,45%)');
+        g.addColorStop(1, 'hsl(' + ((hue + 40) % 360) + ',70%,25%)');
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, 256, 256);
+        // узор
+        for (let i = 0; i < 12; i++) {
+            const x = ((h * (i + 3)) % 200) + 28;
+            const y = ((h * (i + 7)) % 200) + 28;
+            const r = 10 + (h % 30) + i * 2;
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255,255,255,' + (0.08 + (i % 5) * 0.03) + ')';
+            ctx.fill();
+        }
+        const letter = ((me && me.name) ? me.name : seed).charAt(0).toUpperCase();
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 110px -apple-system, Arial, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(letter, 128, 138);
+        return canvas.toDataURL('image/png');
+    }
+    function selectAvatar(type, value) {
+        me.avatarType = type; me.avatarValue = value;
+        const uIdx = db.users.findIndex(u => u.id === me.id);
+        if (uIdx > -1) {
+            rtdb.ref(`/dg_app_data/users/${uIdx}/avatarType`).set(me.avatarType);
+            rtdb.ref(`/dg_app_data/users/${uIdx}/avatarValue`).set(me.avatarValue);
+        }
+        updUI(); closeAvatarModal(); renderChats(); renderFriends();
+    }
+    function selectAvatarFromUrl() {
+        const url = prompt('Прямая ссылка:');
+        if (url && url.trim()) selectAvatar('url', url.trim());
+    }
     function closeAvatarModal() { document.getElementById('avatarModal').classList.remove('active'); }
+
+    // === Кастомный рингтон ===
+    function uploadCustomRingtone() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'audio/*,.mp3,.wav,.ogg,.m4a';
+        input.onchange = async (e) => {
+            const file = e.target.files && e.target.files[0];
+            if (!file) return;
+            if (file.size > 1.5 * 1024 * 1024) {
+                showToast('Файл слишком большой (макс. ~1.5 МБ)');
+                return;
+            }
+            try {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const dataUrl = reader.result;
+                    localSettings.customRingtone = dataUrl;
+                    localSettings.ringtone = 'custom';
+                    currentRingtone = 'custom';
+                    localStorage.setItem('Nexagram_Settings', JSON.stringify(localSettings));
+                    const opt = document.getElementById('customRingtoneOpt');
+                    if (opt) { opt.style.display = 'block'; opt.selected = true; }
+                    const sel = document.getElementById('ringtoneSelect');
+                    if (sel) sel.value = 'custom';
+                    applySounds();
+                    showToast('Рингтон загружен!');
+                    // превью
+                    try {
+                        const a = document.getElementById('incomingRingtone');
+                        if (a) { a.src = dataUrl; a.loop = false; a.play().catch(()=>{}); setTimeout(()=>{ a.pause(); a.currentTime = 0; }, 3000); }
+                    } catch (_) {}
+                };
+                reader.onerror = () => showToast('Не удалось прочитать файл');
+                reader.readAsDataURL(file);
+            } catch (err) {
+                showToast('Ошибка: ' + err.message);
+            }
+        };
+        input.click();
+    }
     function resetAllData() { if (confirm("Внимание! Это очистит только твои локальные настройки. База останется на сервере.")) { localStorage.removeItem('Nexagram_Settings'); localStorage.removeItem('Nexagram_Session_UID'); localStorage.removeItem('Nexagram_Drafts'); location.reload(); } }
 
     // === ЛОГИКА ОКНА НАСТРОЕК ЗВУКА ===
     function openSoundSettings() {
         document.getElementById('notifSelect').value = currentNotif;
+        const opt = document.getElementById('customRingtoneOpt');
+        if (opt) opt.style.display = localSettings.customRingtone ? 'block' : 'none';
         const rtSelect = document.getElementById('ringtoneSelect');
-        if (rtSelect) rtSelect.value = currentRingtone;
+        if (rtSelect) {
+            try { rtSelect.value = currentRingtone; } catch (_) {}
+        }
         document.getElementById('soundModal').classList.add('active');
     }
 
@@ -3854,30 +4037,30 @@ const unameRow = (activeChat.type === 'channel' && activeChat.username) ? `
 
     function previewNotif() {
         let val = document.getElementById('notifSelect').value;
-        let audio = document.getElementById('notificationSound');
-        if (val === 'none') {
-            audio.pause();
-            return;
-        }
+        if (val === 'none') return;
+        if (val.indexOf('builtin:') === 0 && WEB_NOTIF[val]) { WEB_NOTIF[val](); return; }
         const src = resolveSoundSrc(val);
         if (!src) return;
-        audio.src = src;
-        audio.play().catch(e => console.warn('Preview blocked:', e));
+        notifSound.src = src;
+        notifSound.play().catch(e => console.warn('Preview blocked:', e));
     }
 
     function previewRingtone() {
         const val = document.getElementById('ringtoneSelect').value;
-        const audio = document.getElementById('incomingRingtone');
-        if (!audio) return;
-        audio.pause();
-        audio.currentTime = 0;
+        stopAllRingtones();
         if (val === 'none') return;
+        if (val.indexOf('builtin:') === 0 && WEB_RING[val]) {
+            WEB_RING[val]();
+            _ringTimer = setInterval(WEB_RING[val], 2000);
+            setTimeout(() => stopAllRingtones(), 3000);
+            return;
+        }
         const src = resolveSoundSrc(val);
         if (!src) return;
-        audio.src = src;
-        audio.loop = false;
-        audio.play().catch(e => console.warn('Ringtone preview blocked:', e));
-        setTimeout(() => { audio.pause(); audio.currentTime = 0; }, 3000);
+        inRing.src = src;
+        inRing.loop = false;
+        inRing.play().catch(e => console.warn('Ringtone preview blocked:', e));
+        setTimeout(() => stopAllRingtones(), 3000);
     }
 
     function saveSoundSettings() {
