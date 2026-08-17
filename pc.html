@@ -436,7 +436,90 @@
         .mp-action-row:active { transform: scale(0.98); background: var(--in); }
 
         /* ================= ДЕСКТОП ВЕРСИЯ (PC) ================= */
+        @media (min-width: 768px) {
+            body { 
+                display: flex; justify-content: center; align-items: center; 
+                background-color: #0f0f11; background-image: radial-gradient(circle at center, #1a1a20 0%, #000 100%); 
+            }
+            #app, .auth-screen { 
+                width: 100%; max-width: 1100px; height: 90vh !important; max-height: 850px; 
+                border-radius: 20px; box-shadow: 0 25px 80px rgba(0,0,0,0.6); 
+                transform: translateZ(0); 
+                border: 1px solid #2a2a2a; margin: auto; position: relative; overflow: hidden;
+            }
+            .content { width: 350px; border-right: 1px solid var(--brd); height: 100%; padding-bottom: 64px; }
+            .nav { width: 350px; position: absolute; left: 0; bottom: 0; border-top: 1px solid var(--brd); border-radius: 0 0 0 20px; }
             
+            #chat-window { 
+                position: absolute; top: 0; right: 0; bottom: 0; left: 350px; 
+                transform: none !important; visibility: visible !important; display: flex !important;
+                border-radius: 0 20px 20px 0; background: var(--bg); border-left: 1px solid var(--brd);
+            }
+            #chat-window::before { 
+                content: 'Выберите чат для общения'; position: absolute; inset: 0; 
+                display: flex; align-items: center; justify-content: center; 
+                background: var(--bg); color: var(--mut); z-index: 1000; 
+                font-size: 16px; font-weight: 500; transition: opacity 0.3s ease; 
+                border-radius: 0 20px 20px 0;
+            }
+            #chat-window.active::before { opacity: 0; pointer-events: none; }
+            .back-btn { display: none !important; }
+            
+            #profile-view-screen { 
+                position: absolute; top: 0; right: 0; bottom: 0; left: 350px; 
+                border-left: 1px solid var(--brd); border-radius: 0 20px 20px 0;
+            }
+            
+            #callOverlay, .modal, #storyViewer { position: absolute; border-radius: 20px; }
+            .chat-input-area { padding-bottom: 12px !important; }
+        }
+    
+        /* Max-style call UI */
+
+        #callName { order: -2; }
+        #callStatus { order: -1; margin-bottom: 8px !important; }
+        .call-avatar-container { order: 0; }
+        .call-center-area { display: flex; flex-direction: column; }
+
+        #callOverlay {
+            background: #0a0a0c !important;
+            animation: none !important;
+            background-blend-mode: normal !important;
+        }
+        #callOverlay .call-top-bar { padding: 12px 16px; align-items: center; }
+        #callOverlay .call-top-bar .icon-btn { background: rgba(255,255,255,0.12); border-radius: 50%; width: 40px; height: 40px; }
+        .call-center-area { flex-direction: column; align-items: center; justify-content: center; }
+        .call-avatar-container { width: 200px; height: 200px; margin: 24px auto 28px; }
+        .call-avatar-img {
+            width: 200px; height: 200px; border-radius: 50%; overflow: hidden;
+            box-shadow: 0 0 0 3px rgba(255,255,255,0.08), 0 0 60px 10px rgba(120, 80, 255, 0.45), 0 0 100px 20px rgba(60, 100, 255, 0.25);
+            background: #1a1a1a; display: flex; align-items: center; justify-content: center; font-size: 64px;
+        }
+        .call-avatar-img img { width: 100%; height: 100%; object-fit: cover; }
+        .call-avatar-ring-1, .call-avatar-ring-2 {
+            border-color: rgba(140, 100, 255, 0.35) !important;
+        }
+        #callName { font-size: 28px !important; font-weight: 600 !important; color: #fff; margin-bottom: 6px !important; }
+        #callStatus { font-size: 15px !important; color: rgba(255,255,255,0.65) !important; }
+        .call-actions-row {
+            padding: 0 24px calc(28px + env(safe-area-inset-bottom));
+            gap: 22px !important;
+            justify-content: center;
+        }
+        .call-btn-circle {
+            width: 58px !important; height: 58px !important;
+            border-radius: 50% !important;
+            display: flex; align-items: center; justify-content: center;
+            border: none; font-size: 24px;
+        }
+        .call-btn-circle.translucent { background: rgba(255,255,255,0.18) !important; color: #fff !important; }
+        .call-btn-circle.white { background: #fff !important; color: #111 !important; }
+        .call-btn-circle.dark { background: rgba(255,255,255,0.18) !important; color: #fff !important; }
+        .call-btn-circle.red { background: #e5395c !important; color: #fff !important; width: 58px !important; height: 58px !important; }
+        .call-btn-label { display: none !important; }
+        .call-btn-group { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+
+    
         /* ===== PC VERSION: full-screen Telegram Web style ===== */
         html, body { height: 100% !important; overflow: hidden !important; background: #0b0b0c !important; }
         body { display: block !important; margin: 0 !important; }
@@ -452,8 +535,7 @@
             position: fixed !important; inset: 0 !important; width: 100% !important; height: 100% !important;
             max-width: none !important; max-height: none !important; border-radius: 0 !important; border: none !important;
             box-shadow: none !important; margin: 0 !important; overflow: hidden !important;
-            flex-direction: row !important; background: var(--bg) !important;
-            opacity: 1 !important;
+            flex-direction: row !important; background: var(--bg) !important; opacity: 1 !important;
         }
         .content {
             width: 400px !important; min-width: 320px; max-width: 480px; height: 100% !important;
@@ -486,7 +568,6 @@
         #callOverlay, .modal, #storyViewer { position: fixed !important; border-radius: 0 !important; }
         .modal-content { max-width: 440px; }
         .chat-input-area { padding-bottom: 12px !important; }
-        #c-list, #f-list, #calls-list { overflow-y: auto; }
 
     </style>
 </head>
@@ -545,8 +626,19 @@
             </button>
             <button class="social-btn github" onclick="loginWithGitHub()">
                 <svg class="social-icon" viewBox="0 0 24 24"><path fill="#ffffff" d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-3.975-1.395-.09-.225-.48-1.395-1.065-1.65-.45-.195-1.095-.735-.015-.75.975-.015 1.74.9 2.01 1.335 1.14 1.965 3.045 1.395 3.795 1.065.105-.855.45-1.395.825-1.71-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.465.39.87 1.185.87 2.385 0 1.725-.015 3.105-.015 3.525 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
-                Продолжить с GitHub
+                <span data-i18n="github">Продолжить с GitHub</span>
             </button>
+        </div>
+        <div class="auth-footer" style="margin-top:18px;text-align:center;">
+            <select id="authLangSelect" onchange="setAppLang(this.value)" style="background:var(--in);color:var(--txt);border:1px solid var(--brd);border-radius:10px;padding:8px 12px;font-size:13px;margin-bottom:12px;">
+                <option value="ru">Русский</option>
+                <option value="en">English</option>
+            </select>
+            <div style="font-size:12px;color:var(--mut);line-height:1.6;">
+                <a href="https://nexagram.site/terms" target="_blank" rel="noopener" style="color:var(--p);text-decoration:none;" data-i18n="terms">Условия</a>
+                <span style="margin:0 6px;opacity:0.5;">·</span>
+                <a href="https://nexagram.site/privacy" target="_blank" rel="noopener" style="color:var(--p);text-decoration:none;" data-i18n="privacy">Конфиденциальность</a>
+            </div>
         </div>
     </div>
 </div>
@@ -656,6 +748,13 @@
 
             <div class="section-header">Система</div>
             <div class="sett-box">
+                <div class="sett-row" style="justify-content:space-between;">
+                    <span style="display:flex;align-items:center;gap:12px;"><span class="material-symbols-outlined">language</span> <span data-i18n="sett_lang">Язык интерфейса</span></span>
+                    <select id="langSelect" onchange="setAppLang(this.value)" onclick="event.stopPropagation()" style="background:var(--in);color:var(--txt);border:1px solid var(--brd);border-radius:8px;padding:6px 10px;font-size:13px;">
+                        <option value="ru">Русский</option>
+                        <option value="en">English</option>
+                    </select>
+                </div>
                 <div class="sett-row" onclick="openSoundSettings()"><span class="material-symbols-outlined">volume_up</span> Настройки звука</div>
                 <div class="sett-row" onclick="requestNotifications()"><span class="material-symbols-outlined">notifications_active</span> Включить уведомления</div>
                 <div class="sett-row" onclick="openSupportChat()"><span class="material-symbols-outlined">support_agent</span> Чат с поддержкой</div>
@@ -908,7 +1007,7 @@
     <video id="localVideo" autoplay playsinline webkit-playsinline muted></video>
 
     <div class="call-top-bar">
-        <button class="icon-btn" style="color: white; font-size: 28px; width:40px;" onclick="minimizeCall()"><span class="material-symbols-outlined">compress</span></button>
+        <button class="icon-btn" style="color: white; font-size: 28px; width:40px;" onclick="minimizeCall()"><span class="material-symbols-outlined">keyboard_arrow_down</span></button>
         <div class="call-top-center" id="callTopCenter">
             <div id="callNameSmall" style="font-weight: 600; font-size: 18px;">Имя</div>
             <div id="callStatusSmall" style="font-size: 14px; opacity: 0.8; margin-top:2px;">Ожидание...</div>
@@ -942,6 +1041,63 @@
         document.body.appendChild(toast);
         setTimeout(() => { toast.style.opacity='1'; toast.style.transform='translateX(-50%) translateY(0)'; }, 10);
         setTimeout(() => { toast.style.opacity='0'; toast.style.transform='translateX(-50%) translateY(20px)'; setTimeout(()=>toast.remove(), 300); }, 2500);
+    }
+
+
+    // === i18n RU / EN ===
+    const I18N = {
+        ru: {
+            tagline: 'Где рождается общение',
+            tab_login: 'Вход', tab_register: 'Регистрация',
+            login_label: 'Логин или Email', pass_label: 'Пароль',
+            btn_login: 'Войти', forgot: 'Забыли пароль?',
+            google: 'Продолжить с Google', github: 'Продолжить с GitHub',
+            terms: 'Условия', privacy: 'Конфиденциальность',
+            call_calling: 'Звоним...', call_incoming: 'Входящий вызов...',
+            call_connecting: 'Соединение...', call_talking: 'Разговор',
+            call_mic_error: 'Ошибка микрофона',
+            call_accept: 'Принять', call_decline: 'Отклонить',
+            call_end: 'Сброс', call_speaker: 'Динамик', call_mute: 'Микрофон',
+            call_video: 'Видео', call_flip: 'Камера',
+            sett_lang: 'Язык интерфейса'
+        },
+        en: {
+            tagline: 'Where conversation begins',
+            tab_login: 'Sign in', tab_register: 'Sign up',
+            login_label: 'Username or Email', pass_label: 'Password',
+            btn_login: 'Sign in', forgot: 'Forgot password?',
+            google: 'Continue with Google', github: 'Continue with GitHub',
+            terms: 'Terms', privacy: 'Privacy',
+            call_calling: 'Calling...', call_incoming: 'Incoming call...',
+            call_connecting: 'Connecting...', call_talking: 'In call',
+            call_mic_error: 'Microphone error',
+            call_accept: 'Accept', call_decline: 'Decline',
+            call_end: 'End', call_speaker: 'Speaker', call_mute: 'Mute',
+            call_video: 'Video', call_flip: 'Flip',
+            sett_lang: 'Interface language'
+        }
+    };
+    let appLang = localStorage.getItem('Nexagram_Lang') || 'ru';
+    function t(key) {
+        const pack = I18N[appLang] || I18N.ru;
+        return pack[key] || I18N.ru[key] || key;
+    }
+    function setAppLang(lang) {
+        if (lang !== 'ru' && lang !== 'en') return;
+        appLang = lang;
+        localStorage.setItem('Nexagram_Lang', lang);
+        applyLangUI();
+    }
+    function applyLangUI() {
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if (key) el.textContent = t(key);
+        });
+        const sel = document.getElementById('langSelect');
+        if (sel) sel.value = appLang;
+        const selAuth = document.getElementById('authLangSelect');
+        if (selAuth) selAuth.value = appLang;
+        try { document.documentElement.lang = appLang === 'en' ? 'en' : 'ru'; } catch(e) {}
     }
 
     // === SERVICE WORKER ДЛЯ УВЕДОМЛЕНИЙ ===
@@ -1696,30 +1852,31 @@
 
     // ================= ЗВОНКИ И АНИМАЦИИ =================
     function setCallStatusText(text) { document.getElementById('callStatus').textContent = text; document.getElementById('callStatusSmall').textContent = text; }
-    function applyCallBackground() { const overlay = document.getElementById('callOverlay'); if (me && me.wallpaper) { overlay.style.background = `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('${escapeHtml(me.wallpaper)}')`; overlay.style.backgroundSize = 'cover'; overlay.style.backgroundPosition = 'center'; overlay.style.animation = 'none'; overlay.style.backgroundBlendMode = 'normal'; } else { overlay.style.background = `linear-gradient(135deg, rgba(0,0,0,0.1), rgba(255,255,255,0.25), rgba(0,0,0,0.4)), var(--p)`; overlay.style.backgroundSize = '200% 200%'; overlay.style.backgroundBlendMode = 'hard-light'; overlay.style.animation = 'iridescentGradient 8s ease infinite'; } }
+    function applyCallBackground() {
+        const overlay = document.getElementById('callOverlay');
+        if (!overlay) return;
+        // Тёмный экран как в Max
+        overlay.style.background = '#0a0a0c';
+        overlay.style.backgroundImage = 'none';
+        overlay.style.animation = 'none';
+        overlay.style.backgroundBlendMode = 'normal';
+    }
 
     function renderCallControls() {
         const controls = document.getElementById('callControls');
+        if (!controls) return;
         const minMicBtn = document.getElementById('minCallMicBtn');
         if (minMicBtn) { 
             minMicBtn.innerHTML = isCallMicMuted ? '<span class="material-symbols-outlined">mic_off</span>' : '<span class="material-symbols-outlined">mic</span>';
             if (isCallMicMuted) minMicBtn.classList.add('muted'); else minMicBtn.classList.remove('muted');
         }
-
-        if (!currentCallIsVideo) {
-            controls.innerHTML = `
-                <div class="call-btn-group"><button class="call-btn-circle ${isSpeakerOn ? 'white' : 'translucent'}" onclick="toggleCallSpeaker()"><span class="material-symbols-outlined">speaker</span></button><div class="call-btn-label">Динамик</div></div>
-                <div class="call-btn-group"><button class="call-btn-circle ${isCallMicMuted ? 'white' : 'translucent'}" onclick="toggleCallMic()"><span class="material-symbols-outlined">${isCallMicMuted ? 'mic_off' : 'mic'}</span></button><div class="call-btn-label">${isCallMicMuted ? 'Вкл. звук' : 'Выкл. звук'}</div></div>
-                <div class="call-btn-group"><button class="call-btn-circle red" onclick="endCall()"><span class="material-symbols-outlined">call_end</span></button><div class="call-btn-label">Завершить</div></div>
-            `;
-        } else {
-            controls.innerHTML = `
-                <div class="call-btn-group"><button class="call-btn-circle white" onclick="flipCamera()"><span class="material-symbols-outlined">flip_camera_ios</span></button><div class="call-btn-label">Повернуть</div></div>
-                <div class="call-btn-group"><button class="call-btn-circle ${isCallCamOff ? 'white' : 'dark'}" onclick="toggleCallCam(false)"><span class="material-symbols-outlined">${isCallCamOff ? 'videocam_off' : 'videocam'}</span></button><div class="call-btn-label">${isCallCamOff ? 'Вкл. видео' : 'Выкл. видео'}</div></div>
-                <div class="call-btn-group"><button class="call-btn-circle ${isCallMicMuted ? 'white' : 'dark'}" onclick="toggleCallMic()"><span class="material-symbols-outlined">${isCallMicMuted ? 'mic_off' : 'mic'}</span></button><div class="call-btn-label">${isCallMicMuted ? 'Вкл. звук' : 'Выкл. звук'}</div></div>
-                <div class="call-btn-group"><button class="call-btn-circle red" onclick="endCall()"><span class="material-symbols-outlined">call_end</span></button><div class="call-btn-label">Завершить</div></div>
-            `;
-        }
+        // UI как в Max: динамик · микрофон · видео · сброс
+        controls.innerHTML = `
+            <div class="call-btn-group"><button class="call-btn-circle ${isSpeakerOn ? 'white' : 'translucent'}" onclick="toggleCallSpeaker()"><span class="material-symbols-outlined">${isSpeakerOn ? 'volume_up' : 'volume_off'}</span></button></div>
+            <div class="call-btn-group"><button class="call-btn-circle ${isCallMicMuted ? 'white' : 'translucent'}" onclick="toggleCallMic()"><span class="material-symbols-outlined">${isCallMicMuted ? 'mic_off' : 'mic'}</span></button></div>
+            <div class="call-btn-group"><button class="call-btn-circle ${isCallCamOff || !currentCallIsVideo ? 'white' : 'translucent'}" onclick="toggleCallCam(false)"><span class="material-symbols-outlined">${(isCallCamOff || !currentCallIsVideo) ? 'videocam_off' : 'videocam'}</span></button></div>
+            <div class="call-btn-group"><button class="call-btn-circle red" onclick="endCall()"><span class="material-symbols-outlined">call_end</span></button></div>
+        `;
     }
 
     function listenForIncomingCalls() {
@@ -1736,15 +1893,15 @@
         currentCallId = callId; currentCallIsVideo = isVideoCall; const caller = db.users.find(u => u.id === callerId);
         applyCallBackground(); 
         document.getElementById('callAvatar').innerHTML = getAvatarHtml(caller.avatarType, caller.avatarValue); document.getElementById('callName').textContent = caller.name; document.getElementById('callNameSmall').textContent = caller.name; document.getElementById('minCallInfo').textContent = `${caller.name} · Ожидание...`;
-        setCallStatusText('Входящий вызов...'); isCallMicMuted = false; isCallCamOff = false; isSpeakerOn = true;
+        setCallStatusText(t('call_incoming')); isCallMicMuted = false; isCallCamOff = false; isSpeakerOn = true;
         const overlay = document.getElementById('callOverlay'); 
         overlay.classList.remove('closing');
         overlay.classList.add('active'); 
         document.getElementById('minimizedCallBar').style.display = 'none';
         document.getElementById('callCenterArea').style.display = 'flex'; document.getElementById('callTopCenter').style.display = 'none';
         document.getElementById('callControls').innerHTML = `
-            <div class="call-btn-group"><button class="call-btn-circle" style="background: var(--online); color: white;" onclick="acceptCall(${currentCallIsVideo})"><span class="material-symbols-outlined">${currentCallIsVideo ? 'videocam' : 'call'}</span></button><div class="call-btn-label">Принять</div></div>
-            <div class="call-btn-group"><button class="call-btn-circle red" onclick="endCall()"><span class="material-symbols-outlined">call_end</span></button><div class="call-btn-label">Отклонить</div></div>
+            <div class="call-btn-group"><button class="call-btn-circle" style="background:#30d158;color:#fff;" onclick="acceptCall(${currentCallIsVideo})"><span class="material-symbols-outlined">${currentCallIsVideo ? 'videocam' : 'call'}</span></button></div>
+            <div class="call-btn-group"><button class="call-btn-circle red" onclick="endCall()"><span class="material-symbols-outlined">call_end</span></button></div>
         `;
         document.getElementById('localVideo').style.display = 'none'; document.getElementById('remoteVideo').classList.remove('active-video');
         
@@ -1806,14 +1963,52 @@
 
     async function attachLocalMediaToPeer(stream) {
         if (!peerConnection || !stream) return;
-        const senders = peerConnection.getSenders();
         for (const track of stream.getTracks()) {
-            const sender = senders.find(s => s.track && s.track.kind === track.kind);
+            // Ищем sender нужного kind, в т.ч. с track === null (после addTransceiver)
+            let sender = peerConnection.getSenders().find(s => s.track && s.track.kind === track.kind);
+            if (!sender) {
+                const tr = peerConnection.getTransceivers().find(tr => {
+                    if (tr.sender.track && tr.sender.track.kind === track.kind) return true;
+                    if (!tr.sender.track) {
+                        const rk = tr.receiver && tr.receiver.track && tr.receiver.track.kind;
+                        if (rk === track.kind) return true;
+                        // пустой transceiver того же направления
+                        if (!tr.receiver.track && tr.direction && tr.direction.indexOf('send') !== -1) {
+                            // берём первый свободный подходящий по порядку
+                            return !peerConnection.getSenders().some(s => s !== tr.sender && s.track && s.track.kind === track.kind);
+                        }
+                    }
+                    return false;
+                });
+                if (tr) sender = tr.sender;
+            }
+            if (!sender) {
+                sender = peerConnection.getSenders().find(s => !s.track);
+            }
             if (sender) {
-                await sender.replaceTrack(track);
+                try { await sender.replaceTrack(track); } catch (e) { console.warn('replaceTrack', e); peerConnection.addTrack(track, stream); }
             } else {
                 peerConnection.addTrack(track, stream);
             }
+        }
+    }
+
+    // Очередь ICE, пока remote description ещё не установлен
+    let pendingIceCandidates = [];
+    async function addIceSafe(candidate) {
+        if (!peerConnection || !candidate) return;
+        try {
+            if (peerConnection.remoteDescription && peerConnection.remoteDescription.type) {
+                await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+            } else {
+                pendingIceCandidates.push(candidate);
+            }
+        } catch (e) { console.warn('ICE add', e); }
+    }
+    async function flushPendingIce() {
+        const list = pendingIceCandidates.splice(0);
+        for (const c of list) {
+            try { await peerConnection.addIceCandidate(new RTCIceCandidate(c)); } catch (e) { console.warn(e); }
         }
     }
 
@@ -1831,7 +2026,7 @@
         document.getElementById('callName').textContent = targetUser.name;
         document.getElementById('callNameSmall').textContent = targetUser.name;
         document.getElementById('minCallInfo').textContent = targetUser.name + ' · Ожидание...';
-        setCallStatusText('Вызов...');
+        setCallStatusText(t('call_calling'));
         isCallMicMuted = false; isCallCamOff = false; isSpeakerOn = true;
 
         const overlay = document.getElementById('callOverlay');
@@ -1843,6 +2038,7 @@
 
         try {
             // Микрофон/камеру НЕ включаем пока собеседник не ответит
+            pendingIceCandidates = [];
             peerConnection = new RTCPeerConnection(rtcConfig);
             peerConnection.addTransceiver('audio', { direction: 'sendrecv' });
             if (isVideo) peerConnection.addTransceiver('video', { direction: 'sendrecv' });
@@ -1868,7 +2064,7 @@
             callRef = rtdb.ref(`/dg_calls/${currentCallId}`);
             callRef.on('value', async snap => {
                 const data = snap.val();
-                if (!data) return cleanupCall();
+                if (!data) return; // не рвём звонок на кратковременный null
 
                 if (data.status === 'ended' || data.status === 'declined' || data.status === 'missed') {
                     cleanupCall();
@@ -1883,23 +2079,26 @@
                 if (data.answer && !isAnswerProcessed) {
                     isAnswerProcessed = true;
                     stopAllRingtones();
-                    setCallStatusText('Подключение...');
+                    setCallStatusText(t('call_connecting'));
                     try {
-                        // Только после ответа — включаем микрофон/камеру
+                        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+                        await flushPendingIce();
+                        // Микрофон только после ответа собеседника
                         localStream = await acquireCallMedia(currentCallIsVideo);
                         await attachLocalMediaToPeer(localStream);
-                        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
-                        setCallStatusText('Разговор (0:00)');
+                        setCallStatusText(t('call_talking') + ' (0:00)');
                         startCallTimer();
+                        renderCallControls();
                     } catch (err) {
-                        showToast('Не удалось включить микрофон: ' + err.message);
+                        console.error(err);
+                        showToast(t('call_mic_error') + ': ' + err.message);
                         endCall();
                     }
                 }
             });
 
             rtdb.ref(`/dg_calls/${currentCallId}/calleeIce`).on('child_added', snap => {
-                if (snap.val() && peerConnection) peerConnection.addIceCandidate(new RTCIceCandidate(snap.val())).catch(e => console.warn(e));
+                if (snap.val()) addIceSafe(snap.val());
             });
 
         } catch (e) {
@@ -1913,7 +2112,7 @@
         unlockAudioContext();
         stopAllRingtones();
         currentCallIsVideo = isVideo;
-        setCallStatusText('Соединение...');
+        setCallStatusText(t('call_connecting'));
         isCallMicMuted = false; isCallCamOff = false; isSpeakerOn = true;
         renderCallControls();
 
@@ -1933,7 +2132,9 @@
             const callData = callSnap.val();
             if (!callData || !callData.offer) throw new Error('Звонок уже завершён');
 
+            pendingIceCandidates = [];
             await peerConnection.setRemoteDescription(new RTCSessionDescription(callData.offer));
+            await flushPendingIce();
             const answer = await peerConnection.createAnswer();
             await peerConnection.setLocalDescription(answer);
 
@@ -1943,17 +2144,18 @@
             });
             await rtdb.ref(`/dg_user_calls/${me.id}`).remove();
 
-            setCallStatusText('Разговор (0:00)');
+            setCallStatusText(t('call_talking') + ' (0:00)');
             startCallTimer();
 
             callRef = rtdb.ref(`/dg_calls/${currentCallId}`);
             callRef.on('value', snap => {
                 const data = snap.val();
-                if (!data || data.status === 'ended' || data.status === 'declined' || data.status === 'missed') return cleanupCall();
+                if (!data) return;
+                if (data.status === 'ended' || data.status === 'declined' || data.status === 'missed') cleanupCall();
             });
 
             rtdb.ref(`/dg_calls/${currentCallId}/callerIce`).on('child_added', snap => {
-                if (snap.val() && peerConnection) peerConnection.addIceCandidate(new RTCIceCandidate(snap.val())).catch(e => console.warn(e));
+                if (snap.val()) addIceSafe(snap.val());
             });
 
         } catch (e) {
