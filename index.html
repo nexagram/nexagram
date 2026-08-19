@@ -1506,13 +1506,14 @@
     const githubProvider = new firebase.auth.GithubAuthProvider();
     // Добавляем scopes для лучшей совместимости
 
-    // === Email OTP (код вместо ссылки Firebase) ===
-    // Опционально: https://www.emailjs.com — Public Key / Service / Template
-    // В шаблоне EmailJS используйте переменные: {{to_email}}, {{code}}, {{app_name}}
-    const EMAILJS_CFG = {
-        publicKey: '',   // например: 'xxxxxx'
-        serviceId: '',   // например: 'service_xxx'
-        templateId: ''   // например: 'template_xxx'
+    // === Email OTP через Resend (свой домен, не личный Gmail) ===
+    // 1) resend.com → Domains → Verify nexagram.site
+    // 2) API Keys → ключ ниже
+    // 3) from должен быть на подтверждённом домене
+    const RESEND_CFG = {
+        apiKey: 're_XnsFc7Fd_EayFbm47cZVDb5cATMTnvEE4',
+        from: 'Nexagram <noreply@nexagram.site>',  // после Verify домена; иначе временно: 'Nexagram <onboarding@resend.dev>'
+        replyTo: 'noreply@nexagram.site'
     };
     let pendingEmailVerify = null; // { uid, email, mode: 'register'|'link'|'login' }
 
@@ -1592,42 +1593,71 @@
         pendingEmailVerify = { uid: uid || '', email: email, mode: mode || 'register' };
 
         let sent = false;
-        // 1) EmailJS если настроен
+        let sendErr = '';
+        // Resend API — письма с вашего домена (noreply@nexagram.site)
         try {
-            if (window.emailjs && EMAILJS_CFG.publicKey && EMAILJS_CFG.serviceId && EMAILJS_CFG.templateId) {
-                emailjs.init({ publicKey: EMAILJS_CFG.publicKey });
-                await emailjs.send(EMAILJS_CFG.serviceId, EMAILJS_CFG.templateId, {
-                    to_email: email,
-                    email: email,
-                    code: code,
-                    app_name: 'Nexagram'
-                });
-                sent = true;
-            }
-        } catch (e) { console.warn('EmailJS', e); }
-
-        // 2) FormSubmit (бесплатно, первый раз нужно подтвердить почту один раз по письму formsubmit)
-        if (!sent) {
-            try {
-                const resp = await fetch('https://formsubmit.co/ajax/' + encodeURIComponent(email), {
+            if (RESEND_CFG.apiKey && RESEND_CFG.apiKey.indexOf('re_') === 0) {
+                const resp = await fetch('https://api.resend.com/emails', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    headers: {
+                        'Authorization': 'Bearer ' + RESEND_CFG.apiKey,
+                        'Content-Type': 'application/json'
+                    },
                     body: JSON.stringify({
-                        _subject: 'Nexagram — код подтверждения',
-                        message: 'Ваш код подтверждения Nexagram: ' + code + '\n\nКод действует 15 минут.\nЕсли это были не вы — просто игнорируйте письмо.',
-                        _template: 'box',
-                        _captcha: 'false'
+                        from: RESEND_CFG.from || 'Nexagram <onboarding@resend.dev>',
+                        to: [email],
+                        subject: 'Nexagram — код подтверждения',
+                        html: '<div style="font-family:system-ui,sans-serif;max-width:420px;margin:0 auto;padding:24px">'
+                            + '<h2 style="margin:0 0 12px">Nexagram</h2>'
+                            + '<p style="color:#444;margin:0 0 16px">Ваш код подтверждения:</p>'
+                            + '<div style="font-size:32px;font-weight:800;letter-spacing:10px;background:#f4f4f5;padding:16px 20px;border-radius:12px;text-align:center">'
+                            + code + '</div>'
+                            + '<p style="color:#888;font-size:13px;margin:16px 0 0">Код действует 15 минут. Если это были не вы — просто игнорируйте письмо.</p>'
+                            + '</div>',
+                        text: 'Ваш код Nexagram: ' + code + '\n\nДействует 15 минут.'
                     })
                 });
-                if (resp.ok) sent = true;
-            } catch (e) { console.warn('FormSubmit', e); }
+                const data = await resp.json().catch(() => ({}));
+                if (resp.ok) {
+                    sent = true;
+                } else {
+                    sendErr = (data && (data.message || data.error)) || ('HTTP ' + resp.status);
+                    console.warn('Resend error', data);
+                    // если домен ещё не верифицирован — пробуем тестовый отправитель Resend
+                    if (!sent && String(sendErr).toLowerCase().indexOf('domain') !== -1) {
+                        const resp2 = await fetch('https://api.resend.com/emails', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': 'Bearer ' + RESEND_CFG.apiKey,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                from: 'Nexagram <onboarding@resend.dev>',
+                                to: [email],
+                                subject: 'Nexagram — код подтверждения',
+                                html: '<p>Ваш код: <b style="font-size:24px">' + code + '</b></p><p>Действует 15 минут.</p>',
+                                text: 'Ваш код Nexagram: ' + code
+                            })
+                        });
+                        if (resp2.ok) sent = true;
+                        else {
+                            const d2 = await resp2.json().catch(() => ({}));
+                            sendErr = (d2 && d2.message) || sendErr;
+                        }
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('Resend', e);
+            sendErr = e.message || String(e);
         }
 
-        if (!sent) {
-            // запасной вариант — показать код на экране (чтобы не блокировать регистрацию без SMTP)
-            console.log('OTP for', email, code);
-            alert('Не удалось отправить письмо автоматически.\nВаш код подтверждения:\n\n' + code + '\n\n(Действует 15 минут)\n\nЧтобы письма уходили сами — настройте EmailJS в коде (EMAILJS_CFG).');
-        }
+        pendingEmailVerify = pendingEmailVerify || { uid: uid || '', email: email, mode: mode || 'register' };
+        pendingEmailVerify._code = code;
+        pendingEmailVerify.emailSent = sent;
+        // если письмо ушло — код в UI не светим; если нет — показываем на экране
+        pendingEmailVerify.codePreview = sent ? null : code;
+        if (!sent && sendErr) console.warn('Email not sent:', sendErr);
         return true;
     }
 
@@ -1635,7 +1665,19 @@
         const modal = document.getElementById('emailCodeModal');
         const input = document.getElementById('emailCodeInput');
         const hintEl = document.getElementById('emailCodeHint');
-        if (hintEl && hint) hintEl.textContent = hint;
+        const sent = pendingEmailVerify && pendingEmailVerify.emailSent;
+        const code = pendingEmailVerify && (pendingEmailVerify.codePreview || (!sent && pendingEmailVerify._code));
+        let text = hint || 'Введите 6-значный код из письма.';
+        if (hintEl) {
+            hintEl.style.whiteSpace = 'pre-line';
+            if (sent && !code) {
+                hintEl.innerHTML = (hint || 'Код отправлен на почту') + '<br><br><span style="font-size:13px;opacity:.85">Проверьте <b>Входящие</b> и <b>Спам</b>. Письмо от Nexagram, код действует 15 минут.</span>';
+            } else if (code) {
+                hintEl.innerHTML = (hint || 'Подтверждение') + '<br><br><span style="display:inline-block;font-size:28px;font-weight:800;letter-spacing:8px;color:var(--p);background:var(--in);padding:12px 18px;border-radius:12px;">' + code + '</span><br><br><span style="font-size:13px;opacity:.8">Письмо не отправилось — код на экране. Действует 15 минут.</span>';
+            } else {
+                hintEl.textContent = text;
+            }
+        }
         if (input) input.value = '';
         if (modal) modal.classList.add('active');
         setTimeout(() => { try { input && input.focus(); } catch(_){} }, 200);
@@ -2060,7 +2102,7 @@
         if (loader) { loader.style.opacity = '0'; setTimeout(() => loader.style.display = 'none', 300); }
         document.getElementById('app').style.display = 'none';
         document.getElementById('authScreen').style.display = 'flex';
-        alert("Ошибка подключения к серверу: " + (error.message || error));
+        alert("Ошибка подключения к серверу: " + (error.message || error) + (String(error.message||'').indexOf('permission')>=0 ? "\n\nОткройте Firebase → Realtime Database → Rules и разрешите чтение dg_app_data (см. инструкцию)." : ""));
     });
 
     async function requestNotifications() { 
@@ -2891,17 +2933,10 @@
                 const userCred = await firebase.auth().signInWithEmailAndPassword(loginLower, passwordVal);
                 
                 let user = db.users.find(u => u.email === loginLower || u.firebaseUid === userCred.user.uid);
-                const emailOk = !!(user && user.emailOk) || !!(userCred.user.emailVerified);
-                if (!emailOk) {
+                if (user && user.emailOk === false) {
                     hideLoader();
-                    // вместо ссылки Firebase — наш код
-                    try {
-                        await sendAppEmailCode(loginLower, userCred.user.uid, 'login');
-                        openEmailCodeModal('Почта не подтверждена. Мы отправили 6-значный код на ' + loginLower);
-                    } catch (e) {
-                        await firebase.auth().signOut();
-                        return showToast('Не удалось отправить код: ' + (e.message || e));
-                    }
+                    await sendAppEmailCode(loginLower, userCred.user.uid, 'login');
+                    openEmailCodeModal('Подтвердите почту: введите код, который показан ниже.');
                     return;
                 }
 
@@ -3002,14 +3037,18 @@
                         }
                     }
                 }
-                document.getElementById('loader').style.opacity = '0'; setTimeout(()=>document.getElementById('loader').style.display='none', 300);
+                // код только в приложении (без EmailJS / без твоей почты как отправителя)
+                user.emailOk = false;
                 try {
-                    await sendAppEmailCode(loginLower, fUser.uid, 'register');
-                } catch (otpErr) {
-                    console.warn(otpErr);
-                    showToast('Код сохранён локально. Проверьте письмо или всплывающий код.');
-                }
-                openEmailCodeModal('Регистрация почти готова. Введите 6-значный код, отправленный на ' + loginLower);
+                    const uIdx = db.users.findIndex(u => u.id === user.id);
+                    if (uIdx > -1) {
+                        db.users[uIdx].emailOk = false;
+                        await rtdb.ref('/dg_app_data/users/' + uIdx + '/emailOk').set(false);
+                    }
+                } catch (_) {}
+                document.getElementById('loader').style.opacity = '0'; setTimeout(()=>document.getElementById('loader').style.display='none', 300);
+                await sendAppEmailCode(loginLower, fUser.uid, 'register');
+                openEmailCodeModal('Ваш код подтверждения показан ниже. Введите его, чтобы завершить регистрацию.');
             } catch (error) { document.getElementById('loader').style.opacity = '0'; setTimeout(()=>document.getElementById('loader').style.display='none', 300); return showToast('Ошибка: ' + error.message); }
         } else {
             me = { id: 'u_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6), login: loginLower, name: loginVal, avatarType: 'emoji', avatarValue: builtInAvatars[Math.floor(Math.random() * builtInAvatars.length)], friends: [], friendRequests: [], password: hashString(passwordVal), secretWord: hashString(secretVal), lastSeen: Date.now(), isBanned: false };
@@ -4499,10 +4538,8 @@
 
             document.getElementById('loader').style.opacity = '0';
             setTimeout(() => document.getElementById('loader').style.display = 'none', 300);
-
-            try { await sendAppEmailCode(emailLower, me.firebaseUid, 'link'); }
-            catch (oe) { console.warn(oe); }
-            openEmailCodeModal('Код подтверждения отправлен на ' + emailLower + '. После ввода кода можно входить по Email и паролю.');
+            await sendAppEmailCode(emailLower, me.firebaseUid, 'link');
+            openEmailCodeModal('Почта почти привязана. Введите код, который показан ниже.');
         } catch (error) {
             document.getElementById('loader').style.opacity = '0';
             setTimeout(() => document.getElementById('loader').style.display = 'none', 300);
