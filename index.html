@@ -900,6 +900,19 @@
     </div>
 </div>
 
+<div id="emailCodeModal" class="modal">
+    <div class="modal-content" style="max-width:360px;">
+        <h3 style="margin-bottom:8px;">Подтверждение почты</h3>
+        <p id="emailCodeHint" style="color:var(--mut);font-size:14px;margin-bottom:16px;line-height:1.4;">Мы отправили 6-значный код на вашу почту. Введите его ниже.</p>
+        <div class="input-group">
+            <label>Код из письма</label>
+            <input type="text" id="emailCodeInput" class="auth-input" inputmode="numeric" maxlength="6" placeholder="000000" style="letter-spacing:8px;font-size:22px;text-align:center;font-weight:700;">
+        </div>
+        <button class="auth-btn" onclick="confirmEmailCode()">Подтвердить</button>
+        <button class="auth-btn" style="background:var(--in);color:var(--txt);margin-top:10px;" onclick="resendEmailCode()">Отправить код ещё раз</button>
+        <div class="auth-switch" style="margin-top:12px;" onclick="closeEmailCodeModal()">Отмена</div>
+    </div>
+</div>
 <div id="forgotModal" class="modal">
     <div class="modal-content">
         <h3>Восстановление</h3>
@@ -1031,6 +1044,7 @@
     <div class="call-actions-row" id="callControls"></div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
@@ -1491,6 +1505,146 @@
     const googleProvider = new firebase.auth.GoogleAuthProvider();
     const githubProvider = new firebase.auth.GithubAuthProvider();
     // Добавляем scopes для лучшей совместимости
+
+    // === Email OTP (код вместо ссылки Firebase) ===
+    // Опционально: https://www.emailjs.com — Public Key / Service / Template
+    // В шаблоне EmailJS используйте переменные: {{to_email}}, {{code}}, {{app_name}}
+    const EMAILJS_CFG = {
+        publicKey: '',   // например: 'xxxxxx'
+        serviceId: '',   // например: 'service_xxx'
+        templateId: ''   // например: 'template_xxx'
+    };
+    let pendingEmailVerify = null; // { uid, email, mode: 'register'|'link'|'login' }
+
+    function emailOtpPath(email) {
+        return '/dg_email_otp/' + String(email).toLowerCase().replace(/[.#$\[\]/]/g, '_');
+    }
+
+    async function sendAppEmailCode(email, uid, mode) {
+        email = String(email).toLowerCase().trim();
+        const code = String(Math.floor(100000 + Math.random() * 900000));
+        const payload = {
+            code: code,
+            email: email,
+            uid: uid || '',
+            mode: mode || 'register',
+            expires: Date.now() + 15 * 60 * 1000,
+            attempts: 0
+        };
+        await rtdb.ref(emailOtpPath(email)).set(payload);
+        pendingEmailVerify = { uid: uid || '', email: email, mode: mode || 'register' };
+
+        let sent = false;
+        // 1) EmailJS если настроен
+        try {
+            if (window.emailjs && EMAILJS_CFG.publicKey && EMAILJS_CFG.serviceId && EMAILJS_CFG.templateId) {
+                emailjs.init({ publicKey: EMAILJS_CFG.publicKey });
+                await emailjs.send(EMAILJS_CFG.serviceId, EMAILJS_CFG.templateId, {
+                    to_email: email,
+                    email: email,
+                    code: code,
+                    app_name: 'Nexagram'
+                });
+                sent = true;
+            }
+        } catch (e) { console.warn('EmailJS', e); }
+
+        // 2) FormSubmit (бесплатно, первый раз нужно подтвердить почту один раз по письму formsubmit)
+        if (!sent) {
+            try {
+                const resp = await fetch('https://formsubmit.co/ajax/' + encodeURIComponent(email), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify({
+                        _subject: 'Nexagram — код подтверждения',
+                        message: 'Ваш код подтверждения Nexagram: ' + code + '\n\nКод действует 15 минут.\nЕсли это были не вы — просто игнорируйте письмо.',
+                        _template: 'box',
+                        _captcha: 'false'
+                    })
+                });
+                if (resp.ok) sent = true;
+            } catch (e) { console.warn('FormSubmit', e); }
+        }
+
+        if (!sent) {
+            // запасной вариант — показать код на экране (чтобы не блокировать регистрацию без SMTP)
+            console.log('OTP for', email, code);
+            alert('Не удалось отправить письмо автоматически.\nВаш код подтверждения:\n\n' + code + '\n\n(Действует 15 минут)\n\nЧтобы письма уходили сами — настройте EmailJS в коде (EMAILJS_CFG).');
+        }
+        return true;
+    }
+
+    function openEmailCodeModal(hint) {
+        const modal = document.getElementById('emailCodeModal');
+        const input = document.getElementById('emailCodeInput');
+        const hintEl = document.getElementById('emailCodeHint');
+        if (hintEl && hint) hintEl.textContent = hint;
+        if (input) input.value = '';
+        if (modal) modal.classList.add('active');
+        setTimeout(() => { try { input && input.focus(); } catch(_){} }, 200);
+    }
+    function closeEmailCodeModal() {
+        const modal = document.getElementById('emailCodeModal');
+        if (modal) modal.classList.remove('active');
+        pendingEmailVerify = null;
+    }
+
+    async function confirmEmailCode() {
+        if (!pendingEmailVerify) return showToast('Сначала запросите код');
+        const input = document.getElementById('emailCodeInput');
+        const code = (input && input.value || '').replace(/\D/g, '');
+        if (code.length !== 6) return showToast('Введите 6 цифр');
+        try {
+            showLoader && showLoader();
+            const snap = await rtdb.ref(emailOtpPath(pendingEmailVerify.email)).once('value');
+            const data = snap.val();
+            if (!data) { hideLoader && hideLoader(); return showToast('Код не найден. Запросите новый.'); }
+            if (Date.now() > (data.expires || 0)) { hideLoader && hideLoader(); return showToast('Код истёк. Запросите новый.'); }
+            if ((data.attempts || 0) >= 8) { hideLoader && hideLoader(); return showToast('Слишком много попыток'); }
+            if (String(data.code) !== code) {
+                await rtdb.ref(emailOtpPath(pendingEmailVerify.email) + '/attempts').set((data.attempts || 0) + 1);
+                hideLoader && hideLoader();
+                return showToast('Неверный код');
+            }
+            // успех — помечаем почту подтверждённой в нашей базе
+            await rtdb.ref(emailOtpPath(pendingEmailVerify.email)).remove();
+            const email = pendingEmailVerify.email;
+            const uid = pendingEmailVerify.uid;
+            let user = db.users.find(u => (u.email && u.email === email) || (uid && u.firebaseUid === uid));
+            if (user) {
+                user.emailOk = true;
+                user.email = email;
+                if (uid) user.firebaseUid = uid;
+                const idx = db.users.findIndex(u => u.id === user.id);
+                if (idx > -1) {
+                    db.users[idx].emailOk = true;
+                    await rtdb.ref('/dg_app_data/users').set(db.users);
+                }
+            }
+            hideLoader && hideLoader();
+            const mode = pendingEmailVerify.mode;
+            closeEmailCodeModal();
+            showToast('Почта подтверждена!');
+            if (mode === 'register' || mode === 'login') {
+                if (user) proceedWithLogin(user);
+                else switchAuthTab('login');
+            }
+        } catch (e) {
+            hideLoader && hideLoader();
+            showToast('Ошибка: ' + (e.message || e));
+        }
+    }
+
+    async function resendEmailCode() {
+        if (!pendingEmailVerify) return showToast('Нет активного запроса');
+        try {
+            await sendAppEmailCode(pendingEmailVerify.email, pendingEmailVerify.uid, pendingEmailVerify.mode);
+            showToast('Код отправлен повторно');
+        } catch (e) {
+            showToast('Не удалось отправить: ' + (e.message || e));
+        }
+    }
+
     googleProvider.addScope('email');
     googleProvider.addScope('profile');
     githubProvider.addScope('user:email');
@@ -2679,13 +2833,21 @@
                 showLoader();
                 const userCred = await firebase.auth().signInWithEmailAndPassword(loginLower, passwordVal);
                 
-                if (!userCred.user.emailVerified) {
+                let user = db.users.find(u => u.email === loginLower || u.firebaseUid === userCred.user.uid);
+                const emailOk = !!(user && user.emailOk) || !!(userCred.user.emailVerified);
+                if (!emailOk) {
                     hideLoader();
-                    await firebase.auth().signOut();
-                    return alert('❌ Ваша почта еще не подтверждена!\n\nПроверьте папку Спам и перейдите по ссылке в письме от Firebase.');
+                    // вместо ссылки Firebase — наш код
+                    try {
+                        await sendAppEmailCode(loginLower, userCred.user.uid, 'login');
+                        openEmailCodeModal('Почта не подтверждена. Мы отправили 6-значный код на ' + loginLower);
+                    } catch (e) {
+                        await firebase.auth().signOut();
+                        return showToast('Не удалось отправить код: ' + (e.message || e));
+                    }
+                    return;
                 }
 
-                let user = db.users.find(u => u.email === loginLower || u.firebaseUid === userCred.user.uid);
                 if (!user) {
                     // Автосоздание записи в RTDB, если в Firebase Auth есть, а в базе нет
                     let loginBase = loginLower.split('@')[0].replace(/[^a-z0-9_]/g, '') || 'user';
@@ -2766,18 +2928,14 @@
                 const userCred = await firebase.auth().createUserWithEmailAndPassword(loginLower, passwordVal);
                 const fUser = userCred.user;
                 
-                await fUser.sendEmailVerification();
-                
                 let user = db.users.find(u => u.email === loginLower);
                 if (!user) {
-                    user = { id: 'u_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6), login: customLogin, email: loginLower, name: customLogin, avatarType: 'emoji', avatarValue: builtInAvatars[Math.floor(Math.random() * builtInAvatars.length)], friends: [], friendRequests: [], password: hashString('firebase_auth'), secretWord: hashString(secretVal || 'firebase_auth'), lastSeen: Date.now(), isBanned: false, firebaseUid: fUser.uid };
+                    user = { id: 'u_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6), login: customLogin, email: loginLower, name: customLogin, avatarType: 'emoji', avatarValue: builtInAvatars[Math.floor(Math.random() * builtInAvatars.length)], friends: [], friendRequests: [], password: hashString('firebase_auth'), secretWord: hashString(secretVal || 'firebase_auth'), lastSeen: Date.now(), isBanned: false, firebaseUid: fUser.uid, emailOk: false };
                     db.users.push(user); await rtdb.ref('/dg_app_data/users').set(db.users);
                 }
                 document.getElementById('loader').style.opacity = '0'; setTimeout(()=>document.getElementById('loader').style.display='none', 300);
-                
-                await firebase.auth().signOut(); 
-                alert('✅ Успешно!\nПисьмо отправлено на почту. Подтвердите и войдите.');
-                switchAuthTab('login');
+                await sendAppEmailCode(loginLower, fUser.uid, 'register');
+                openEmailCodeModal('Регистрация почти готова. Введите 6-значный код, отправленный на ' + loginLower);
             } catch (error) { document.getElementById('loader').style.opacity = '0'; setTimeout(()=>document.getElementById('loader').style.display='none', 300); return showToast('Ошибка: ' + error.message); }
         } else {
             me = { id: 'u_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6), login: loginLower, name: loginVal, avatarType: 'emoji', avatarValue: builtInAvatars[Math.floor(Math.random() * builtInAvatars.length)], friends: [], friendRequests: [], password: hashString(passwordVal), secretWord: hashString(secretVal), lastSeen: Date.now(), isBanned: false };
@@ -4209,52 +4367,68 @@
 
     async function linkEmail() {
         if (!me) return;
-        const hasRealEmail = me.email && String(me.email).includes('@');
-        if (hasRealEmail) {
-            const change = confirm('Сейчас привязано:\n' + me.email + '\n\nПривязать другую почту? (старая останется в Firebase Auth)');
-            if (!change) return;
-        } else if (me.firebaseUid || me.googleUid) {
-            // Был вход через Google/GitHub без явной почты в профиле — можно привязать email
-            showToast('Можно привязать Email для входа по паролю');
-        }
-        const email = prompt("Введите Email для привязки:");
-        if (!email || !email.includes('@')) return showToast("Некорректный Email");
-        const pass = prompt("Придумайте пароль для входа по Email (минимум 6 символов):");
-        if (!pass || pass.length < 6) return showToast("Пароль слишком короткий");
+        const fUser = firebase.auth().currentUser;
+        const email = prompt('Введите Email для привязки:');
+        if (!email || !email.includes('@')) return showToast('Некорректный Email');
+        const pass = prompt('Придумайте пароль для входа по Email (минимум 6 символов):');
+        if (!pass || pass.length < 6) return showToast('Пароль слишком короткий (мин. 6)');
+        const emailLower = email.toLowerCase().trim();
         try {
             document.getElementById('loader').style.display = 'flex';
             setTimeout(() => document.getElementById('loader').style.opacity = '1', 10);
-            let cred;
-            try {
-                cred = await firebase.auth().createUserWithEmailAndPassword(email, pass);
-            } catch (e) {
-                // Если email уже есть в Firebase — пробуем войти и привязать uid
-                if (e.code === 'auth/email-already-in-use') {
-                    cred = await firebase.auth().signInWithEmailAndPassword(email, pass);
-                } else {
-                    throw e;
+
+            if (fUser) {
+                // Правильная привязка к ТЕКУЩЕМУ аккаунту (Google/GitHub/уже вошедший)
+                const credential = firebase.auth.EmailAuthProvider.credential(emailLower, pass);
+                try {
+                    await fUser.linkWithCredential(credential);
+                } catch (e) {
+                    if (e.code === 'auth/provider-already-linked') {
+                        // email/password уже есть у этого пользователя
+                    } else if (e.code === 'auth/credential-already-in-use' || e.code === 'auth/email-already-in-use') {
+                        throw new Error('Этот Email уже используется другим аккаунтом');
+                    } else if (e.code === 'auth/requires-recent-login') {
+                        throw new Error('Для безопасности войдите заново и повторите привязку');
+                    } else {
+                        throw e;
+                    }
                 }
+                me.firebaseUid = fUser.uid;
+            } else {
+                // Нет сессии Firebase — создаём email-аккаунт и привязываем uid к профилю
+                let cred;
+                try {
+                    cred = await firebase.auth().createUserWithEmailAndPassword(emailLower, pass);
+                } catch (e) {
+                    if (e.code === 'auth/email-already-in-use') {
+                        cred = await firebase.auth().signInWithEmailAndPassword(emailLower, pass);
+                    } else throw e;
+                }
+                me.firebaseUid = cred.user.uid;
             }
-            const newUid = cred.user.uid || '';
-            const newEmail = email.toLowerCase();
-            me.firebaseUid = newUid;
-            me.email = newEmail;
+
+            me.email = emailLower;
+            me.emailOk = false;
             const uIdx = db.users.findIndex(u => u.id === me.id);
             if (uIdx > -1) {
-                db.users[uIdx].firebaseUid = newUid;
-                db.users[uIdx].email = newEmail;
-                await rtdb.ref(`/dg_app_data/users/${uIdx}/firebaseUid`).set(newUid);
-                await rtdb.ref(`/dg_app_data/users/${uIdx}/email`).set(newEmail);
+                db.users[uIdx].email = emailLower;
+                db.users[uIdx].firebaseUid = me.firebaseUid;
+                db.users[uIdx].emailOk = false;
+                await rtdb.ref('/dg_app_data/users').set(db.users);
             }
+
             document.getElementById('loader').style.opacity = '0';
             setTimeout(() => document.getElementById('loader').style.display = 'none', 300);
-            showToast('Почта привязана: ' + newEmail);
+
+            await sendAppEmailCode(emailLower, me.firebaseUid, 'link');
+            openEmailCodeModal('Код подтверждения отправлен на ' + emailLower + '. После ввода кода можно входить по Email и паролю.');
         } catch (error) {
             document.getElementById('loader').style.opacity = '0';
             setTimeout(() => document.getElementById('loader').style.display = 'none', 300);
-            let msg = error.message || '';
-            if (error.code === 'auth/wrong-password') msg = 'Этот email уже зарегистрирован с другим паролем';
+            let msg = error.message || String(error);
+            if (error.code === 'auth/wrong-password') msg = 'Неверный пароль для этого Email';
             if (error.code === 'auth/weak-password') msg = 'Пароль слишком простой (мин. 6 символов)';
+            if (error.code === 'auth/invalid-email') msg = 'Некорректный Email';
             showToast('Ошибка привязки: ' + msg);
         }
     }
