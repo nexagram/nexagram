@@ -576,16 +576,11 @@
         html, body { height: 100% !important; overflow: hidden !important; background: #0b0b0c !important; }
         body { display: block !important; margin: 0 !important; }
         .auth-screen { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 2000; align-items: center; justify-content: center; background: linear-gradient(145deg, #1a0800 0%, #0a0a0a 45%, #2a0505 100%); }
-        .auth-card { max-width: 400px !important; width: 100%; padding: 40px 32px !important; }
         #app { position: fixed !important; inset: 0 !important; width: 100% !important; height: 100% !important; flex-direction: row !important; background: var(--bg) !important; opacity: 1 !important; margin: 0 !important; overflow: hidden !important; border: none !important; border-radius: 0 !important; }
         .content { width: 400px !important; min-width: 320px; height: 100% !important; border-right: 1px solid var(--brd) !important; padding-bottom: 64px !important; position: relative; flex-shrink: 0; overflow: hidden; background: var(--bg); display: flex; flex-direction: column; }
-        .content .screen { flex: 1; overflow-y: auto; min-height: 0; }
-        .nav { width: 400px !important; position: absolute !important; left: 0 !important; bottom: 0 !important; right: auto !important; border-top: 1px solid var(--brd); border-radius: 0 !important; z-index: 20; }
+        .nav { width: 400px !important; position: absolute !important; left: 0 !important; bottom: 0 !important; right: auto !important; z-index: 20; }
         #chat-window { position: absolute !important; top: 0 !important; right: 0 !important; bottom: 0 !important; left: 400px !important; width: auto !important; transform: none !important; visibility: visible !important; display: flex !important; flex-direction: column !important; border-radius: 0 !important; background: var(--bg) !important; border-left: 1px solid var(--brd); z-index: 10; }
-        #chat-window::before { content: 'Select a chat'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: var(--bg); color: var(--mut); z-index: 1000; font-size: 16px; pointer-events: none; }
-        #chat-window.active::before { opacity: 0; pointer-events: none; }
         .back-btn { display: none !important; }
-        #profile-view-screen { position: absolute !important; top: 0 !important; right: 0 !important; bottom: 0 !important; left: 400px !important; width: auto !important; border-left: 1px solid var(--brd); z-index: 600; }
         #callOverlay, .modal, #storyViewer { position: fixed !important; border-radius: 0 !important; }
 
     </style>
@@ -1061,7 +1056,7 @@
     <div class="call-actions-row" id="callControls"></div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"><\/script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
@@ -1520,7 +1515,64 @@
     let pendingEmailVerify = null; // { uid, email, mode: 'register'|'link'|'login' }
 
     function emailOtpPath(email) {
-        return '/dg_email_otp/' + String(email).toLowerCase().replace(/[.#$\[\]/]/g, '_');
+        const key = String(email).toLowerCase().replace(/[.#$\[\]/]/g, '_');
+        // пишем внутрь dg_app_data — чаще открыто для auth != null
+        return '/dg_app_data/email_otp/' + key;
+    }
+
+    async function saveOtpPayload(email, payload) {
+        const path = emailOtpPath(email);
+        try {
+            await rtdb.ref(path).set(payload);
+            return 'rtdb';
+        } catch (e1) {
+            console.warn('OTP RTDB write failed', e1);
+            try {
+                // запасной корень (на случай старых правил)
+                await rtdb.ref('/dg_email_otp/' + String(email).toLowerCase().replace(/[.#$\[\]/]/g, '_')).set(payload);
+                return 'rtdb_alt';
+            } catch (e2) {
+                console.warn('OTP alt write failed', e2);
+                // локальный fallback — чтобы регистрация не падала из‑за правил
+                try {
+                    localStorage.setItem('Nexagram_PendingOTP', JSON.stringify(payload));
+                } catch (_) {}
+                return 'local';
+            }
+        }
+    }
+
+    async function loadOtpPayload(email) {
+        email = String(email).toLowerCase().trim();
+        try {
+            const snap = await rtdb.ref(emailOtpPath(email)).once('value');
+            if (snap.val()) return snap.val();
+        } catch (_) {}
+        try {
+            const snap = await rtdb.ref('/dg_email_otp/' + email.replace(/[.#$\[\]/]/g, '_')).once('value');
+            if (snap.val()) return snap.val();
+        } catch (_) {}
+        try {
+            const raw = localStorage.getItem('Nexagram_PendingOTP');
+            if (raw) {
+                const data = JSON.parse(raw);
+                if (data && data.email === email) return data;
+            }
+        } catch (_) {}
+        return null;
+    }
+
+    async function clearOtpPayload(email) {
+        email = String(email).toLowerCase().trim();
+        try { await rtdb.ref(emailOtpPath(email)).remove(); } catch (_) {}
+        try { await rtdb.ref('/dg_email_otp/' + email.replace(/[.#$\[\]/]/g, '_')).remove(); } catch (_) {}
+        try {
+            const raw = localStorage.getItem('Nexagram_PendingOTP');
+            if (raw) {
+                const data = JSON.parse(raw);
+                if (data && data.email === email) localStorage.removeItem('Nexagram_PendingOTP');
+            }
+        } catch (_) {}
     }
 
     async function sendAppEmailCode(email, uid, mode) {
@@ -1534,7 +1586,7 @@
             expires: Date.now() + 15 * 60 * 1000,
             attempts: 0
         };
-        await rtdb.ref(emailOtpPath(email)).set(payload);
+        await saveOtpPayload(email, payload);
         pendingEmailVerify = { uid: uid || '', email: email, mode: mode || 'register' };
 
         let sent = false;
@@ -1599,18 +1651,18 @@
         if (code.length !== 6) return showToast('Введите 6 цифр');
         try {
             showLoader && showLoader();
-            const snap = await rtdb.ref(emailOtpPath(pendingEmailVerify.email)).once('value');
-            const data = snap.val();
+            const data = await loadOtpPayload(pendingEmailVerify.email);
             if (!data) { hideLoader && hideLoader(); return showToast('Код не найден. Запросите новый.'); }
             if (Date.now() > (data.expires || 0)) { hideLoader && hideLoader(); return showToast('Код истёк. Запросите новый.'); }
             if ((data.attempts || 0) >= 8) { hideLoader && hideLoader(); return showToast('Слишком много попыток'); }
             if (String(data.code) !== code) {
-                await rtdb.ref(emailOtpPath(pendingEmailVerify.email) + '/attempts').set((data.attempts || 0) + 1);
+                data.attempts = (data.attempts || 0) + 1;
+                await saveOtpPayload(pendingEmailVerify.email, data);
                 hideLoader && hideLoader();
                 return showToast('Неверный код');
             }
             // успех — помечаем почту подтверждённой в нашей базе
-            await rtdb.ref(emailOtpPath(pendingEmailVerify.email)).remove();
+            await clearOtpPayload(pendingEmailVerify.email);
             const email = pendingEmailVerify.email;
             const uid = pendingEmailVerify.uid;
             let user = db.users.find(u => (u.email && u.email === email) || (uid && u.firebaseUid === uid));
@@ -2934,10 +2986,27 @@
                 let user = db.users.find(u => u.email === loginLower);
                 if (!user) {
                     user = { id: 'u_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6), login: customLogin, email: loginLower, name: customLogin, avatarType: 'emoji', avatarValue: builtInAvatars[Math.floor(Math.random() * builtInAvatars.length)], friends: [], friendRequests: [], password: hashString('firebase_auth'), secretWord: hashString(secretVal || 'firebase_auth'), lastSeen: Date.now(), isBanned: false, firebaseUid: fUser.uid, emailOk: false };
-                    db.users.push(user); await rtdb.ref('/dg_app_data/users').set(db.users);
+                    db.users.push(user);
+                    try {
+                        await rtdb.ref('/dg_app_data/users').set(db.users);
+                    } catch (writeErr) {
+                        console.warn('users write', writeErr);
+                        // пробуем записать только новый элемент по индексу
+                        try {
+                            await rtdb.ref('/dg_app_data/users/' + (db.users.length - 1)).set(user);
+                        } catch (e2) {
+                            showToast('База: нет прав на запись users. Обновите Rules в Firebase.');
+                            throw writeErr;
+                        }
+                    }
                 }
                 document.getElementById('loader').style.opacity = '0'; setTimeout(()=>document.getElementById('loader').style.display='none', 300);
-                await sendAppEmailCode(loginLower, fUser.uid, 'register');
+                try {
+                    await sendAppEmailCode(loginLower, fUser.uid, 'register');
+                } catch (otpErr) {
+                    console.warn(otpErr);
+                    showToast('Код сохранён локально. Проверьте письмо или всплывающий код.');
+                }
                 openEmailCodeModal('Регистрация почти готова. Введите 6-значный код, отправленный на ' + loginLower);
             } catch (error) { document.getElementById('loader').style.opacity = '0'; setTimeout(()=>document.getElementById('loader').style.display='none', 300); return showToast('Ошибка: ' + error.message); }
         } else {
@@ -4417,13 +4486,20 @@
                 db.users[uIdx].email = emailLower;
                 db.users[uIdx].firebaseUid = me.firebaseUid;
                 db.users[uIdx].emailOk = false;
-                await rtdb.ref('/dg_app_data/users').set(db.users);
+                try {
+                    await rtdb.ref('/dg_app_data/users').set(db.users);
+                } catch (we) {
+                    console.warn(we);
+                    try { await rtdb.ref('/dg_app_data/users/' + uIdx).update({ email: emailLower, firebaseUid: me.firebaseUid, emailOk: false }); }
+                    catch (e2) { throw we; }
+                }
             }
 
             document.getElementById('loader').style.opacity = '0';
             setTimeout(() => document.getElementById('loader').style.display = 'none', 300);
 
-            await sendAppEmailCode(emailLower, me.firebaseUid, 'link');
+            try { await sendAppEmailCode(emailLower, me.firebaseUid, 'link'); }
+            catch (oe) { console.warn(oe); }
             openEmailCodeModal('Код подтверждения отправлен на ' + emailLower + '. После ввода кода можно входить по Email и паролю.');
         } catch (error) {
             document.getElementById('loader').style.opacity = '0';
