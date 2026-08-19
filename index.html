@@ -296,17 +296,68 @@
             text-align: center; color: white; margin-bottom: 140px; z-index: 5;
         }
 
-        @keyframes pulseRing { 0% { transform: scale(1); opacity: 0.6; } 100% { transform: scale(1.6); opacity: 0; } }
-        .call-avatar-container { position: relative; width: 150px; height: 150px; margin: 0 auto 30px; }
-        .call-avatar-ring-1, .call-avatar-ring-2 {
-            position: absolute; inset: -15px; border-radius: 50%; background: rgba(255,255,255,0.2); z-index: 0;
-            animation: pulseRing 2s infinite ease-out;
+        @keyframes pulseRing { 0% { transform: scale(1); opacity: 0.55; } 100% { transform: scale(1.55); opacity: 0; } }
+        .call-avatar-container {
+            position: relative; width: 160px; height: 160px; margin: 0 auto 28px;
+            --voice: 0;
         }
-        .call-avatar-ring-2 { animation-delay: 1s; }
+        .call-avatar-ring-1, .call-avatar-ring-2, .call-avatar-ring-3 {
+            position: absolute; border-radius: 50%; z-index: 0; pointer-events: none;
+            left: 50%; top: 50%; width: 100%; height: 100%;
+            transform: translate(-50%, -50%) scale(calc(1 + var(--voice) * 0.55));
+            opacity: calc(0.15 + var(--voice) * 0.55);
+            border: 2px solid rgba(255, 255, 255, 0.35);
+            box-shadow: 0 0 calc(8px + var(--voice) * 28px) rgba(120, 100, 255, calc(var(--voice) * 0.55));
+            transition: transform 0.08s linear, opacity 0.08s linear, box-shadow 0.08s linear;
+        }
+        .call-avatar-ring-1 {
+            border-color: rgba(140, 120, 255, 0.55);
+            animation: pulseRing 2.4s infinite ease-out;
+            animation-play-state: paused;
+        }
+        .call-avatar-ring-2 {
+            border-color: rgba(80, 160, 255, 0.4);
+            transform: translate(-50%, -50%) scale(calc(1.08 + var(--voice) * 0.75));
+            opacity: calc(0.08 + var(--voice) * 0.5);
+        }
+        .call-avatar-ring-3 {
+            border-color: rgba(255, 255, 255, 0.25);
+            transform: translate(-50%, -50%) scale(calc(1.16 + var(--voice) * 0.95));
+            opacity: calc(0.05 + var(--voice) * 0.4);
+        }
+        /* пока тихо — лёгкий idle-пульс */
+        .call-avatar-container:not(.voice-active) .call-avatar-ring-1 {
+            animation-play-state: running;
+            transform: translate(-50%, -50%);
+            opacity: 0.35;
+            border: none;
+            background: rgba(255,255,255,0.12);
+            box-shadow: none;
+            inset: -12px; left: auto; top: auto; width: auto; height: auto;
+        }
+        .call-avatar-container:not(.voice-active) .call-avatar-ring-2 {
+            animation: pulseRing 2.4s infinite ease-out;
+            animation-delay: 1.2s;
+            transform: translate(-50%, -50%);
+            opacity: 0.25;
+            border: none;
+            background: rgba(255,255,255,0.1);
+            box-shadow: none;
+            inset: -12px; left: auto; top: auto; width: auto; height: auto;
+        }
+        .call-avatar-container:not(.voice-active) .call-avatar-ring-3 { opacity: 0; }
+        .call-avatar-container.voice-active .call-avatar-ring-1,
+        .call-avatar-container.voice-active .call-avatar-ring-2 {
+            animation: none;
+            background: transparent;
+            inset: auto;
+        }
         .call-avatar-img {
             position: relative; width: 100%; height: 100%; border-radius: 50%; z-index: 1;
             display: flex; align-items: center; justify-content: center; font-size: 60px; overflow: hidden;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.3); background: var(--in);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.35), 0 0 calc(12px + var(--voice) * 24px) rgba(130, 110, 255, calc(var(--voice) * 0.45));
+            background: var(--in);
+            transition: box-shadow 0.08s linear;
         }
 
         .call-actions-row {
@@ -489,16 +540,17 @@
         #callOverlay .call-top-bar { padding: 12px 16px; align-items: center; }
         #callOverlay .call-top-bar .icon-btn { background: rgba(255,255,255,0.12); border-radius: 50%; width: 40px; height: 40px; }
         .call-center-area { flex-direction: column; align-items: center; justify-content: center; }
-        .call-avatar-container { width: 200px; height: 200px; margin: 24px auto 28px; }
+        .call-avatar-container { width: 200px; height: 200px; margin: 24px auto 28px; --voice: 0; }
         .call-avatar-img {
             width: 200px; height: 200px; border-radius: 50%; overflow: hidden;
-            box-shadow: 0 0 0 3px rgba(255,255,255,0.08), 0 0 60px 10px rgba(120, 80, 255, 0.45), 0 0 100px 20px rgba(60, 100, 255, 0.25);
+            box-shadow: 0 0 0 3px rgba(255,255,255,0.08),
+                0 0 calc(20px + var(--voice) * 50px) calc(4px + var(--voice) * 12px) rgba(120, 80, 255, calc(0.25 + var(--voice) * 0.45)),
+                0 0 calc(40px + var(--voice) * 70px) rgba(60, 100, 255, calc(0.12 + var(--voice) * 0.35));
             background: #1a1a1a; display: flex; align-items: center; justify-content: center; font-size: 64px;
+            transition: box-shadow 0.08s linear;
         }
         .call-avatar-img img { width: 100%; height: 100%; object-fit: cover; }
-        .call-avatar-ring-1, .call-avatar-ring-2 {
-            border-color: rgba(140, 100, 255, 0.35) !important;
-        }
+
         #callName { font-size: 28px !important; font-weight: 600 !important; color: #fff; margin-bottom: 6px !important; }
         #callStatus { font-size: 15px !important; color: rgba(255,255,255,0.65) !important; }
         .call-actions-row {
@@ -966,7 +1018,8 @@
     </div>
 
     <div class="call-center-area" id="callCenterArea">
-        <div class="call-avatar-container">
+        <div class="call-avatar-container" id="callAvatarContainer">
+            <div class="call-avatar-ring-3"></div>
             <div class="call-avatar-ring-2"></div>
             <div class="call-avatar-ring-1"></div>
             <div class="call-avatar-img" id="callAvatar"></div>
@@ -2289,6 +2342,72 @@
     }
 
     // === Обработка входящих треков (звук отдельно от видео — надёжнее) ===
+    // === Визуализация голоса вокруг авы ===
+    let voiceRaf = null;
+    let voiceAnalyser = null;
+    let voiceSource = null;
+    let voiceSmooth = 0;
+
+    function stopVoiceVisualizer() {
+        if (voiceRaf) { cancelAnimationFrame(voiceRaf); voiceRaf = null; }
+        try { if (voiceSource) voiceSource.disconnect(); } catch (_) {}
+        voiceSource = null;
+        voiceAnalyser = null;
+        voiceSmooth = 0;
+        const box = document.getElementById('callAvatarContainer');
+        if (box) {
+            box.style.setProperty('--voice', '0');
+            box.classList.remove('voice-active');
+        }
+    }
+
+    function startVoiceVisualizer(stream) {
+        stopVoiceVisualizer();
+        if (!stream) return;
+        try {
+            unlockAudioContext();
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+
+            voiceAnalyser = audioCtx.createAnalyser();
+            voiceAnalyser.fftSize = 256;
+            voiceAnalyser.smoothingTimeConstant = 0.7;
+            // клон треков, чтобы не ломать цепочку воспроизведения remoteAudio
+            const tracks = stream.getAudioTracks();
+            if (!tracks.length) return;
+            const analyseStream = new MediaStream(tracks.map(tr => tr.clone()));
+            voiceSource = audioCtx.createMediaStreamSource(analyseStream);
+            voiceSource.connect(voiceAnalyser);
+            // не подключаем к destination — только анализ, звук идёт через <audio>
+
+            const data = new Uint8Array(voiceAnalyser.frequencyBinCount);
+            const box = document.getElementById('callAvatarContainer');
+
+            const tick = () => {
+                voiceRaf = requestAnimationFrame(tick);
+                if (!voiceAnalyser) return;
+                voiceAnalyser.getByteFrequencyData(data);
+                // низкие+средние частоты — голос
+                let sum = 0;
+                const n = Math.min(40, data.length);
+                for (let i = 1; i < n; i++) sum += data[i];
+                let level = (sum / n) / 255;
+                // порог тишины + усиление
+                level = Math.max(0, (level - 0.04) * 2.2);
+                level = Math.min(1, level);
+                voiceSmooth = voiceSmooth * 0.65 + level * 0.35;
+                if (box) {
+                    box.style.setProperty('--voice', voiceSmooth.toFixed(3));
+                    if (voiceSmooth > 0.06) box.classList.add('voice-active');
+                    else box.classList.remove('voice-active');
+                }
+            };
+            tick();
+        } catch (e) {
+            console.warn('voice visualizer', e);
+        }
+    }
+
     function handleRemoteTrack(event) {
         const rVid = document.getElementById('remoteVideo');
         const rAud = document.getElementById('remoteAudio');
@@ -2312,15 +2431,15 @@
                 if (toast) { toast.style.display = 'block'; toast.classList.add('shake'); }
             });
             tryPlay();
-            // Повтор через 300мс на случай гонки autoplay
             setTimeout(tryPlay, 300);
+            // волна вокруг авы по голосу собеседника
+            startVoiceVisualizer(stream);
         } else if (track.kind === 'video') {
             let stream = (event.streams && event.streams[0]) ? event.streams[0] : null;
             if (!stream) {
                 stream = rVid.srcObject instanceof MediaStream ? rVid.srcObject : new MediaStream();
                 if (!stream.getVideoTracks().includes(track)) stream.addTrack(track);
             }
-            // Видео без звука (звук идёт через remoteAudio)
             rVid.srcObject = stream;
             rVid.muted = true;
             rVid.play().then(() => {
@@ -2351,13 +2470,13 @@
     function startCallTimer() { clearInterval(callInterval); callSeconds = 0; callInterval = setInterval(() => { callSeconds++; const m = Math.floor(callSeconds / 60); const s = (callSeconds % 60).toString().padStart(2, '0'); const timeStr = `${m}:${s}`; setCallStatusText(`Разговор (${timeStr})`); const name = document.getElementById('callNameSmall').textContent; document.getElementById('minCallInfo').textContent = `${name} · ${m.toString().padStart(2, '0')}:${s}`; }, 1000); }
     function cleanupCall() {
         clearInterval(callInterval);
+        stopVoiceVisualizer();
         if (localStream) localStream.getTracks().forEach(t => t.stop());
         if (peerConnection) peerConnection.close();
         peerConnection = null;
         localStream = null;
         if (callRef) callRef.off();
         currentCallId = null;
-        // Очищаем удалённые медиа
         const rVid = document.getElementById('remoteVideo');
         const rAud = document.getElementById('remoteAudio');
         if (rVid) { rVid.srcObject = null; rVid.classList.remove('active-video'); }
