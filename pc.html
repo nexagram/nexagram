@@ -2931,11 +2931,16 @@
                 const userCred = await firebase.auth().signInWithEmailAndPassword(loginLower, passwordVal);
                 
                 let user = db.users.find(u => u.email === loginLower || u.firebaseUid === userCred.user.uid);
-                if (user && user.emailOk === false) {
-                    hideLoader();
-                    await sendAppEmailCode(loginLower, userCred.user.uid, 'login');
-                    openEmailCodeModal('Подтвердите почту: введите код, который показан ниже.');
-                    return;
+                // не блокируем вход — подтверждение почты по желанию
+                if (user) {
+                    user.emailOk = !!(userCred.user.emailVerified);
+                    try {
+                        const uIdx = db.users.findIndex(u => u.id === user.id);
+                        if (uIdx > -1) {
+                            db.users[uIdx].emailOk = user.emailOk;
+                            rtdb.ref('/dg_app_data/users/' + uIdx + '/emailOk').set(user.emailOk);
+                        }
+                    } catch (_) {}
                 }
 
                 if (!user) {
@@ -3035,18 +3040,10 @@
                         }
                     }
                 }
-                // код только в приложении (без EmailJS / без твоей почты как отправителя)
-                user.emailOk = false;
-                try {
-                    const uIdx = db.users.findIndex(u => u.id === user.id);
-                    if (uIdx > -1) {
-                        db.users[uIdx].emailOk = false;
-                        await rtdb.ref('/dg_app_data/users/' + uIdx + '/emailOk').set(false);
-                    }
-                } catch (_) {}
+                try { await fUser.sendEmailVerification(); } catch (ve) { console.warn(ve); }
                 document.getElementById('loader').style.opacity = '0'; setTimeout(()=>document.getElementById('loader').style.display='none', 300);
-                await sendAppEmailCode(loginLower, fUser.uid, 'register');
-                openEmailCodeModal('Ваш код подтверждения показан ниже. Введите его, чтобы завершить регистрацию.');
+                showToast('Аккаунт создан');
+                proceedWithLogin(user);
             } catch (error) { document.getElementById('loader').style.opacity = '0'; setTimeout(()=>document.getElementById('loader').style.display='none', 300); return showToast('Ошибка: ' + error.message); }
         } else {
             me = { id: 'u_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6), login: loginLower, name: loginVal, avatarType: 'emoji', avatarValue: builtInAvatars[Math.floor(Math.random() * builtInAvatars.length)], friends: [], friendRequests: [], password: hashString(passwordVal), secretWord: hashString(secretVal), lastSeen: Date.now(), isBanned: false };
@@ -4536,8 +4533,11 @@
 
             document.getElementById('loader').style.opacity = '0';
             setTimeout(() => document.getElementById('loader').style.display = 'none', 300);
-            await sendAppEmailCode(emailLower, me.firebaseUid, 'link');
-            openEmailCodeModal('Почта почти привязана. Введите код, который показан ниже.');
+            try {
+                const cu = firebase.auth().currentUser;
+                if (cu && !cu.emailVerified) await cu.sendEmailVerification();
+            } catch (ve) { console.warn(ve); }
+            showToast('Почта привязана: ' + emailLower + '. Подтвердите её по ссылке из письма Firebase, если придёт.');
         } catch (error) {
             document.getElementById('loader').style.opacity = '0';
             setTimeout(() => document.getElementById('loader').style.display = 'none', 300);
