@@ -95,7 +95,24 @@
         .search-input:focus { background: var(--card); box-shadow: 0 0 0 1px var(--p); }
         .search-input::placeholder { color: var(--mut); }
         
-        .stories-container { display: flex; gap: 14px; padding: 12px 16px; overflow-x: auto; background: var(--bg); border-bottom: 1px solid var(--brd); scroll-behavior: smooth; }
+        .stories-container {
+            display: flex; gap: 12px; overflow-x: auto; padding: 10px 16px 6px;
+            max-height: 100px; opacity: 1;
+            transition: max-height 0.28s ease, opacity 0.22s ease, padding 0.28s ease, margin 0.28s ease;
+            scrollbar-width: none;
+        }
+        .stories-container::-webkit-scrollbar { display: none; }
+        #c-list { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        #chats-screen { display: flex; flex-direction: column; overflow: hidden; }
+        .stories-container.stories-collapsed {
+            max-height: 0 !important;
+            opacity: 0;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+            margin: 0 !important;
+            overflow: hidden;
+            pointer-events: none;
+        }
         .stories-container::-webkit-scrollbar { display: none; }
         .story-item { display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; flex-shrink: 0; width: 64px; position: relative; transition: transform 0.2s; }
         .story-item:active { transform: scale(0.9); opacity: 0.8; }
@@ -3202,7 +3219,7 @@
             appEl.style.display = 'flex';
             appEl.style.opacity = '1';
             if (localSettings.lightMode) { document.documentElement.setAttribute('data-theme', 'light'); document.getElementById('themeIcon').textContent = 'dark_mode'; } else { document.documentElement.removeAttribute('data-theme'); document.getElementById('themeIcon').textContent = 'light_mode'; }
-            applyTheme(localSettings.theme || 'orange'); updUI(); renderFriends(); renderChats(); renderStories(); renderCalls(); setupPresence(); listenForIncomingCalls(); updateNavBadges();
+            applyTheme(localSettings.theme || 'orange'); updUI(); renderFriends(); renderChats(); renderStories(); renderCalls(); setupPresence(); try { setStoriesCollapsed(true); } catch(e) {} listenForIncomingCalls(); updateNavBadges();
             document.getElementById('loginPassword').value = ''; document.getElementById('regPassword').value = ''; document.getElementById('regConfirm').value = '';
         }, 300);
     }
@@ -3247,6 +3264,79 @@
             try { firebase.auth().signOut(); } catch (_) {}
             showAuthScreen();
         }
+    }
+
+
+    // Истории: скрыты при входе; свайп/скролл вверх — показать, вниз — скрыть
+    let _storiesLastScrollTop = 0;
+    let _storiesScrollBound = false;
+    function setStoriesCollapsed(collapsed) {
+        const bar = document.getElementById('stories-bar');
+        if (!bar) return;
+        if (collapsed) bar.classList.add('stories-collapsed');
+        else bar.classList.remove('stories-collapsed');
+    }
+    function bindStoriesScroll() {
+        if (_storiesScrollBound) return;
+        const list = document.getElementById('c-list');
+        const chatsScreen = document.getElementById('chats-screen');
+        // скролл может быть на c-list или на content
+        const targets = [list, chatsScreen, document.querySelector('#chats-screen .content')].filter(Boolean);
+        // ищем реально скроллящийся элемент
+        let scroller = list;
+        if (chatsScreen) {
+            const style = window.getComputedStyle(chatsScreen);
+            if (chatsScreen.scrollHeight > chatsScreen.clientHeight) scroller = chatsScreen;
+        }
+        // часто список чатов внутри #c-list с overflow
+        const candidates = [];
+        if (list) candidates.push(list);
+        if (chatsScreen) candidates.push(chatsScreen);
+        const content = document.querySelector('#chats-screen');
+        if (content) candidates.push(content);
+        // parent of c-list
+        if (list && list.parentElement) candidates.push(list.parentElement);
+
+        function onScroll(e) {
+            const el = e.currentTarget || e.target;
+            const st = el.scrollTop || 0;
+            const delta = st - _storiesLastScrollTop;
+            if (st <= 8) {
+                setStoriesCollapsed(false);
+            } else if (delta > 4) {
+                setStoriesCollapsed(true);  // вниз — скрыть
+            } else if (delta < -4) {
+                setStoriesCollapsed(false); // вверх — показать
+            }
+            _storiesLastScrollTop = st;
+        }
+
+        candidates.forEach(el => {
+            if (!el || el._storiesBound) return;
+            el._storiesBound = true;
+            el.addEventListener('scroll', onScroll, { passive: true });
+        });
+        // touch swipe на области чатов (если скролл не на list)
+        if (chatsScreen && !chatsScreen._storiesTouch) {
+            chatsScreen._storiesTouch = true;
+            let startY = 0;
+            chatsScreen.addEventListener('touchstart', e => {
+                if (e.touches && e.touches[0]) startY = e.touches[0].clientY;
+            }, { passive: true });
+            chatsScreen.addEventListener('touchmove', e => {
+                if (!e.touches || !e.touches[0]) return;
+                const y = e.touches[0].clientY;
+                const dy = y - startY;
+                // палец вниз (контент уезжает вверх визуально для пользователя = скролл вниз) — скрыть
+                // На touch: движение пальца вверх = scroll down
+                if (dy < -12) setStoriesCollapsed(true);
+                else if (dy > 12) setStoriesCollapsed(false);
+                startY = y;
+            }, { passive: true });
+        }
+        _storiesScrollBound = true;
+        // при входе — скрыты
+        setStoriesCollapsed(true);
     }
 
     function renderStories() {
@@ -3299,6 +3389,7 @@
                 <div class="story-name">${escapeHtml((u.name || '').split(' ')[0])}</div></div>`;
         });
         container.innerHTML = html;
+        try { bindStoriesScroll(); } catch (e) {}
     }
 
     let _storyGalleryBlobs = [];
