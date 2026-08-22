@@ -1279,6 +1279,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
 
 <script>
     // === ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ ДЛЯ УВЕДОМЛЕНИЙ В ПРИЛОЖЕНИИ ===
@@ -1436,6 +1437,23 @@
                     const { title, options } = event.data;
                     self.registration.showNotification(title, options || {});
                 }
+            });
+            self.addEventListener('push', function(event) {
+                var data = {};
+                try { data = event.data ? event.data.json() : {}; } catch (e) {
+                    try { data = { body: event.data.text() }; } catch (e2) {}
+                }
+                var n = data.notification || data;
+                var title = n.title || data.title || 'Nexagram';
+                var body = n.body || data.body || '';
+                var options = {
+                    body: body,
+                    icon: n.icon || '/favicon.ico',
+                    badge: n.badge || '/favicon.ico',
+                    data: data.data || data,
+                    vibrate: [120, 60, 120]
+                };
+                event.waitUntil(self.registration.showNotification(title, options));
             });
         `;
         const swBlob = new Blob([swCode], { type: 'application/javascript' });
@@ -1756,6 +1774,14 @@
     };
 
     firebase.initializeApp(firebaseConfig);
+    const VAPID_KEY = 'BNZONTLOS8clfAbzbuLX7XdK-L3jxP9dOlWvJFVsZMswndsOImTtvnYViSDNa63vT4Z-E9DyZlbMSVh3cutcbNg';
+    let fcmMessaging = null;
+    try {
+        if (typeof firebase.messaging === 'function') {
+            fcmMessaging = firebase.messaging();
+        }
+    } catch (e) { console.warn('FCM', e); }
+
     const rtdb = firebase.database();
     const googleProvider = new firebase.auth.GoogleAuthProvider();
     const githubProvider = new firebase.auth.GithubAuthProvider();
@@ -2360,22 +2386,22 @@
         alert("Ошибка подключения к серверу: " + (error.message || error) + (String(error.message||'').indexOf('permission')>=0 ? "\n\nОткройте Firebase → Realtime Database → Rules и разрешите чтение dg_app_data (см. инструкцию)." : ""));
     });
 
-    async function requestNotifications() { 
+    async function requestNotifications() {
         if (!("Notification" in window)) {
             alert("Ваш браузер не поддерживает уведомления.");
             return;
         }
         try {
-            // На некоторых браузерах нужно сначала зарегистрировать SW
-            if ('serviceWorker' in navigator && !swRegistration) {
-                await navigator.serviceWorker.ready.catch(() => {});
+            if ('serviceWorker' in navigator) {
+                try { await navigator.serviceWorker.ready; } catch (_) {}
             }
             const permission = await Notification.requestPermission();
             if (permission === "granted") {
-                showAppNotification("Nexagram", "Уведомления успешно включены! 🔔");
                 showToast("Уведомления включены");
+                showAppNotification("Nexagram", "Уведомления успешно включены! 🔔");
+                await registerFcmToken();
             } else if (permission === "denied") {
-                alert("Уведомления заблокированы.\n\nОткройте настройки сайта в браузере и разрешите уведомления для nexagram.site");
+                alert("Уведомления заблокированы.\n\nОткройте настройки сайта в браузере и разрешите уведомления.");
             } else {
                 showToast("Разрешение не получено");
             }
@@ -2384,6 +2410,37 @@
             alert("Не удалось запросить уведомления: " + e.message);
         }
     }
+
+    async function registerFcmToken() {
+        if (!me) return;
+        try {
+            if (!fcmMessaging) {
+                try { fcmMessaging = firebase.messaging(); } catch (e) { console.warn(e); return; }
+            }
+            const opts = { vapidKey: VAPID_KEY };
+            if (swRegistration) opts.serviceWorkerRegistration = swRegistration;
+            const token = await fcmMessaging.getToken(opts);
+            if (!token) return;
+            me.fcmToken = token;
+            const uIdx = db.users.findIndex(u => u && u.id === me.id);
+            if (uIdx > -1) {
+                db.users[uIdx].fcmToken = token;
+                try { await rtdb.ref('/dg_app_data/users/' + uIdx + '/fcmToken').set(token); } catch (_) {}
+            }
+            try { await rtdb.ref('/dg_fcm_tokens/' + me.id).set({ token: token, updated: Date.now() }); } catch (_) {}
+            try {
+                fcmMessaging.onMessage((payload) => {
+                    const n = (payload && payload.notification) || {};
+                    showAppNotification(n.title || 'Nexagram', n.body || '');
+                    try { playNotificationSound(); } catch (_) {}
+                });
+            } catch (_) {}
+            console.log('FCM token OK');
+        } catch (e) {
+            console.warn('registerFcmToken', e);
+        }
+    }
+
 
     function markChatAsReadLocally() { if (!activeChat || !me) return; const chatIndex = db.chats.findIndex(c => c.id === activeChat.id); if (chatIndex > -1) { const currentRead = (activeChat.lastRead && activeChat.lastRead[me.id]) || 0; const lastMsg = activeChat.msgs && activeChat.msgs.length > 0 ? activeChat.msgs[activeChat.msgs.length - 1] : null; if (!lastMsg || currentRead >= lastMsg.time) return; rtdb.ref(`/dg_app_data/chats/${chatIndex}/lastRead/${me.id}`).set(Date.now()); } }
 
@@ -2757,12 +2814,29 @@
             });
             await rtdb.ref(`/dg_user_calls/${targetUserId}`).set(currentCallId);
 
+            // Таймаут ожидания ответа — 20 секунд
+            if (window._callAnswerTimer) { clearTimeout(window._callAnswerTimer); }
+            const callIdForTimeout = currentCallId;
+            window._callAnswerTimer = setTimeout(async () => {
+                try {
+                    if (!currentCallId || currentCallId !== callIdForTimeout) return;
+                    const snap = await rtdb.ref('/dg_calls/' + callIdForTimeout).once('value');
+                    const d = snap.val();
+                    if (d && d.status === 'ringing') {
+                        await rtdb.ref('/dg_calls/' + callIdForTimeout).update({ status: 'missed' });
+                        await rtdb.ref('/dg_user_calls/' + targetUserId).remove();
+                        showToast('Нет ответа');
+                    }
+                } catch (e) { console.warn('call timeout', e); }
+            }, 20000);
+
             let isAnswerProcessed = false;
             callRef = rtdb.ref(`/dg_calls/${currentCallId}`);
             callRef.on('value', async snap => {
                 const data = snap.val();
                 if (!data) return;
                 if (data.status === 'ended' || data.status === 'declined' || data.status === 'missed') {
+                    if (window._callAnswerTimer) { clearTimeout(window._callAnswerTimer); window._callAnswerTimer = null; }
                     cleanupCall();
                     if (data.caller === me.id) {
                         const newLog = { id: 'log_' + Date.now(), caller: data.caller, callee: data.callee, time: Date.now(), status: data.status, isVideo: data.isVideo, duration: callSeconds };
@@ -2773,6 +2847,7 @@
                 }
                 if (data.answer && !isAnswerProcessed) {
                     isAnswerProcessed = true;
+                    if (window._callAnswerTimer) { clearTimeout(window._callAnswerTimer); window._callAnswerTimer = null; }
                     stopAllRingtones();
                     setCallStatusText(t('call_talking') + ' (0:00)');
                     startCallTimer();
@@ -3032,6 +3107,7 @@
     let callInterval; let callSeconds = 0;
     function startCallTimer() { clearInterval(callInterval); callSeconds = 0; callInterval = setInterval(() => { callSeconds++; const m = Math.floor(callSeconds / 60); const s = (callSeconds % 60).toString().padStart(2, '0'); const timeStr = `${m}:${s}`; setCallStatusText(`Разговор (${timeStr})`); const name = document.getElementById('callNameSmall').textContent; document.getElementById('minCallInfo').textContent = `${name} · ${m.toString().padStart(2, '0')}:${s}`; }, 1000); }
     function cleanupCall() {
+        if (window._callAnswerTimer) { clearTimeout(window._callAnswerTimer); window._callAnswerTimer = null; }
         clearInterval(callInterval);
         stopVoiceVisualizer();
         if (localStream) localStream.getTracks().forEach(t => t.stop());
@@ -3384,7 +3460,8 @@
             appEl.style.display = 'flex';
             appEl.style.opacity = '1';
             if (localSettings.lightMode) { document.documentElement.setAttribute('data-theme', 'light'); document.getElementById('themeIcon').textContent = 'dark_mode'; } else { document.documentElement.removeAttribute('data-theme'); document.getElementById('themeIcon').textContent = 'light_mode'; }
-            applyTheme(localSettings.theme || 'orange'); updUI(); renderFriends(); renderChats(); renderStories(); renderCalls(); setupPresence(); try { setStoriesCollapsed(true); } catch(e) {} listenForIncomingCalls(); updateNavBadges();
+            applyTheme(localSettings.theme || 'orange'); updUI(); renderFriends(); renderChats(); renderStories(); renderCalls(); setupPresence(); try { setStoriesCollapsed(true); } catch(e) {}
+            try { if (typeof Notification !== "undefined" && Notification.permission === "granted") registerFcmToken(); } catch(e) {} listenForIncomingCalls(); updateNavBadges();
             document.getElementById('loginPassword').value = ''; document.getElementById('regPassword').value = ''; document.getElementById('regConfirm').value = '';
         }, 300);
     }
