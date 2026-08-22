@@ -688,6 +688,68 @@
         }
         .ste-color.active { border-color: #fff; box-shadow: 0 0 0 2px rgba(0,0,0,0.3); }
 
+
+        .head-chats { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+        .head-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+        .head-title { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }
+        .head-right { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+        .head-icon-btn {
+            width: 40px; height: 40px; border-radius: 50%; border: none;
+            background: var(--in); color: var(--t); display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+        }
+        .head-stories {
+            display: flex; align-items: center; height: 32px; cursor: pointer;
+            padding-left: 4px;
+        }
+        .head-stories:empty { display: none; }
+        .hs-ring {
+            width: 32px; height: 32px; border-radius: 50%;
+            padding: 2px;
+            background: conic-gradient(from 210deg, #7c3aed, #06b6d4, #a855f7, #7c3aed);
+            margin-left: -10px;
+            box-sizing: border-box;
+        }
+        .hs-ring:first-child { margin-left: 0; }
+        .hs-ring-inner {
+            width: 100%; height: 100%; border-radius: 50%;
+            background: var(--bg); display: flex; align-items: center; justify-content: center;
+            overflow: hidden; font-size: 14px;
+        }
+        .hs-ring-inner img { width: 100%; height: 100%; object-fit: cover; }
+        .hs-plus {
+            width: 32px; height: 32px; border-radius: 50%; margin-left: -10px;
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            color: #fff; display: flex; align-items: center; justify-content: center;
+            font-size: 18px; font-weight: 700; border: 2px solid var(--bg);
+        }
+        .stories-container {
+            display: flex; gap: 12px; overflow-x: auto; overflow-y: hidden;
+            padding: 10px 16px 8px;
+            max-height: 96px; opacity: 1;
+            transition: max-height 0.32s cubic-bezier(0.4,0,0.2,1),
+                        opacity 0.25s ease,
+                        padding 0.32s cubic-bezier(0.4,0,0.2,1),
+                        margin 0.32s ease;
+            scrollbar-width: none;
+        }
+        .stories-container::-webkit-scrollbar { display: none; }
+        .stories-container.stories-collapsed {
+            max-height: 0 !important;
+            opacity: 0;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+            margin: 0 !important;
+            overflow: hidden;
+            pointer-events: none;
+        }
+        #c-list {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+        }
+
     </style>
 </head>
 <body>
@@ -801,14 +863,22 @@
         </div>
 
         <div class="screen active" id="chats-screen">
-            <div class="head">
-                Чаты
-                <button class="plus-btn" onclick="openCreateMenu()" title="Создать">
-                    <span class="material-symbols-outlined">add</span>
-                </button>
+            <div class="head head-chats">
+                <div class="head-left">
+                    <span class="head-title" data-i18n="head_chats">Чаты</span>
+                    <div class="head-stories" id="headStories" onclick="toggleStoriesBar()" title="Истории"></div>
+                </div>
+                <div class="head-right">
+                    <button type="button" class="head-icon-btn" onclick="document.getElementById('search-chats').focus()" title="Поиск">
+                        <span class="material-symbols-outlined">search</span>
+                    </button>
+                    <button type="button" class="plus-btn" onclick="openCreateMenu()" title="Создать">
+                        <span class="material-symbols-outlined">add</span>
+                    </button>
+                </div>
             </div>
             
-            <div class="stories-container" id="stories-bar"></div>
+            <div class="stories-container stories-collapsed" id="stories-bar"></div>
             <input type="file" id="story-upload-input" accept="*/*" style="display:none" onchange="handleStoryUpload(event)">
 
             <div class="search-bar"><input type="text" id="search-chats" class="search-input" data-i18n-placeholder="search_chats" placeholder="Поиск чатов, @каналов..." onkeyup="filterChats()"></div>
@@ -3278,47 +3348,69 @@
         if (collapsed) bar.classList.add('stories-collapsed');
         else bar.classList.remove('stories-collapsed');
     }
+    function toggleStoriesBar() {
+        const bar = document.getElementById('stories-bar');
+        if (!bar) return;
+        setStoriesCollapsed(bar.classList.contains('stories-collapsed') ? false : true);
+    }
+    function renderHeadStories() {
+        const host = document.getElementById('headStories');
+        if (!host || !me) return;
+        const now = Date.now();
+        const withStories = [];
+        const byUid = {};
+        (db.stories || []).forEach(s => {
+            if (now - s.time < 24 * 60 * 60 * 1000) {
+                if (!byUid[s.uid]) byUid[s.uid] = true;
+            }
+        });
+        // своя + до 2 друзей с историями
+        if (byUid[me.id]) withStories.push(me);
+        (me.friends || []).forEach(fid => {
+            if (withStories.length >= 3) return;
+            if (!byUid[fid]) return;
+            const u = db.users.find(x => x && x.id === fid);
+            if (u) withStories.push(u);
+        });
+        if (!withStories.length) {
+            // плюсик — открыть композер
+            host.innerHTML = `<div class="hs-plus" onclick="event.stopPropagation();openStoryComposer()">+</div>`;
+            return;
+        }
+        host.innerHTML = withStories.slice(0, 3).map(u => {
+            let inner = '';
+            if (u.avatarType === 'url' && u.avatarValue) {
+                inner = `<img src="${escapeHtml(u.avatarValue)}" alt="">`;
+            } else if (u.avatarType === 'emoji') {
+                inner = `<span class="material-symbols-outlined" style="font-size:16px">${escapeHtml(u.avatarValue || 'person')}</span>`;
+            } else {
+                const letter = (u.name || u.login || '?')[0].toUpperCase();
+                inner = `<span style="font-weight:700;font-size:13px">${escapeHtml(letter)}</span>`;
+            }
+            return `<div class="hs-ring"><div class="hs-ring-inner">${inner}</div></div>`;
+        }).join('');
+    }
     function bindStoriesScroll() {
-        if (_storiesScrollBound) return;
         const list = document.getElementById('c-list');
         const chatsScreen = document.getElementById('chats-screen');
-        // скролл может быть на c-list или на content
-        const targets = [list, chatsScreen, document.querySelector('#chats-screen .content')].filter(Boolean);
-        // ищем реально скроллящийся элемент
-        let scroller = list;
-        if (chatsScreen) {
-            const style = window.getComputedStyle(chatsScreen);
-            if (chatsScreen.scrollHeight > chatsScreen.clientHeight) scroller = chatsScreen;
-        }
-        // часто список чатов внутри #c-list с overflow
-        const candidates = [];
-        if (list) candidates.push(list);
-        if (chatsScreen) candidates.push(chatsScreen);
-        const content = document.querySelector('#chats-screen');
-        if (content) candidates.push(content);
-        // parent of c-list
-        if (list && list.parentElement) candidates.push(list.parentElement);
+        if (!list) return;
+        list.style.overflowY = 'auto';
+        list.style.webkitOverflowScrolling = 'touch';
+        list.style.flex = '1';
+        list.style.minHeight = '0';
 
-        function onScroll(e) {
-            const el = e.currentTarget || e.target;
-            const st = el.scrollTop || 0;
-            const delta = st - _storiesLastScrollTop;
-            if (st <= 8) {
-                setStoriesCollapsed(false);
-            } else if (delta > 4) {
-                setStoriesCollapsed(true);  // вниз — скрыть
-            } else if (delta < -4) {
-                setStoriesCollapsed(false); // вверх — показать
-            }
-            _storiesLastScrollTop = st;
+        if (!list._storiesScrollHandler) {
+            list._storiesLast = list.scrollTop || 0;
+            list._storiesScrollHandler = function () {
+                const st = list.scrollTop || 0;
+                const delta = st - list._storiesLast;
+                if (st <= 12) setStoriesCollapsed(false);
+                else if (delta > 3) setStoriesCollapsed(true);
+                else if (delta < -3) setStoriesCollapsed(false);
+                list._storiesLast = st;
+            };
+            list.addEventListener('scroll', list._storiesScrollHandler, { passive: true });
         }
-
-        candidates.forEach(el => {
-            if (!el || el._storiesBound) return;
-            el._storiesBound = true;
-            el.addEventListener('scroll', onScroll, { passive: true });
-        });
-        // touch swipe на области чатов (если скролл не на list)
         if (chatsScreen && !chatsScreen._storiesTouch) {
             chatsScreen._storiesTouch = true;
             let startY = 0;
@@ -3327,18 +3419,15 @@
             }, { passive: true });
             chatsScreen.addEventListener('touchmove', e => {
                 if (!e.touches || !e.touches[0]) return;
+                // только если список у верха / жест по шапке
                 const y = e.touches[0].clientY;
                 const dy = y - startY;
-                // палец вниз (контент уезжает вверх визуально для пользователя = скролл вниз) — скрыть
-                // На touch: движение пальца вверх = scroll down
-                if (dy < -12) setStoriesCollapsed(true);
-                else if (dy > 12) setStoriesCollapsed(false);
+                if (dy < -16) setStoriesCollapsed(true);
+                else if (dy > 16) setStoriesCollapsed(false);
                 startY = y;
             }, { passive: true });
         }
         _storiesScrollBound = true;
-        // при входе — скрыты
-        setStoriesCollapsed(true);
     }
 
     function renderStories() {
@@ -3391,6 +3480,7 @@
                 <div class="story-name">${escapeHtml((u.name || '').split(' ')[0])}</div></div>`;
         });
         container.innerHTML = html;
+        try { renderHeadStories(); } catch (e) {}
         try { bindStoriesScroll(); } catch (e) {}
     }
 
