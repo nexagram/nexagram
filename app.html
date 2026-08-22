@@ -1036,6 +1036,10 @@
         <div id="channel-readonly-msg" style="display: none; padding: 16px; text-align: center; color: var(--mut); background: var(--bg); border-top: 1px solid var(--brd);">
             Только администратор может писать в этот канал
         </div>
+        <div id="blocked-chat-bar" style="display: none; padding: 14px 16px; text-align: center; color: var(--mut); background: var(--bg); border-top: 1px solid var(--brd); flex-direction: column; gap: 10px; align-items: center;">
+            <div style="font-size:13px;">Вы заблокировали этого пользователя</div>
+            <button type="button" onclick="unblockActiveChatUser()" style="border:none;background:var(--p);color:#fff;font-weight:700;padding:10px 20px;border-radius:12px;cursor:pointer;">Разблокировать</button>
+        </div>
     </div>
 </div>
 
@@ -1572,15 +1576,46 @@
             if (WEB_NOTIF['builtin:pop']) WEB_NOTIF['builtin:pop']();
         }
     }
+    function playClassicRingbackBurst() {
+        try {
+            unlockAudioContext();
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            // классический гудок «занято/вызов»: два коротких гудка 425 Гц
+            [0, 0.45].forEach(offset => {
+                const osc = audioCtx.createOscillator();
+                const g = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.value = 425;
+                g.gain.setValueAtTime(0.0001, now + offset);
+                g.gain.exponentialRampToValueAtTime(0.12, now + offset + 0.02);
+                g.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.38);
+                osc.connect(g);
+                g.connect(audioCtx.destination);
+                osc.start(now + offset);
+                osc.stop(now + offset + 0.4);
+            });
+        } catch (e) { console.warn('ringback', e); }
+    }
+
     function startRingtone(isOutgoing) {
-        if (currentRingtone === 'none') return;
         unlockAudioContext();
         stopBuiltinRing();
-        // Кастомный файл (IndexedDB / память)
+        stopAllRingtonesElementsOnly();
+
+        // Исходящий: всегда классический гудок ожидания (не рингтон)
+        if (isOutgoing) {
+            playClassicRingbackBurst();
+            _ringTimer = setInterval(playClassicRingbackBurst, 4500);
+            return;
+        }
+
+        // Входящий: выбранный рингтон / custom / classic
+        if (currentRingtone === 'none') return;
         if (currentRingtone === 'custom') {
             const playCustom = (src) => {
                 if (!src) return false;
-                const el = document.getElementById(isOutgoing ? 'outgoingRingtone' : 'incomingRingtone');
+                const el = document.getElementById('incomingRingtone');
                 if (!el) return false;
                 try {
                     el.loop = true;
@@ -1590,28 +1625,37 @@
                 } catch (e) { return false; }
             };
             if (customRingtoneData && playCustom(customRingtoneData)) return;
-            // подгрузить из IDB и сыграть
             loadCustomRingtoneFromDB().then(src => {
                 if (src) playCustom(src);
-                else if (WEB_RING['builtin:classic']) {
-                    WEB_RING['builtin:classic']();
-                    _ringTimer = setInterval(WEB_RING['builtin:classic'], 2000);
+                else {
+                    playClassicRingbackBurst();
+                    _ringTimer = setInterval(playClassicRingbackBurst, 2000);
                 }
             });
             return;
         }
-        if (currentRingtone.indexOf('builtin:') === 0 && WEB_RING[currentRingtone]) {
+        if (currentRingtone && currentRingtone.indexOf('builtin:') === 0 && WEB_RING[currentRingtone]) {
             const fn = WEB_RING[currentRingtone];
             fn();
-            _ringTimer = setInterval(fn, isOutgoing ? 2500 : 2000);
+            _ringTimer = setInterval(fn, 2000);
             return;
         }
-        const el = document.getElementById(isOutgoing ? 'outgoingRingtone' : 'incomingRingtone');
-        if (el) safePlayAudio(el, true);
-        else if (WEB_RING['builtin:classic']) {
-            WEB_RING['builtin:classic']();
-            _ringTimer = setInterval(WEB_RING['builtin:classic'], 2000);
+        const el = document.getElementById('incomingRingtone');
+        if (el && el.src) safePlayAudio(el, true);
+        else {
+            playClassicRingbackBurst();
+            _ringTimer = setInterval(playClassicRingbackBurst, 2000);
         }
+    }
+    function stopAllRingtonesElementsOnly() {
+        try {
+            const a = document.getElementById('incomingRingtone');
+            if (a) { a.pause(); a.currentTime = 0; }
+        } catch (_) {}
+        try {
+            const b = document.getElementById('outgoingRingtone');
+            if (b) { b.pause(); b.currentTime = 0; }
+        } catch (_) {}
     }
     function stopAllRingtones() {
         stopBuiltinRing();
@@ -2353,9 +2397,22 @@
         goOnline();
     }
 
+    function isBlockedByMe(uid) {
+        return !!(me && me.blocked && uid && me.blocked.includes(uid));
+    }
+    function hasBlockedMe(uid) {
+        if (!me || !uid) return false;
+        const u = db.users.find(x => x && x.id === uid);
+        return !!(u && u.blocked && u.blocked.includes(me.id));
+    }
+    function getBlockedAvatarHtml() {
+        return '<span class="material-symbols-outlined" style="font-size:22px;opacity:0.45">person</span>';
+    }
     function getUserStatus(user) {
         if (!user) return '';
         if (me && user.id === me.id) return 'в сети';
+        // WhatsApp-стиль: если нас заблокировали — «был(а) давно»
+        if (hasBlockedMe(user.id)) return 'был(а) давно';
         let ls = user.lastSeen;
         if (ls === 'online') return 'в сети';
         if (ls && typeof ls === 'object' && ls.seconds) ls = ls.seconds * 1000;
@@ -2368,16 +2425,19 @@
         const diff = Date.now() - Number(ls);
         if (isNaN(diff) || diff < 0) return 'был(а) недавно';
         if (diff < 2 * 60 * 1000) return 'в сети';
-        const minutes = Math.floor(diff / 60000);
-        if (minutes < 60) return 'был(а) ' + minutes + ' мин. назад';
-        const hours = Math.floor(minutes / 60);
-        if (hours < 24) return 'был(а) ' + hours + ' ч. назад';
-        const days = Math.floor(hours / 24);
-        if (days === 1) return 'был(а) вчера';
-        if (days <= 7) return 'был(а) ' + days + ' дн. назад';
-        if (days <= 30) return 'был(а) недавно';
+        if (diff < 60 * 60 * 1000) {
+            const m = Math.floor(diff / 60000);
+            return 'был(а) ' + m + ' мин. назад';
+        }
+        if (diff < 24 * 60 * 60 * 1000) {
+            const h = Math.floor(diff / 3600000);
+            return 'был(а) ' + h + ' ч. назад';
+        }
+        if (diff < 2 * 24 * 60 * 60 * 1000) return 'был(а) недавно';
+        if (diff < 7 * 24 * 60 * 60 * 1000) return 'был(а) недавно';
         return 'был(а) давно';
     }
+
 
     function escapeHtml(str) { if (typeof str !== 'string') return ''; return str.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])); }
     
@@ -2871,25 +2931,43 @@
         const track = event.track;
 
         unlockAudioContext();
+        try { if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); } catch (_) {}
 
         if (track.kind === 'audio') {
-            // Звук ТОЛЬКО через <audio> — так не глохнет на мобильных
+            try { track.enabled = true; } catch (_) {}
             let stream = (event.streams && event.streams[0]) ? event.streams[0] : null;
             if (!stream) {
-                stream = rAud.srcObject instanceof MediaStream ? rAud.srcObject : new MediaStream();
+                stream = (rAud && rAud.srcObject instanceof MediaStream) ? rAud.srcObject : new MediaStream();
                 if (!stream.getAudioTracks().includes(track)) stream.addTrack(track);
+            } else if (!stream.getAudioTracks().includes(track)) {
+                try { stream.addTrack(track); } catch (_) {}
             }
-            rAud.srcObject = stream;
-            rAud.muted = false;
-            rAud.volume = isSpeakerOn ? 1 : 0.4;
-            const tryPlay = () => rAud.play().catch(e => {
-                console.warn('remoteAudio play:', e);
-                const toast = document.getElementById('audio-unlock-toast');
-                if (toast) { toast.style.display = 'block'; toast.classList.add('shake'); }
-            });
-            tryPlay();
-            setTimeout(tryPlay, 300);
-            // волна вокруг авы по голосу собеседника
+            if (rAud) {
+                rAud.srcObject = stream;
+                rAud.muted = false;
+                rAud.volume = isSpeakerOn ? 1 : 0.5;
+                rAud.setAttribute('playsinline', '');
+                rAud.setAttribute('autoplay', '');
+                const tryPlay = () => {
+                    const p = rAud.play();
+                    if (p && p.catch) p.catch(e => {
+                        console.warn('remoteAudio play:', e);
+                        const toast = document.getElementById('audio-unlock-toast');
+                        if (toast) { toast.style.display = 'block'; toast.classList.add('shake'); }
+                    });
+                };
+                tryPlay();
+                setTimeout(tryPlay, 200);
+                setTimeout(tryPlay, 800);
+            }
+            // WebAudio fallback (некоторые WebView)
+            try {
+                if (audioCtx && !window._remoteAudioConnected) {
+                    const srcNode = audioCtx.createMediaStreamSource(stream);
+                    srcNode.connect(audioCtx.destination);
+                    window._remoteAudioConnected = srcNode;
+                }
+            } catch (e) { console.warn('webaudio remote', e); }
             startVoiceVisualizer(stream);
         } else if (track.kind === 'video') {
             let stream = (event.streams && event.streams[0]) ? event.streams[0] : null;
@@ -2938,6 +3016,7 @@
         const rAud = document.getElementById('remoteAudio');
         if (rVid) { rVid.srcObject = null; rVid.classList.remove('active-video'); }
         if (rAud) { rAud.srcObject = null; rAud.pause(); }
+        try { if (window._remoteAudioConnected) { window._remoteAudioConnected.disconnect(); window._remoteAudioConnected = null; } } catch(_){}
         hideCallUI();
     }
 
@@ -3934,10 +4013,40 @@
         const chatId = activeChat.id;
         const hName = document.getElementById('h-name'); const hAv = document.getElementById('h-av'); const hStatus = document.getElementById('h-status'); const addBtn = document.getElementById('add-member-btn'); const callBtnAudio = document.getElementById('btn-start-call'); const callBtnVideo = document.getElementById('btn-start-video'); const inputArea = document.getElementById('chat-input-area'); const readonlyMsg = document.getElementById('channel-readonly-msg');
         
-        addBtn.style.display = 'none'; callBtnAudio.style.display = 'none'; callBtnVideo.style.display = 'none'; inputArea.style.display = 'flex'; readonlyMsg.style.display = 'none'; document.getElementById('m-area').style.backgroundImage = me.wallpaper ? `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url(${escapeHtml(me.wallpaper)})` : 'none';
+        addBtn.style.display = 'none'; callBtnAudio.style.display = 'none'; callBtnVideo.style.display = 'none'; inputArea.style.display = 'flex'; readonlyMsg.style.display = 'none'; const _bb = document.getElementById('blocked-chat-bar'); if (_bb) _bb.style.display = 'none'; document.getElementById('m-area').style.backgroundImage = me.wallpaper ? `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url(${escapeHtml(me.wallpaper)})` : 'none';
 
         if (activeChat.type === 'direct' && activeChat.u1 === activeChat.u2) { hName.textContent = "Избранное"; hAv.innerHTML = '<span class="material-symbols-outlined" style="font-size: 28px;">bookmark</span>'; hStatus.textContent = "Сохраненные сообщения"; } 
-        else if (activeChat.type === 'direct') { const otherId = activeChat.u1 === me.id ? activeChat.u2 : activeChat.u1; const other = db.users.find(u => u.id === otherId); if (other) { hName.textContent = other.name; hAv.innerHTML = getAvatarHtml(other.avatarType, other.avatarValue); hStatus.textContent = getUserStatus(other); } else { hName.textContent = 'Пользователь'; hAv.innerHTML = '?'; hStatus.textContent = ''; } callBtnAudio.style.display = 'flex'; callBtnVideo.style.display = 'flex'; } 
+        else if (activeChat.type === 'direct') {
+            const otherId = activeChat.u1 === me.id ? activeChat.u2 : activeChat.u1;
+            const other = db.users.find(u => u.id === otherId);
+            const blockedBar = document.getElementById('blocked-chat-bar');
+            if (blockedBar) blockedBar.style.display = 'none';
+            if (other) {
+                hName.textContent = other.name;
+                // если нас заблокировали — аватар пропадает (как WhatsApp)
+                if (hasBlockedMe(other.id)) {
+                    hAv.innerHTML = getBlockedAvatarHtml();
+                } else {
+                    hAv.innerHTML = getAvatarHtml(other.avatarType, other.avatarValue);
+                }
+                hStatus.textContent = getUserStatus(other);
+            } else {
+                hName.textContent = 'Пользователь';
+                hAv.innerHTML = getBlockedAvatarHtml();
+                hStatus.textContent = 'был(а) давно';
+            }
+            // я заблокировал — как в канале: панель «Разблокировать»
+            if (other && isBlockedByMe(other.id)) {
+                inputArea.style.display = 'none';
+                if (readonlyMsg) readonlyMsg.style.display = 'none';
+                if (blockedBar) blockedBar.style.display = 'flex';
+                callBtnAudio.style.display = 'none';
+                callBtnVideo.style.display = 'none';
+            } else {
+                callBtnAudio.style.display = 'flex';
+                callBtnVideo.style.display = 'flex';
+            }
+        } 
         else {
             hName.textContent = activeChat.name;
             hAv.innerHTML = getAvatarHtml(activeChat.avatarType, activeChat.avatarValue);
@@ -4324,6 +4433,12 @@
     }
 
     function send() {
+        if (activeChat && activeChat.type === 'direct') {
+            const oid = activeChat.u1 === me.id ? activeChat.u2 : activeChat.u1;
+            if (isBlockedByMe(oid)) return showToast('Разблокируйте пользователя, чтобы писать');
+            if (hasBlockedMe(oid)) return showToast('Не удалось отправить');
+        }
+
         const inp = document.getElementById('m-in'); if (!inp.value.trim() || !activeChat) return;
         const msgObj = { uid: me.id, txt: inp.value.trim(), time: Date.now(), reactions: {} }; if (replyingTo) { msgObj.reply = getSafeReplyObj(replyingTo); cancelReply(); }
         const chatIndex = ensureChatInDb();
@@ -4700,8 +4815,27 @@
             showToast('Пользователь заблокирован');
         }
         const uIdx = db.users.findIndex(u => u.id === me.id);
-        if (uIdx > -1) rtdb.ref(`/dg_app_data/users/${uIdx}/blocked`).set(me.blocked);
+        if (uIdx > -1) {
+            db.users[uIdx].blocked = me.blocked.slice();
+            rtdb.ref(`/dg_app_data/users/${uIdx}/blocked`).set(me.blocked);
+        }
         closeProfileMenu();
+        if (activeChat && activeChat.type === 'direct') openChat(activeChat);
+        try { renderChats(); renderFriends(); } catch (_) {}
+    }
+    function unblockActiveChatUser() {
+        if (!me || !activeChat || activeChat.type !== 'direct') return;
+        const otherId = activeChat.u1 === me.id ? activeChat.u2 : activeChat.u1;
+        if (!me.blocked) me.blocked = [];
+        me.blocked = me.blocked.filter(id => id !== otherId);
+        const uIdx = db.users.findIndex(u => u.id === me.id);
+        if (uIdx > -1) {
+            db.users[uIdx].blocked = me.blocked.slice();
+            rtdb.ref(`/dg_app_data/users/${uIdx}/blocked`).set(me.blocked);
+        }
+        showToast('Пользователь разблокирован');
+        openChat(activeChat);
+        try { renderChats(); } catch (_) {}
     }
 
     function deleteCurrentChatFromProfile() {
