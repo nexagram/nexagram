@@ -3069,15 +3069,45 @@
         }, 300);
     }
 
+    function showAuthScreen() {
+        try {
+            const appEl = document.getElementById('app');
+            if (appEl) {
+                appEl.style.display = 'none';
+                appEl.style.opacity = '0';
+            }
+            const chatWin = document.getElementById('chat-window');
+            if (chatWin) chatWin.classList.remove('active');
+            const pv = document.getElementById('profile-view-screen');
+            if (pv) pv.classList.remove('active');
+            // закрыть модалки
+            document.querySelectorAll('.modal.active').forEach(m => m.classList.remove('active'));
+            const authScr = document.getElementById('authScreen');
+            if (authScr) {
+                authScr.style.display = 'flex';
+                authScr.style.pointerEvents = '';
+                authScr.style.visibility = 'visible';
+                // обязательно — после login opacity был 0
+                requestAnimationFrame(() => { authScr.style.opacity = '1'; });
+            }
+            try {
+                document.getElementById('loginUsername').value = '';
+                document.getElementById('loginPassword').value = '';
+            } catch (_) {}
+        } catch (e) { console.warn('showAuthScreen', e); }
+    }
+
     function logout() {
         if (confirm('Выйти из аккаунта?')) {
-            if (presenceRef) { presenceRef.onDisconnect().cancel(); presenceRef.set(Date.now()); } if (connectedRef) connectedRef.off();
-            localStorage.removeItem('Nexagram_Session_UID'); me = null; activeChat = null;
-            document.getElementById('app').style.display = 'none'; 
-            const authScr = document.getElementById('authScreen');
-            authScr.style.display = 'flex'; setTimeout(()=>authScr.style.opacity='1', 50);
-            document.getElementById('chat-window').classList.remove('active');
-            document.getElementById('loginUsername').value = ''; document.getElementById('loginPassword').value = '';
+            try {
+                if (presenceRef) { presenceRef.onDisconnect().cancel(); presenceRef.set(Date.now()); }
+                if (connectedRef) connectedRef.off();
+            } catch (_) {}
+            localStorage.removeItem('Nexagram_Session_UID');
+            me = null;
+            activeChat = null;
+            try { firebase.auth().signOut(); } catch (_) {}
+            showAuthScreen();
         }
     }
 
@@ -4231,7 +4261,9 @@
         db.stories = (db.stories || []).filter(s => s.uid !== myId);
         db.callLogs = (db.callLogs || []).filter(c => c.caller !== myId && c.callee !== myId);
 
-        rtdb.ref('/dg_app_data').set({ users: db.users, chats: db.chats, stories: db.stories, callLogs: db.callLogs });
+        try {
+            rtdb.ref('/dg_app_data').update({ users: db.users, chats: db.chats, stories: db.stories, callLogs: db.callLogs });
+        } catch (e) { console.warn(e); try { rtdb.ref('/dg_app_data/users').set(db.users); } catch(_){} }
 
         localStorage.removeItem('Nexagram_Session_UID');
         localStorage.removeItem('Nexagram_Drafts');
@@ -4242,8 +4274,7 @@
 
         me = null;
         activeChat = null;
-        document.getElementById('app').style.display = 'none';
-        document.getElementById('authScreen').style.display = 'flex';
+        showAuthScreen();
         showToast('Аккаунт удалён');
     }
 
