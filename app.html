@@ -1503,46 +1503,56 @@
         body = String(body || '');
         const tag = (opts && opts.tag) ? String(opts.tag) : ('nexagram-' + Date.now());
 
-        // 1) Sketchware / Android WebView
+        // Sketchware / Android WebView
         try {
             if (window.NexagramAndroid && typeof window.NexagramAndroid.showNotification === 'function') {
                 window.NexagramAndroid.showNotification(title, body, tag);
-                return;
+                return true;
             }
-        } catch (e) { console.warn('Android notif bridge', e); }
+        } catch (e) { console.warn('Android notif', e); }
 
-        // 2) Browser Notification API
-        if (!('Notification' in window)) {
-            console.log('Notification API нет');
-            return;
+        if (typeof Notification === 'undefined') {
+            try { showToast(title + ': ' + body); } catch (_) {}
+            return false;
         }
+
         if (Notification.permission !== 'granted') {
-            console.log('Notification permission:', Notification.permission);
-            return;
+            console.warn('Нет разрешения на уведомления:', Notification.permission);
+            return false;
         }
 
-        const iconUrl = (location.origin || '') + '/icon.png';
+        const iconUrl = (typeof location !== 'undefined' && location.origin ? location.origin : '') + '/icon.png';
         const options = {
             body: body,
             icon: iconUrl,
             badge: iconUrl,
             tag: tag,
             renotify: true,
-            silent: false
+            silent: !!(opts && opts.silent)
         };
         if (opts && opts.requireInteraction) options.requireInteraction = true;
 
+        // Главный путь: new Notification (работает при открытой вкладке)
+        let shown = false;
         try {
-            if (swRegistration && typeof swRegistration.showNotification === 'function') {
-                Promise.resolve(swRegistration.showNotification(title, options)).catch(() => {
-                    try { new Notification(title, options); } catch (_) {}
-                });
-            } else {
-                new Notification(title, options);
+            const n = new Notification(title, options);
+            shown = true;
+            if (n && typeof n.close === 'function') {
+                setTimeout(() => { try { n.close(); } catch (_) {} }, 15000);
             }
         } catch (e) {
-            try { new Notification(title, options); } catch (e2) { console.warn('notif', e2); }
+            console.warn('new Notification fail', e);
         }
+
+        // Дополнительно через SW, если есть
+        if (!shown && swRegistration && typeof swRegistration.showNotification === 'function') {
+            try {
+                swRegistration.showNotification(title, options);
+                shown = true;
+            } catch (e2) { console.warn('SW notif fail', e2); }
+        }
+
+        return shown;
     }
 
     // алиас (в FCM onMessage вызывался несуществующий playNotificationSound)
@@ -2338,27 +2348,33 @@
                     if (!c || !c.id) return;
                     const msgs = Array.isArray(c.msgs) ? c.msgs : [];
                     const currentCount = msgs.length;
-                    const hasPrev = Object.prototype.hasOwnProperty.call(lastKnownMsgCounts, c.id);
-                    const prevCount = hasPrev ? lastKnownMsgCounts[c.id] : currentCount;
+                    const prevCount = (lastKnownMsgCounts[c.id] !== undefined && lastKnownMsgCounts[c.id] !== null)
+                        ? Number(lastKnownMsgCounts[c.id])
+                        : null;
 
-                    if (isInitialLoadDone && hasPrev && currentCount > prevCount) {
-                        // берём только новые сообщения с конца
+                    if (isInitialLoadDone && prevCount !== null && currentCount > prevCount && me) {
                         for (let mi = prevCount; mi < currentCount; mi++) {
                             const lastMsg = msgs[mi];
                             if (!lastMsg || !lastMsg.uid) continue;
-                            if (lastMsg.uid === me.id || lastMsg.uid === 'system') continue;
+                            if (String(lastMsg.uid) === String(me.id) || lastMsg.uid === 'system') continue;
 
-                            const viewingThis = activeChat && activeChat.id === c.id && !document.hidden;
-                            if (viewingThis) continue;
-                            if (typeof isChatMuted === 'function' && isChatMuted(c.id)) continue;
+                            // не спамим, если этот чат сейчас на экране и вкладка видима
+                            if (activeChat && String(activeChat.id) === String(c.id) && typeof document !== 'undefined' && !document.hidden) {
+                                continue;
+                            }
+                            try {
+                                if (typeof isChatMuted === 'function' && isChatMuted(c.id)) continue;
+                            } catch (_) {}
 
                             let senderName = 'Nexagram';
-                            const sender = (db.users || []).find(u => u && u.id === lastMsg.uid);
-                            if (sender) senderName = sender.name || sender.login || senderName;
+                            try {
+                                const sender = (db.users || []).find(u => u && String(u.id) === String(lastMsg.uid));
+                                if (sender) senderName = sender.name || sender.login || senderName;
+                            } catch (_) {}
 
-                            let body = (lastMsg.txt != null && lastMsg.txt !== '') ? String(lastMsg.txt)
-                                     : (lastMsg.text != null && lastMsg.text !== '') ? String(lastMsg.text)
-                                     : '';
+                            let body = '';
+                            if (lastMsg.txt != null && String(lastMsg.txt).trim() !== '') body = String(lastMsg.txt);
+                            else if (lastMsg.text != null && String(lastMsg.text).trim() !== '') body = String(lastMsg.text);
                             if (lastMsg.type === 'voice' || lastMsg.type === 'audio') body = '🎙️ Голосовое сообщение';
                             else if (lastMsg.type === 'image') body = '📷 Фото';
                             else if (lastMsg.type === 'video' || lastMsg.type === 'video_circle') body = '🎥 Видео';
@@ -2366,7 +2382,7 @@
                             if (!body) body = 'Новое сообщение';
 
                             try { playNotifSound(); } catch (_) {}
-                            try { showAppNotification(senderName, body, { tag: 'chat-' + c.id }); } catch (_) {}
+                            try { showAppNotification(senderName, body, { tag: 'chat-' + c.id }); } catch (e) { console.warn(e); }
                         }
                     }
                     lastKnownMsgCounts[c.id] = currentCount;
@@ -2458,32 +2474,43 @@
     async function requestNotifications() {
         try {
             if (window.NexagramAndroid && typeof window.NexagramAndroid.requestPermission === 'function') {
-                window.NexagramAndroid.requestPermission();
-                showToast("Уведомления приложения");
-                return;
+                try { window.NexagramAndroid.requestPermission(); } catch (_) {}
             }
         } catch (_) {}
-        if (!("Notification" in window)) {
-            alert("Ваш браузер не поддерживает уведомления.");
+
+        if (typeof Notification === 'undefined') {
+            alert('Ваш браузер не поддерживает уведомления.');
             return;
         }
         try {
             if ('serviceWorker' in navigator) {
                 try { await navigator.serviceWorker.ready; } catch (_) {}
             }
-            const permission = await Notification.requestPermission();
-            if (permission === "granted") {
-                showToast("Уведомления включены");
-                showAppNotification("Nexagram", "Уведомления успешно включены! 🔔");
-                await registerFcmToken();
-            } else if (permission === "denied") {
-                alert("Уведомления заблокированы.\n\nОткройте настройки сайта в браузере и разрешите уведомления.");
+            let permission = Notification.permission;
+            if (permission !== 'granted') {
+                permission = await Notification.requestPermission();
+            }
+            if (permission === 'granted') {
+                showToast('Уведомления включены');
+                // тестовое уведомление сразу
+                try {
+                    new Notification('Nexagram', {
+                        body: 'Уведомления работают ✓',
+                        icon: (location.origin || '') + '/icon.png',
+                        tag: 'nexagram-test'
+                    });
+                } catch (e) {
+                    try { showAppNotification('Nexagram', 'Уведомления работают ✓'); } catch (_) {}
+                }
+                try { await registerFcmToken(); } catch (_) {}
+            } else if (permission === 'denied') {
+                alert('Уведомления заблокированы.\n\nНажмите на замок слева от адреса сайта → Разрешить уведомления.');
             } else {
-                showToast("Разрешение не получено");
+                showToast('Разрешение не получено');
             }
         } catch (e) {
             console.error(e);
-            alert("Не удалось запросить уведомления: " + e.message);
+            alert('Не удалось запросить уведомления: ' + (e.message || e));
         }
     }
 
@@ -2521,74 +2548,193 @@
     function markChatAsReadLocally() { if (!activeChat || !me) return; const chatIndex = db.chats.findIndex(c => c.id === activeChat.id); if (chatIndex > -1) { const currentRead = (activeChat.lastRead && activeChat.lastRead[me.id]) || 0; const lastMsg = activeChat.msgs && activeChat.msgs.length > 0 ? activeChat.msgs[activeChat.msgs.length - 1] : null; if (!lastMsg || currentRead >= lastMsg.time) return; rtdb.ref(`/dg_app_data/chats/${chatIndex}/lastRead/${me.id}`).set(Date.now()); } }
 
 
+    // ===== ntfy (несколько серверов — ntfy.sh в РФ часто недоступен) =====
+    const NTFY_SERVERS = [
+        'https://ntfy.sh',
+        'https://ntfy.envs.net',
+        'https://ntfy.tedomum.net',
+        'https://ntfy.adminforge.de'
+    ];
+
+    function getNtfyServer() {
+        try {
+            const s = localStorage.getItem('Nexagram_NtfyServer');
+            if (s && /^https?:\/\//i.test(s)) return s.replace(/\/$/, '');
+        } catch (_) {}
+        return NTFY_SERVERS[0];
+    }
+
+    function getNtfyServerList() {
+        const preferred = getNtfyServer();
+        return [preferred].concat(NTFY_SERVERS.filter(s => s !== preferred));
+    }
+
+    async function ntfyPublish(topic, title, message) {
+        topic = String(topic || '').trim();
+        if (!topic) return { ok: false, error: 'empty topic' };
+        title = String(title || 'Nexagram').slice(0, 100);
+        message = String(message || '').slice(0, 500);
+        let lastErr = null;
+        for (const base of getNtfyServerList()) {
+            try {
+                const r1 = await fetch(base + '/' + encodeURIComponent(topic), {
+                    method: 'POST',
+                    headers: {
+                        'Title': title,
+                        'Priority': '4',
+                        'Tags': 'speech_balloon',
+                        'Click': 'https://web.nexagram.site/'
+                    },
+                    body: message
+                });
+                if (r1.ok || r1.status === 200 || r1.status === 201 || r1.status === 202) {
+                    try { localStorage.setItem('Nexagram_NtfyServer', base); } catch (_) {}
+                    console.log('ntfy OK', base, topic, message.slice(0, 40));
+                    return { ok: true, server: base };
+                }
+                const r2 = await fetch(base + '/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        topic: topic,
+                        title: title,
+                        message: message,
+                        priority: 4,
+                        click: 'https://web.nexagram.site/',
+                        tags: ['speech_balloon']
+                    })
+                });
+                if (r2.ok || r2.status === 200 || r2.status === 201) {
+                    try { localStorage.setItem('Nexagram_NtfyServer', base); } catch (_) {}
+                    console.log('ntfy OK json', base, topic);
+                    return { ok: true, server: base };
+                }
+                lastErr = 'HTTP ' + r1.status + '/' + r2.status + ' @ ' + base;
+            } catch (e) {
+                lastErr = (e && e.message) ? e.message : String(e);
+                console.warn('ntfy fail', base, lastErr);
+            }
+        }
+        return { ok: false, error: lastErr || 'all servers failed' };
+    }
+
     async function setupNtfyTopic() {
-        const cur = (me && me.ntfyTopic) || '';
-        const topic = prompt(t('ntfy_prompt'), cur);
+        if (!me) return showToast('Сначала войдите');
+        const curTopic = (me.ntfyTopic || '');
+        const topic = prompt(
+            (typeof t === 'function' ? t('ntfy_prompt') : null) ||
+            'Тема ntfy (латиница, цифры, _).\\nВ приложении ntfy подпишись на неё.\\nПусто — отключить.',
+            curTopic
+        );
         if (topic === null) return;
         const clean = String(topic).trim().replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 64);
-        if (!me) return;
+
+        const serverIn = prompt(
+            'Сервер ntfy (в РФ ntfy.sh часто не работает):\\nhttps://ntfy.sh\\nhttps://ntfy.envs.net\\nhttps://ntfy.tedomum.net',
+            getNtfyServer()
+        );
+        if (serverIn === null) return;
+        let server = String(serverIn || '').trim().replace(/\/$/, '');
+        if (server && !/^https?:\/\//i.test(server)) server = 'https://' + server;
+        if (server) {
+            try { localStorage.setItem('Nexagram_NtfyServer', server); } catch (_) {}
+        }
+
         me.ntfyTopic = clean;
         const uIdx = db.users.findIndex(u => u && u.id === me.id);
         if (uIdx > -1) {
             db.users[uIdx].ntfyTopic = clean;
             try { await rtdb.ref('/dg_app_data/users/' + uIdx + '/ntfyTopic').set(clean || null); } catch (e) { console.warn(e); }
         }
-        showToast(clean ? t('ntfy_saved') : t('ntfy_off'));
-        if (clean) {
+        try {
+            if (clean) await rtdb.ref('/dg_ntfy/' + me.id).set({ topic: clean, server: getNtfyServer(), updated: Date.now() });
+            else await rtdb.ref('/dg_ntfy/' + me.id).remove();
+        } catch (e) { console.warn('dg_ntfy', e); }
+
+        if (!clean) {
+            showToast((typeof t === 'function' && t('ntfy_off')) || 'ntfy отключён');
+            return;
+        }
+
+        showToast('Проверка ntfy…');
+        const test = await ntfyPublish(clean, 'Nexagram', (typeof lang !== 'undefined' && lang === 'en') ? 'ntfy connected ✓' : 'ntfy подключён ✓');
+        if (test.ok) {
+            showToast('ntfy OK → ' + (test.server || ''));
             try {
-                await fetch('https://ntfy.sh/' + encodeURIComponent(clean), {
-                    method: 'POST',
-                    headers: { 'Title': 'Nexagram', 'Tags': 'white_check_mark' },
-                    body: lang === 'en' ? 'ntfy connected to Nexagram' : 'ntfy подключён к Nexagram'
-                });
+                alert('Готово!\\nТема: ' + clean + '\\nСервер: ' + (test.server || '') + '\\n\\nВ приложении ntfy: подписка на тему + тот же сервер.');
+            } catch (_) {}
+        } else {
+            showToast('ntfy ошибка');
+            try {
+                alert('ntfy не отправил тест.\\n' + (test.error || '') + '\\n\\nСмени сервер (ntfy.envs.net) или включи VPN.');
             } catch (_) {}
         }
     }
 
-    /** Пуш получателю: ntfy (работает в РФ без Google) + локальные уведомления у нас уже есть */
-            function notifyUserPush(userId, title, body) {
-        if (!userId || (me && userId === me.id)) return;
+    async function resolveNtfyTopic(userId) {
         try {
-            const u = (db.users || []).find(x => x && x.id === userId);
-            if (!u) return;
-            const topic = (u.ntfyTopic || '').trim();
-            if (!topic) {
-                console.log('ntfy: у получателя нет темы', userId);
-                return;
-            }
-            const msgText = String(body || 'Новое сообщение').slice(0, 500);
-            const ttl = String(title || 'Nexagram').slice(0, 100);
-            const payload = {
-                topic: topic,
-                title: ttl,
-                message: msgText,
-                click: 'https://web.nexagram.site/',
-                tags: ['speech_balloon'],
-                priority: 4
-            };
-            fetch('https://ntfy.sh/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            }).then(r => {
-                if (!r.ok) console.warn('ntfy status', r.status);
-                else console.log('ntfy ok →', topic, msgText.slice(0, 40));
-            }).catch(err => {
-                console.warn('ntfy fetch fail', err);
-                // Fallback: тело = текст сообщения, заголовок в Header
-                fetch('https://ntfy.sh/' + encodeURIComponent(topic), {
-                    method: 'POST',
-                    headers: {
-                        'Title': ttl,
-                        'Click': 'https://web.nexagram.site/',
-                        'Priority': '4'
-                    },
-                    body: msgText
-                }).catch(() => {});
-            });
-        } catch (e) { console.warn('notifyUserPush', e); }
+            const u = (db.users || []).find(x => x && String(x.id) === String(userId));
+            if (u && u.ntfyTopic) return String(u.ntfyTopic).trim();
+        } catch (_) {}
+        try {
+            const snap = await rtdb.ref('/dg_ntfy/' + userId).once('value');
+            const v = snap.val();
+            if (v && v.topic) return String(v.topic).trim();
+            if (typeof v === 'string') return v.trim();
+        } catch (_) {}
+        return '';
     }
 
+    function notifyUserPush(userId, title, body) {
+        if (!userId || (me && String(userId) === String(me.id))) return;
+        const msgText = String(body || 'Новое сообщение').slice(0, 500);
+        const ttl = String(title || 'Nexagram').slice(0, 100);
+        (async () => {
+            try {
+                let topic = '';
+                try {
+                    const u = (db.users || []).find(x => x && String(x.id) === String(userId));
+                    if (u && u.ntfyTopic) topic = String(u.ntfyTopic).trim();
+                } catch (_) {}
+                if (!topic) topic = await resolveNtfyTopic(userId);
+                if (!topic) {
+                    console.log('ntfy: нет темы у получателя', userId);
+                    return;
+                }
+                const res = await ntfyPublish(topic, ttl, msgText);
+                if (!res.ok) console.warn('ntfy deliver fail', res.error);
+            } catch (e) { console.warn('notifyUserPush', e); }
+        })();
+    }
+
+    function notifyChatRecipients(chat, msg) {
+        if (!chat || !msg || !me) return;
+        try {
+            let ids = [];
+            if (chat.type === 'direct' || (!chat.type && chat.u1)) {
+                ids = [chat.u1, chat.u2].filter(id => id && String(id) !== String(me.id));
+            } else if (Array.isArray(chat.members)) {
+                ids = chat.members.filter(id => id && String(id) !== String(me.id));
+            } else if (chat.ownerId && String(chat.ownerId) !== String(me.id)) {
+                ids = [chat.ownerId];
+            }
+            if (!ids.length) {
+                console.log('ntfy: нет получателей');
+                return;
+            }
+            const senderName = me.name || me.login || 'Nexagram';
+            let body = (msg.txt != null && msg.txt !== '') ? String(msg.txt)
+                     : (msg.text != null && msg.text !== '') ? String(msg.text) : '';
+            if (msg.type === 'image') body = '📷 Фото';
+            else if (msg.type === 'video' || msg.type === 'video_circle') body = '🎥 Видео';
+            else if (msg.type === 'voice' || msg.type === 'audio') body = '🎙️ Голосовое сообщение';
+            else if (msg.type === 'file') body = '📄 Файл';
+            if (!body || !String(body).trim()) body = 'Новое сообщение';
+            body = String(body).trim().slice(0, 500);
+            console.log('ntfy notify →', ids, body.slice(0, 40));
+            ids.forEach(id => notifyUserPush(id, senderName, body));
+        } catch (e) { console.warn('notifyChatRecipients', e); }
+    }
 
     function setupPresence() {
         if (!me) return;
