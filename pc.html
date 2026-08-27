@@ -2587,7 +2587,7 @@
     }
 
     /** Пуш получателю: ntfy (работает в РФ без Google) + локальные уведомления у нас уже есть */
-        function notifyUserPush(userId, title, body) {
+            function notifyUserPush(userId, title, body) {
         if (!userId || (me && userId === me.id)) return;
         try {
             const u = (db.users || []).find(x => x && x.id === userId);
@@ -2597,56 +2597,40 @@
                 console.log('ntfy: у получателя нет темы', userId);
                 return;
             }
+            const msgText = String(body || 'Новое сообщение').slice(0, 500);
+            const ttl = String(title || 'Nexagram').slice(0, 100);
             const payload = {
                 topic: topic,
-                title: String(title || 'Nexagram').slice(0, 100),
-                message: String(body || 'Новое сообщение').slice(0, 500),
+                title: ttl,
+                message: msgText,
                 click: 'https://web.nexagram.site/',
                 tags: ['speech_balloon'],
                 priority: 4
             };
-            // JSON API (надёжнее, чем POST на /topic)
             fetch('https://ntfy.sh/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             }).then(r => {
                 if (!r.ok) console.warn('ntfy status', r.status);
-                else console.log('ntfy ok →', topic);
+                else console.log('ntfy ok →', topic, msgText.slice(0, 40));
             }).catch(err => {
                 console.warn('ntfy fetch fail', err);
-                // запасной простой POST
+                // Fallback: тело = текст сообщения, заголовок в Header
                 fetch('https://ntfy.sh/' + encodeURIComponent(topic), {
                     method: 'POST',
-                    body: payload.message
+                    headers: {
+                        'Title': ttl,
+                        'Click': 'https://web.nexagram.site/',
+                        'Priority': '4'
+                    },
+                    body: msgText
                 }).catch(() => {});
             });
         } catch (e) { console.warn('notifyUserPush', e); }
     }
 
-    function notifyChatRecipients(chat, msg) {
-        if (!chat || !msg || !me) return;
-        try {
-            let ids = [];
-            if (chat.type === 'direct' || (!chat.type && chat.u1)) {
-                ids = [chat.u1, chat.u2].filter(id => id && id !== me.id);
-            } else if (Array.isArray(chat.members)) {
-                ids = chat.members.filter(id => id && id !== me.id);
-            } else if (chat.ownerId && chat.ownerId !== me.id) {
-                ids = [chat.ownerId];
-            }
-            const senderName = me.name || me.login || 'Nexagram';
-            let body = msg.text || '';
-            if (msg.type === 'image') body = '📷 Фото';
-            else if (msg.type === 'video' || msg.type === 'video_circle') body = '🎥 Видео';
-            else if (msg.type === 'voice' || msg.type === 'audio') body = '🎙️ Голосовое';
-            else if (msg.type === 'file') body = '📄 Файл';
-            else if (!body) body = 'Новое сообщение';
-            ids.forEach(id => notifyUserPush(id, senderName, body));
-        } catch (e) { console.warn(e); }
-    }
 
-    let presenceRef = null; let connectedRef = null; let presenceHeartbeat = null;
     function setupPresence() {
         if (!me) return;
         const uIdx = db.users.findIndex(u => u.id === me.id);
