@@ -1565,7 +1565,7 @@
         body = String(body || '');
         const tag = (opts && opts.tag) ? String(opts.tag) : ('nexagram-' + Date.now());
 
-        // Sketchware / Android WebView — нативный мост (без Google)
+        // 1) Sketchware / Android WebView
         try {
             if (window.NexagramAndroid && typeof window.NexagramAndroid.showNotification === 'function') {
                 window.NexagramAndroid.showNotification(title, body, tag);
@@ -1573,8 +1573,15 @@
             }
         } catch (e) { console.warn('Android notif bridge', e); }
 
-        if (!("Notification" in window)) return;
-        if (Notification.permission !== "granted") return;
+        // 2) Browser Notification API
+        if (!('Notification' in window)) {
+            console.log('Notification API нет');
+            return;
+        }
+        if (Notification.permission !== 'granted') {
+            console.log('Notification permission:', Notification.permission);
+            return;
+        }
 
         const iconUrl = (location.origin || '') + '/icon.png';
         const options = {
@@ -1588,13 +1595,15 @@
         if (opts && opts.requireInteraction) options.requireInteraction = true;
 
         try {
-            if (swRegistration && swRegistration.showNotification) {
-                swRegistration.showNotification(title, options);
+            if (swRegistration && typeof swRegistration.showNotification === 'function') {
+                Promise.resolve(swRegistration.showNotification(title, options)).catch(() => {
+                    try { new Notification(title, options); } catch (_) {}
+                });
             } else {
                 new Notification(title, options);
             }
         } catch (e) {
-            try { new Notification(title, options); } catch (_) {}
+            try { new Notification(title, options); } catch (e2) { console.warn('notif', e2); }
         }
     }
 
@@ -2388,26 +2397,38 @@
                 updateNavBadges(); 
 
                 db.chats.forEach(c => {
-                    const currentCount = c.msgs ? c.msgs.length : 0;
-                    const prevCount = lastKnownMsgCounts[c.id] !== undefined ? lastKnownMsgCounts[c.id] : currentCount;
-                    if (isInitialLoadDone && currentCount > prevCount) {
-                        const lastMsg = c.msgs[currentCount - 1];
-                        if (lastMsg.uid !== me.id && lastMsg.uid !== 'system' && (document.hidden || !activeChat || activeChat.id !== c.id)) {
-                            if (!isChatMuted(c.id)) {
-                                playNotifSound();
-                            }
+                    if (!c || !c.id) return;
+                    const msgs = Array.isArray(c.msgs) ? c.msgs : [];
+                    const currentCount = msgs.length;
+                    const hasPrev = Object.prototype.hasOwnProperty.call(lastKnownMsgCounts, c.id);
+                    const prevCount = hasPrev ? lastKnownMsgCounts[c.id] : currentCount;
 
-                            if ("Notification" in window && Notification.permission === "granted" && !isChatMuted(c.id)) {
-                                let senderName = "Nexagram";
-                                const sender = db.users.find(u => u.id === lastMsg.uid);
-                                if (sender) senderName = sender.name;
-                                let body = lastMsg.txt || 'Новое сообщение';
-                                if (lastMsg.type === 'voice' || lastMsg.type === 'audio') body = '🎙️ Голосовое сообщение';
-                                else if (lastMsg.type === 'image') body = '📷 Фото';
-                                else if (lastMsg.type === 'video' || lastMsg.type === 'video_circle') body = '🎥 Видео';
-                                else if (lastMsg.type === 'file') body = '📄 Файл';
-                                showAppNotification(senderName, body, { tag: 'chat-' + c.id });
-                            }
+                    if (isInitialLoadDone && hasPrev && currentCount > prevCount) {
+                        // берём только новые сообщения с конца
+                        for (let mi = prevCount; mi < currentCount; mi++) {
+                            const lastMsg = msgs[mi];
+                            if (!lastMsg || !lastMsg.uid) continue;
+                            if (lastMsg.uid === me.id || lastMsg.uid === 'system') continue;
+
+                            const viewingThis = activeChat && activeChat.id === c.id && !document.hidden;
+                            if (viewingThis) continue;
+                            if (typeof isChatMuted === 'function' && isChatMuted(c.id)) continue;
+
+                            let senderName = 'Nexagram';
+                            const sender = (db.users || []).find(u => u && u.id === lastMsg.uid);
+                            if (sender) senderName = sender.name || sender.login || senderName;
+
+                            let body = (lastMsg.txt != null && lastMsg.txt !== '') ? String(lastMsg.txt)
+                                     : (lastMsg.text != null && lastMsg.text !== '') ? String(lastMsg.text)
+                                     : '';
+                            if (lastMsg.type === 'voice' || lastMsg.type === 'audio') body = '🎙️ Голосовое сообщение';
+                            else if (lastMsg.type === 'image') body = '📷 Фото';
+                            else if (lastMsg.type === 'video' || lastMsg.type === 'video_circle') body = '🎥 Видео';
+                            else if (lastMsg.type === 'file') body = '📄 Файл';
+                            if (!body) body = 'Новое сообщение';
+
+                            try { playNotifSound(); } catch (_) {}
+                            try { showAppNotification(senderName, body, { tag: 'chat-' + c.id }); } catch (_) {}
                         }
                     }
                     lastKnownMsgCounts[c.id] = currentCount;
