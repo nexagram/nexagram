@@ -750,13 +750,10 @@
             overscroll-behavior: contain;
         }
 
-    
-        /* ===== PC VERSION ===== */
+    /* ===== PC VERSION ===== */
         html, body {
-            height: 100% !important;
-            width: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
+            height: 100% !important; width: 100% !important;
+            margin: 0 !important; padding: 0 !important;
             overflow: hidden !important;
             background: var(--bg, #0b0b0c) !important;
         }
@@ -774,89 +771,45 @@
             max-height: 100dvh !important;
             flex-direction: row !important;
             background: var(--bg) !important;
-            opacity: 1 !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            overflow: hidden !important;
-            border: none !important;
-            border-radius: 0 !important;
+            opacity: 1 !important; margin: 0 !important; padding: 0 !important;
+            overflow: hidden !important; border: none !important; border-radius: 0 !important;
             display: flex !important;
         }
         .content {
-            width: 380px !important;
-            min-width: 320px !important;
-            max-width: 420px !important;
-            height: 100% !important;
-            max-height: 100% !important;
+            width: 380px !important; min-width: 320px !important; max-width: 420px !important;
+            height: 100% !important; max-height: 100% !important;
             border-right: 1px solid var(--brd) !important;
-            padding-bottom: 0 !important;
-            margin: 0 !important;
-            position: relative !important;
-            flex-shrink: 0 !important;
-            overflow: hidden !important;
-            background: var(--bg) !important;
-            display: flex !important;
-            flex-direction: column !important;
+            padding-bottom: 62px !important; margin: 0 !important;
+            position: relative !important; flex-shrink: 0 !important;
+            overflow: hidden !important; background: var(--bg) !important;
+            display: flex !important; flex-direction: column !important;
         }
-        .content > .header,
-        .content > .search-wrap,
-        .content > .stories-wrap { flex-shrink: 0; }
-        .content > .list,
-        .content > #c-list,
-        .content .tab-page,
-        .content [id$="-list"],
-        .content .sett-wrap {
-            flex: 1 1 auto !important;
-            overflow-y: auto !important;
-            overflow-x: hidden !important;
-            min-height: 0 !important;
+        .content > .list, .content > #c-list, .content .tab-page,
+        .content [id$="-list"], .content .sett-wrap {
+            flex: 1 1 auto !important; overflow-y: auto !important;
+            overflow-x: hidden !important; min-height: 0 !important;
         }
         .nav {
-            width: 380px !important;
-            max-width: 420px !important;
-            position: absolute !important;
-            left: 0 !important;
-            bottom: 0 !important;
-            right: auto !important;
-            z-index: 30 !important;
-            flex-shrink: 0 !important;
-            background: var(--bg) !important;
-            border-top: 1px solid var(--brd);
+            width: 380px !important; max-width: 420px !important;
+            position: absolute !important; left: 0 !important; bottom: 0 !important;
+            right: auto !important; z-index: 30 !important;
+            background: var(--bg) !important; border-top: 1px solid var(--brd);
         }
-        /* место под навбар */
-        .content { padding-bottom: 62px !important; }
         #chat-window {
             position: absolute !important;
-            top: 0 !important; right: 0 !important; bottom: 0 !important;
-            left: 380px !important;
-            width: auto !important;
-            height: 100% !important;
-            max-height: 100% !important;
-            transform: none !important;
-            visibility: visible !important;
-            display: flex !important;
-            flex-direction: column !important;
-            background: var(--bg) !important;
-            border-left: 1px solid var(--brd);
-            z-index: 10 !important;
-            margin: 0 !important;
-            overflow: hidden !important;
+            top: 0 !important; right: 0 !important; bottom: 0 !important; left: 380px !important;
+            width: auto !important; height: 100% !important; max-height: 100% !important;
+            transform: none !important; visibility: visible !important;
+            display: flex !important; flex-direction: column !important;
+            background: var(--bg) !important; border-left: 1px solid var(--brd);
+            z-index: 10 !important; margin: 0 !important; overflow: hidden !important;
         }
-        #chat-window .msgs,
-        #chat-window #msgs {
-            flex: 1 1 auto !important;
-            min-height: 0 !important;
-            overflow-y: auto !important;
+        #chat-window .msgs, #chat-window #msgs {
+            flex: 1 1 auto !important; min-height: 0 !important; overflow-y: auto !important;
         }
         .back-btn { display: none !important; }
         #callOverlay, .modal, #storyViewer, #storyComposer, #storyTextEditor {
-            position: fixed !important;
-            border-radius: 0 !important;
-        }
-        /* пустой чат по центру правой колонки */
-        #chat-window .empty-chat,
-        .empty-state {
-            margin: auto !important;
+            position: fixed !important; border-radius: 0 !important;
         }
 
     </style>
@@ -891,20 +844,20 @@
         
         <div class="auth-form" id="registerForm">
             <div class="input-group">
-                <label data-i18n="login_label">Логин (без @) или Email</label>
-                <input type="text" id="regUsername" data-i18n-placeholder="ph_login" placeholder="Email или логин" autocomplete="username">
+                <label data-i18n="email_label">Email</label>
+                <input type="email" id="regEmail" data-i18n-placeholder="ph_email" placeholder="you@email.com" autocomplete="email">
+            </div>
+            <div class="input-group">
+                <label data-i18n="user_label">Юз (логин)</label>
+                <input type="text" id="regUsername" data-i18n-placeholder="ph_user" placeholder="Уникальный логин без @" autocomplete="username">
             </div>
             <div class="input-group">
                 <label data-i18n="pass_label">Пароль</label>
-                <input type="password" id="regPassword" data-i18n-placeholder="ph_pass_new" placeholder="Введите пароль (мин. 4)" autocomplete="new-password">
+                <input type="password" id="regPassword" data-i18n-placeholder="ph_pass_new" placeholder="Введите пароль (мин. 6)" autocomplete="new-password">
             </div>
             <div class="input-group">
                 <label data-i18n="pass_confirm">Подтверждение пароля</label>
                 <input type="password" id="regConfirm" data-i18n-placeholder="ph_pass_confirm" placeholder="Повторите пароль" autocomplete="new-password">
-            </div>
-            <div class="input-group secret-field visible" id="secretGroup">
-                <label data-i18n="secret_label">Секретное слово (если без Email)</label>
-                <input type="text" id="regSecret" data-i18n-placeholder="ph_secret" placeholder="Для восстановления аккаунта">
             </div>
             <button class="auth-btn" onclick="doRegister()" data-i18n="btn_register">Зарегистрироваться →</button>
         </div>
@@ -1408,7 +1361,11 @@
         ru: {
             tagline: 'Где рождается общение',
             tab_login: 'Вход', tab_register: 'Регистрация',
-            login_label: 'Логин или Email', pass_label: 'Пароль',
+            login_label: 'Логин или Email',
+            email_label: 'Email',
+            user_label: 'Юз (логин)',
+            ph_email: 'you@email.com',
+            ph_user: 'Уникальный логин без @', pass_label: 'Пароль',
             pass_confirm: 'Подтверждение пароля', secret_label: 'Секретное слово (если без Email)',
             btn_login: 'Войти →', btn_register: 'Зарегистрироваться →',
             forgot: 'Забыли пароль?',
@@ -1433,8 +1390,6 @@
             ntfy_prompt: 'Введите тему ntfy (например nexagram_myname).\nУстановите приложение ntfy и подпишитесь на эту тему.\nПусто — отключить.',
             ntfy_saved: 'Тема ntfy сохранена',
             ntfy_off: 'ntfy отключён',
-            warn_email_secret: 'Привяжите Email в настройках. Скоро секретные слова будут удалены — вход и восстановление только по почте.',
-            warn_email_title: 'Привяжите почту',
             sett_notif: 'Включить уведомления',
             sett_support: 'Чат с поддержкой', sett_logout: 'Выйти', sett_delete_acc: 'Удалить аккаунт',
             sett_reset: 'Полный сброс (Локально)', sett_theme: 'Переключить тему',
@@ -1453,7 +1408,12 @@
         en: {
             tagline: 'Where conversation begins',
             tab_login: 'Sign in', tab_register: 'Sign up',
-            login_label: 'Username or Email', pass_label: 'Password',
+            login_label: 'Username or Email',
+            email_label: 'Email',
+            user_label: 'Username',
+            ph_email: 'you@email.com',
+            ph_user: 'Unique username (no @)',
+            pass_label: 'Password',
             pass_confirm: 'Confirm password', secret_label: 'Secret word (if no Email)',
             btn_login: 'Sign in →', btn_register: 'Create account →',
             forgot: 'Forgot password?',
@@ -1478,8 +1438,6 @@
             ntfy_prompt: 'Enter ntfy topic (e.g. nexagram_myname).\nInstall ntfy app and subscribe to this topic.\nEmpty — disable.',
             ntfy_saved: 'ntfy topic saved',
             ntfy_off: 'ntfy disabled',
-            warn_email_secret: 'Link your Email in Settings. Secret words will be removed soon — login and recovery will be email-only.',
-            warn_email_title: 'Link your email',
             sett_notif: 'Enable notifications',
             sett_support: 'Support chat', sett_logout: 'Log out', sett_delete_acc: 'Delete account',
             sett_reset: 'Full reset (Local)', sett_theme: 'Toggle theme',
@@ -3621,88 +3579,86 @@
     }
 
     async function doRegister() {
-        if (!isDbReady) return alert('Подождите, идет подключение к серверу...'); ensureHelper();
-        
-        const loginVal = document.getElementById('regUsername').value.trim();
-        const passwordVal = document.getElementById('regPassword').value;
-        const confirmVal = document.getElementById('regConfirm').value;
-        const secretVal = document.getElementById('regSecret').value.trim();
-        
-        if (!loginVal) return showToast('Введите логин или почту');
-        const loginLower = loginVal.toLowerCase(); const isEmail = loginLower.includes('@');
-        
-        if (!passwordVal || passwordVal.length < 4) return showToast('Пароль от 4 символов');
+        if (!isDbReady) return alert('Подождите, идет подключение к серверу...');
+        ensureHelper();
+
+        const emailVal = (document.getElementById('regEmail') || {}).value || '';
+        const userVal = (document.getElementById('regUsername') || {}).value || '';
+        const passwordVal = (document.getElementById('regPassword') || {}).value || '';
+        const confirmVal = (document.getElementById('regConfirm') || {}).value || '';
+
+        const email = String(emailVal).trim().toLowerCase();
+        const username = String(userVal).trim().toLowerCase().replace(/^@+/, '').replace(/\s+/g, '_');
+
+        if (!email || email.indexOf('@') < 1) return showToast('Введите корректный Email');
+        if (!username || username.length < 3) return showToast('Юз от 3 символов');
+        if (username.includes('@')) return showToast('Юз без @');
+        if (!/^[a-z0-9_\.]+$/i.test(username)) return showToast('Юз: только латиница, цифры, _ и .');
+        if (!passwordVal || passwordVal.length < 6) return showToast('Пароль от 6 символов');
         if (passwordVal !== confirmVal) return showToast('Пароли не совпадают!');
-        if (!isEmail && (!secretVal || secretVal.length < 3)) return showToast('Секретное слово от 3 символов');
-        if (!isEmail && db.users.find(u => u.login === loginLower)) return showToast('Логин занят');
-        
-        if (isEmail) {
-            let customLogin = prompt("Уникальный логин (без @):");
-            if (!customLogin || customLogin.trim().length < 3 || customLogin.includes('@')) { return showToast('Некорректный логин.'); }
-            customLogin = customLogin.trim().toLowerCase();
-            if (db.users.find(u => u.login === customLogin)) { return showToast('Этот логин занят.'); }
+        if (db.users.find(u => u && u.login === username)) return showToast('Этот юз уже занят');
+        if (db.users.find(u => u && u.email && String(u.email).toLowerCase() === email)) return showToast('Email уже зарегистрирован');
+
+        try {
+            document.getElementById('loader').style.display = 'flex';
+            setTimeout(() => document.getElementById('loader').style.opacity = '1', 50);
+
+            const userCred = await firebase.auth().createUserWithEmailAndPassword(email, passwordVal);
+            const fUser = userCred.user;
 
             try {
-                document.getElementById('loader').style.display = 'flex'; setTimeout(()=>document.getElementById('loader').style.opacity = '1', 50);
-                const userCred = await firebase.auth().createUserWithEmailAndPassword(loginLower, passwordVal);
-                const fUser = userCred.user;
-                
-                let user = db.users.find(u => u.email === loginLower);
-                if (!user) {
-                    user = { id: 'u_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6), login: customLogin, email: loginLower, name: customLogin, avatarType: 'emoji', avatarValue: builtInAvatars[Math.floor(Math.random() * builtInAvatars.length)], friends: [], friendRequests: [], password: hashString('firebase_auth'), secretWord: hashString(secretVal || 'firebase_auth'), lastSeen: Date.now(), isBanned: false, firebaseUid: fUser.uid, emailOk: false };
-                    db.users.push(user);
-                    try {
-                        await rtdb.ref('/dg_app_data/users').set(db.users);
-                    } catch (writeErr) {
-                        console.warn('users write', writeErr);
-                        // пробуем записать только новый элемент по индексу
-                        try {
-                            await rtdb.ref('/dg_app_data/users/' + (db.users.length - 1)).set(user);
-                        } catch (e2) {
-                            showToast('База: нет прав на запись users. Обновите Rules в Firebase.');
-                            throw writeErr;
-                        }
-                    }
+                await fUser.sendEmailVerification();
+            } catch (ve) {
+                console.warn('sendEmailVerification', ve);
+            }
+
+            const user = {
+                id: 'u_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+                login: username,
+                email: email,
+                name: username,
+                avatarType: 'emoji',
+                avatarValue: builtInAvatars[Math.floor(Math.random() * builtInAvatars.length)],
+                friends: [],
+                friendRequests: [],
+                password: hashString('firebase_auth'),
+                secretWord: hashString('firebase_auth'),
+                lastSeen: Date.now(),
+                isBanned: false,
+                firebaseUid: fUser.uid,
+                emailOk: false
+            };
+            db.users.push(user);
+            try {
+                await rtdb.ref('/dg_app_data/users').set(db.users);
+            } catch (writeErr) {
+                console.warn('users write', writeErr);
+                try {
+                    await rtdb.ref('/dg_app_data/users/' + (db.users.length - 1)).set(user);
+                } catch (e2) {
+                    showToast('База: нет прав на запись users. Обновите Rules в Firebase.');
+                    throw writeErr;
                 }
-                try { await fUser.sendEmailVerification(); } catch (ve) { console.warn(ve); }
-                document.getElementById('loader').style.opacity = '0'; setTimeout(()=>document.getElementById('loader').style.display='none', 300);
-                showToast('Аккаунт создан');
-                proceedWithLogin(user);
-            } catch (error) { document.getElementById('loader').style.opacity = '0'; setTimeout(()=>document.getElementById('loader').style.display='none', 300); return showToast('Ошибка: ' + error.message); }
-        } else {
-            me = { id: 'u_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6), login: loginLower, name: loginVal, avatarType: 'emoji', avatarValue: builtInAvatars[Math.floor(Math.random() * builtInAvatars.length)], friends: [], friendRequests: [], password: hashString(passwordVal), secretWord: hashString(secretVal), lastSeen: Date.now(), isBanned: false };
-            db.users.push(me); rtdb.ref('/dg_app_data/users').set(db.users); proceedWithLogin(me);
+            }
+
+            document.getElementById('loader').style.opacity = '0';
+            setTimeout(() => document.getElementById('loader').style.display = 'none', 300);
+            showToast('Аккаунт создан. Письмо для подтверждения отправлено на ' + email);
+            try { alert('Мы отправили письмо на ' + email + '. Откройте его и подтвердите почту.'); } catch (_) {}
+            proceedWithLogin(user);
+        } catch (error) {
+            document.getElementById('loader').style.opacity = '0';
+            setTimeout(() => document.getElementById('loader').style.display = 'none', 300);
+            const code = (error && error.code) || '';
+            let msg = (error && error.message) || String(error);
+            if (code === 'auth/email-already-in-use') msg = 'Email уже используется';
+            else if (code === 'auth/invalid-email') msg = 'Некорректный Email';
+            else if (code === 'auth/weak-password') msg = 'Слишком слабый пароль (мин. 6)';
+            showToast('Ошибка: ' + msg);
         }
     }
+
     
-
-    function hasLinkedEmail(user) {
-        if (!user) return false;
-        if (user.emailOk === true) return true;
-        const em = (user.email || '').trim();
-        if (!em || em.indexOf('@') < 0) return false;
-        // firebase-linked often has email even if emailOk false
-        if (user.firebaseUid && em) return user.emailOk === true;
-        return false;
-    }
-
-    function maybeWarnEmailBinding() {
-        if (!me) return;
-        const linked = hasLinkedEmail(me);
-        if (linked) return;
-        const key = 'Nexagram_EmailWarn_' + me.id;
-        const last = parseInt(localStorage.getItem(key) || '0', 10);
-        // не чаще раза в 12 часов
-        if (Date.now() - last < 12 * 60 * 60 * 1000) return;
-        localStorage.setItem(key, String(Date.now()));
-        const msg = (typeof t === 'function' ? t('warn_email_secret') : null)
-            || 'Привяжите Email в настройках. Скоро секретные слова будут удалены — вход и восстановление только по почте.';
-        setTimeout(() => {
-            try { showAppNotification(typeof t === 'function' ? t('warn_email_title') : 'Привяжите почту', msg); } catch (_) {}
-            try { showToast(msg); } catch (_) {}
-            try { alert(msg); } catch (_) {}
-        }, 900);
-    }
 
     function proceedWithLogin(user) {
         me = user; localStorage.setItem('Nexagram_Session_UID', me.id);
@@ -3726,7 +3682,6 @@
             if (localSettings.lightMode) { document.documentElement.setAttribute('data-theme', 'light'); document.getElementById('themeIcon').textContent = 'dark_mode'; } else { document.documentElement.removeAttribute('data-theme'); document.getElementById('themeIcon').textContent = 'light_mode'; }
             applyTheme(localSettings.theme || 'orange'); updUI(); renderFriends(); renderChats(); renderStories(); renderCalls(); setupPresence(); try { setStoriesCollapsed(true); } catch(e) {}
             try { if (typeof Notification !== "undefined" && Notification.permission === "granted") registerFcmToken(); } catch(e) {} listenForIncomingCalls(); updateNavBadges();
-            try { maybeWarnEmailBinding(); } catch(e) {}
             document.getElementById('loginPassword').value = ''; document.getElementById('regPassword').value = ''; document.getElementById('regConfirm').value = '';
         }, 300);
     }
