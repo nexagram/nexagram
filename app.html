@@ -2525,23 +2525,40 @@
     }
 
     /** Пуш получателю: ntfy (работает в РФ без Google) + локальные уведомления у нас уже есть */
-    function notifyUserPush(userId, title, body) {
+        function notifyUserPush(userId, title, body) {
         if (!userId || (me && userId === me.id)) return;
         try {
             const u = (db.users || []).find(x => x && x.id === userId);
-            const topic = u && u.ntfyTopic;
-            if (topic) {
+            if (!u) return;
+            const topic = (u.ntfyTopic || '').trim();
+            if (!topic) {
+                console.log('ntfy: у получателя нет темы', userId);
+                return;
+            }
+            const payload = {
+                topic: topic,
+                title: String(title || 'Nexagram').slice(0, 100),
+                message: String(body || 'Новое сообщение').slice(0, 500),
+                click: 'https://web.nexagram.site/',
+                tags: ['speech_balloon'],
+                priority: 4
+            };
+            // JSON API (надёжнее, чем POST на /topic)
+            fetch('https://ntfy.sh/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).then(r => {
+                if (!r.ok) console.warn('ntfy status', r.status);
+                else console.log('ntfy ok →', topic);
+            }).catch(err => {
+                console.warn('ntfy fetch fail', err);
+                // запасной простой POST
                 fetch('https://ntfy.sh/' + encodeURIComponent(topic), {
                     method: 'POST',
-                    headers: {
-                        'Title': String(title || 'Nexagram').slice(0, 100),
-                        'Click': 'https://web.nexagram.site/',
-                        'Tags': 'speech_balloon',
-                        'Priority': 'high'
-                    },
-                    body: String(body || '').slice(0, 500)
+                    body: payload.message
                 }).catch(() => {});
-            }
+            });
         } catch (e) { console.warn('notifyUserPush', e); }
     }
 
@@ -3581,9 +3598,24 @@
 
             document.getElementById('loader').style.opacity = '0';
             setTimeout(() => document.getElementById('loader').style.display = 'none', 300);
-            showToast('Аккаунт создан. Письмо для подтверждения отправлено на ' + email);
-            try { alert('Мы отправили письмо на ' + email + '. Откройте его и подтвердите почту.'); } catch (_) {}
-            proceedWithLogin(user);
+
+            // Не входим сразу — сначала письмо от Firebase, вход вручную
+            try { await firebase.auth().signOut(); } catch (_) {}
+            try { localStorage.removeItem('Nexagram_Session_UID'); } catch (_) {}
+
+            showToast('Аккаунт создан. Проверьте почту: ' + email);
+            try {
+                alert('Аккаунт создан.\n\nНа ' + email + ' отправлено письмо от Firebase.\nПодтвердите почту, затем войдите с Email и паролем.');
+            } catch (_) {}
+
+            // Переключаем на вкладку входа и подставляем email
+            try {
+                if (typeof switchAuthTab === 'function') switchAuthTab('login');
+                const li = document.getElementById('loginUsername');
+                if (li) li.value = email;
+                const lp = document.getElementById('loginPassword');
+                if (lp) lp.value = '';
+            } catch (_) {}
         } catch (error) {
             document.getElementById('loader').style.opacity = '0';
             setTimeout(() => document.getElementById('loader').style.display = 'none', 300);
