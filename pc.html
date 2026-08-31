@@ -2393,6 +2393,15 @@
         try {
             const data = snapshot.val() || {};
             db.users = ensureArray(data.users).filter(u => u && typeof u === 'object').map(u => { u.friends = ensureArray(u.friends).filter(f => f); u.friendRequests = ensureArray(u.friendRequests).filter(f => f); return u; });
+            try {
+                (db.users || []).forEach(u => {
+                    if (!u || !u.id) return;
+                    const p = presenceMap[String(u.id)];
+                    if (p && p.state === 'online') u.lastSeen = 'online';
+                    else if (p && p.state === 'offline' && p.ts) u.lastSeen = p.ts;
+                });
+            } catch (_p) {}
+
             db.chats = ensureArray(data.chats).filter(c => c && typeof c === 'object').map(c => { 
                 c.msgs = ensureArray(c.msgs).filter(m => m && typeof m === 'object').map(m => { 
                     if (!m.reactions || typeof m.reactions !== 'object') m.reactions = {}; 
@@ -2499,7 +2508,15 @@
                         if (activeChat.type === 'direct' && activeChat.u1 !== activeChat.u2) {
                             const otherId = activeChat.u1 === me.id ? activeChat.u2 : activeChat.u1;
                             const other = db.users.find(u => u.id === otherId);
-                            if (other) { const hStatus = document.getElementById('h-status'); if (hStatus) hStatus.textContent = getUserStatus(other); }
+                            if (other) { const hStatus = document.getElementById('h-status'); if (hStatus) {
+                            try {
+                                const oid = other && other.id ? String(other.id) : '';
+                                const p = presenceMap[oid];
+                                if (p && p.state === 'online') other = Object.assign({}, other, { lastSeen: 'online' });
+                            } catch (_) {}
+                            hStatus.textContent = getUserStatus(other);
+                            hStatus.style.color = (other && other.lastSeen === 'online') ? '#34c759' : 'var(--mut)';
+                        } }
                         }
                     }
                 }
@@ -2802,48 +2819,53 @@
         } catch (e) { console.warn('notifyChatRecipients', e); }
     }
 
-    // presenceMap: userId -> { state: 'online'|'offline', ts: number }
+
+    // ===== ONLINE STATUS (по userId, не по индексу массива) =====
     let presenceMap = {};
     let presenceGlobalRef = null;
+    let statusPollTimer = null;
 
     function setupPresence() {
-        if (!me) return;
-        if (presenceHeartbeat) { clearInterval(presenceHeartbeat); presenceHeartbeat = null; }
-        if (connectedRef) { try { connectedRef.off(); } catch (_) {} }
-        if (presenceRef) { try { presenceRef.off(); } catch (_) {} }
+        if (!me || !me.id) return;
+        const myId = String(me.id);
 
-        const myId = me.id;
-        const presencePath = rtdb.ref('/dg_presence/' + myId);
+        if (presenceHeartbeat) { clearInterval(presenceHeartbeat); presenceHeartbeat = null; }
+        if (statusPollTimer) { clearInterval(statusPollTimer); statusPollTimer = null; }
+        if (connectedRef) { try { connectedRef.off(); } catch (_) {} }
+
+        const statusRef = rtdb.ref('/dg_status/' + myId);
+        const presenceRefLocal = rtdb.ref('/dg_presence/' + myId);
 
         const writeOnline = () => {
-            const payload = { state: 'online', ts: firebase.database.ServerValue.TIMESTAMP };
-            presencePath.set(payload).catch(e => console.warn('presence online', e));
-            presencePath.onDisconnect().set({
-                state: 'offline',
-                ts: firebase.database.ServerValue.TIMESTAMP
-            }).catch(() => {});
+            try {
+                statusRef.set('online');
+                statusRef.onDisconnect().set(firebase.database.ServerValue.TIMESTAMP);
+                presenceRefLocal.set({ state: 'online', ts: Date.now() });
+                presenceRefLocal.onDisconnect().set({ state: 'offline', ts: firebase.database.ServerValue.TIMESTAMP });
+            } catch (e) { console.warn('[presence] write', e); }
             me.lastSeen = 'online';
-            const idx = db.users.findIndex(u => u && u.id === myId);
+            presenceMap[myId] = { state: 'online', ts: Date.now() };
+            const idx = (db.users || []).findIndex(u => u && String(u.id) === myId);
             if (idx > -1) {
                 db.users[idx].lastSeen = 'online';
-                // дубль в users — для старых клиентов
-                rtdb.ref('/dg_app_data/users/' + idx + '/lastSeen').set('online').catch(() => {});
-                rtdb.ref('/dg_app_data/users/' + idx + '/lastSeen').onDisconnect()
-                    .set(firebase.database.ServerValue.TIMESTAMP).catch(() => {});
+                try { rtdb.ref('/dg_app_data/users/' + idx + '/lastSeen').set('online'); } catch (_) {}
             }
-            presenceMap[myId] = { state: 'online', ts: Date.now() };
+            console.log('[presence] ONLINE', myId);
         };
 
         const writeOffline = () => {
             const ts = Date.now();
-            presencePath.set({ state: 'offline', ts: ts }).catch(() => {});
+            try {
+                statusRef.set(ts);
+                presenceRefLocal.set({ state: 'offline', ts: ts });
+            } catch (_) {}
             me.lastSeen = ts;
-            const idx = db.users.findIndex(u => u && u.id === myId);
+            presenceMap[myId] = { state: 'offline', ts: ts };
+            const idx = (db.users || []).findIndex(u => u && String(u.id) === myId);
             if (idx > -1) {
                 db.users[idx].lastSeen = ts;
-                rtdb.ref('/dg_app_data/users/' + idx + '/lastSeen').set(ts).catch(() => {});
+                try { rtdb.ref('/dg_app_data/users/' + idx + '/lastSeen').set(ts); } catch (_) {}
             }
-            presenceMap[myId] = { state: 'offline', ts: ts };
         };
 
         connectedRef = rtdb.ref('.info/connected');
@@ -2851,72 +2873,88 @@
             if (snap.val() === true) writeOnline();
         });
 
-        // при возврате во вкладку — сразу онлайн (как Telegram)
-        try {
-            document.removeEventListener('visibilitychange', window._nexPresenceVis);
-        } catch (_) {}
+        try { document.removeEventListener('visibilitychange', window._nexPresenceVis); } catch (_) {}
         window._nexPresenceVis = () => {
             if (document.visibilityState === 'visible') writeOnline();
-            else writeOffline();
+            // НЕ ставим offline при скрытии вкладки на мобиле — только onDisconnect
+            // иначе статус мигает «недавно» при каждом переключении
         };
         document.addEventListener('visibilitychange', window._nexPresenceVis);
 
         presenceHeartbeat = setInterval(() => {
             if (document.visibilityState === 'visible') writeOnline();
-        }, 20000);
+        }, 15000);
 
         writeOnline();
         listenPresenceMap();
+
+        // UI опрос каждые 3 сек — статус всегда свежий
+        statusPollTimer = setInterval(() => {
+            try { refreshPresenceUI(); } catch (_) {}
+        }, 3000);
     }
 
     function listenPresenceMap() {
         if (presenceGlobalRef) { try { presenceGlobalRef.off(); } catch (_) {} }
-        presenceGlobalRef = rtdb.ref('/dg_presence');
+
+        // простой путь /dg_status/{uid} = "online" | timestamp
+        presenceGlobalRef = rtdb.ref('/dg_status');
         presenceGlobalRef.on('value', snap => {
             const val = snap.val() || {};
-            presenceMap = {};
             Object.keys(val).forEach(uid => {
-                const p = val[uid];
-                if (!p) return;
-                if (typeof p === 'string') {
-                    presenceMap[uid] = { state: p === 'online' ? 'online' : 'offline', ts: Date.now() };
+                const v = val[uid];
+                if (v === 'online') {
+                    presenceMap[uid] = { state: 'online', ts: Date.now() };
                 } else {
-                    presenceMap[uid] = {
-                        state: (p.state === 'online') ? 'online' : 'offline',
-                        ts: typeof p.ts === 'number' ? p.ts : Date.now()
-                    };
+                    const n = Number(v);
+                    presenceMap[uid] = { state: 'offline', ts: (n && !isNaN(n)) ? n : Date.now() };
                 }
             });
-            // подмешиваем в db.users для UI
+            // подмешать в users
             (db.users || []).forEach(u => {
                 if (!u || !u.id) return;
-                const p = presenceMap[u.id];
-                if (p && p.state === 'online') u.lastSeen = 'online';
-                else if (p && p.state === 'offline' && p.ts) u.lastSeen = p.ts;
+                const p = presenceMap[String(u.id)];
+                if (!p) return;
+                if (p.state === 'online') u.lastSeen = 'online';
+                else if (p.ts) u.lastSeen = p.ts;
             });
             try { refreshPresenceUI(); } catch (_) {}
         });
+
+        // запасной /dg_presence
+        try {
+            rtdb.ref('/dg_presence').on('value', snap => {
+                const val = snap.val() || {};
+                Object.keys(val).forEach(uid => {
+                    const p = val[uid];
+                    if (!p) return;
+                    if (p === 'online' || (p.state === 'online')) {
+                        presenceMap[uid] = { state: 'online', ts: Date.now() };
+                    } else if (p.state === 'offline') {
+                        presenceMap[uid] = { state: 'offline', ts: p.ts || Date.now() };
+                    }
+                });
+                try { refreshPresenceUI(); } catch (_) {}
+            });
+        } catch (_) {}
     }
 
     function refreshPresenceUI() {
-        // статус в шапке открытого чата
         try {
-            if (activeChat && activeChat.type === 'direct') {
-                const oid = activeChat.u1 === me.id ? activeChat.u2 : activeChat.u1;
-                const u = (db.users || []).find(x => x && x.id === oid);
+            if (me && activeChat && activeChat.type === 'direct') {
+                const oid = String(activeChat.u1 === me.id ? activeChat.u2 : activeChat.u1);
+                let u = (db.users || []).find(x => x && String(x.id) === oid);
+                if (!u) u = { id: oid, lastSeen: null };
+                // presence важнее users
+                const p = presenceMap[oid];
+                if (p && p.state === 'online') u = Object.assign({}, u, { lastSeen: 'online' });
+                else if (p && p.state === 'offline' && p.ts) u = Object.assign({}, u, { lastSeen: p.ts });
                 const el = document.getElementById('h-status');
-                if (u && el) {
+                if (el) {
                     el.textContent = getUserStatus(u);
-                    el.style.color = (presenceMap[u.id] && presenceMap[u.id].state === 'online') ? 'var(--p)' : 'var(--mut)';
+                    el.style.color = (p && p.state === 'online') ? '#34c759' : 'var(--mut)';
                 }
             }
-        } catch (_) {}
-        // списки
-        try {
-            if (typeof renderFriends === 'function') renderFriends();
-        } catch (_) {}
-        try {
-            if (typeof renderChats === 'function') renderChats();
         } catch (_) {}
     }
 
@@ -2933,47 +2971,50 @@
     }
     function getUserStatus(user) {
         if (!user) return '';
-        if (me && user.id === me.id) return (typeof t === 'function' ? t('st_online') : 'в сети');
-        if (typeof hasBlockedMe === 'function' && hasBlockedMe(user.id)) {
-            return (typeof t === 'function' ? t('st_long_ago') : 'был(а) давно');
-        }
-
-        // 1) живой presence (Telegram-style)
+        const uid = user.id ? String(user.id) : '';
+        if (me && uid && uid === String(me.id)) return 'в сети';
         try {
-            const p = presenceMap && presenceMap[user.id];
-            if (p && p.state === 'online') return (typeof t === 'function' ? t('st_online') : 'в сети');
-            // offline из presence — берём ts если lastSeen пустой
-            if (p && p.state === 'offline' && p.ts && (user.lastSeen === 'online' || user.lastSeen == null)) {
-                user = Object.assign({}, user, { lastSeen: p.ts });
-            }
+            if (typeof hasBlockedMe === 'function' && hasBlockedMe(user.id)) return 'был(а) давно';
+        } catch (_) {}
+
+        // presenceMap — главный источник
+        try {
+            const p = presenceMap && uid && presenceMap[uid];
+            if (p && p.state === 'online') return 'в сети';
         } catch (_) {}
 
         let ls = user.lastSeen;
-        if (ls === 'online') return (typeof t === 'function' ? t('st_online') : 'в сети');
+        if (ls === 'online') return 'в сети';
         if (ls && typeof ls === 'object' && ls.seconds != null) ls = Number(ls.seconds) * 1000;
-        if (ls == null || ls === '') return (typeof t === 'function' ? t('st_recently') : 'был(а) недавно');
+        if (ls == null || ls === '') {
+            // ещё раз presence offline ts
+            try {
+                const p = presenceMap && uid && presenceMap[uid];
+                if (p && p.ts) ls = p.ts;
+            } catch (_) {}
+        }
+        if (ls == null || ls === '') return 'был(а) недавно';
         if (typeof ls === 'string' && ls !== 'online') {
             const n = Number(ls);
             if (!isNaN(n) && n > 0) ls = n;
-            else return (typeof t === 'function' ? t('st_recently') : 'был(а) недавно');
+            else return 'был(а) недавно';
         }
         const ts = Number(ls);
-        if (!ts || isNaN(ts)) return (typeof t === 'function' ? t('st_recently') : 'был(а) недавно');
+        if (!ts || isNaN(ts)) return 'был(а) недавно';
         const diff = Date.now() - ts;
-        if (isNaN(diff) || diff < 0) return (typeof t === 'function' ? t('st_recently') : 'был(а) недавно');
-        // только что (до 45 сек после выхода) — ещё «в сети»
-        if (diff < 45 * 1000) return (typeof t === 'function' ? t('st_online') : 'в сети');
+        if (isNaN(diff) || diff < 0) return 'был(а) недавно';
+        if (diff < 60 * 1000) return 'в сети';
         if (diff < 60 * 60 * 1000) {
             const m = Math.max(1, Math.floor(diff / 60000));
-            return (typeof t === 'function' ? t('st_min') : 'был(а) {n} мин. назад').replace('{n}', String(m));
+            return 'был(а) ' + m + ' мин. назад';
         }
         if (diff < 24 * 60 * 60 * 1000) {
             const h = Math.max(1, Math.floor(diff / 3600000));
-            return (typeof t === 'function' ? t('st_hour') : 'был(а) {n} ч. назад').replace('{n}', String(h));
+            return 'был(а) ' + h + ' ч. назад';
         }
-        if (diff < 2 * 24 * 60 * 60 * 1000) return (typeof t === 'function' ? t('st_yesterday') : 'был(а) вчера');
-        if (diff < 7 * 24 * 60 * 60 * 1000) return (typeof t === 'function' ? t('st_recently') : 'был(а) недавно');
-        return (typeof t === 'function' ? t('st_long_ago') : 'был(а) давно');
+        if (diff < 2 * 24 * 60 * 60 * 1000) return 'был(а) вчера';
+        if (diff < 7 * 24 * 60 * 60 * 1000) return 'был(а) недавно';
+        return 'был(а) давно';
     }
 
 
@@ -3079,32 +3120,57 @@
     }
 
     function listenForIncomingCalls() {
-        if (!me) return;
-        const path = '/dg_user_calls/' + me.id;
-        try { rtdb.ref(path).off(); } catch (_) {}
-        console.log('[call] listening', path);
-        rtdb.ref(path).on('value', snap => {
-            const incomingCallId = snap.val();
-            console.log('[call] signal', incomingCallId);
-            if (!incomingCallId) {
-                if (currentCallId && !peerConnection) { try { hideCallUI(); } catch (_) {} }
+        if (!me || !me.id) return;
+        const myId = String(me.id);
+        console.log('[call] listen start', myId);
+
+        const handleIncoming = (callId, meta) => {
+            if (!callId) return;
+            callId = String(callId);
+            if (currentCallId && String(currentCallId) === callId) return;
+            console.log('[call] handleIncoming', callId, meta);
+
+            const openUI = (callerId, isVideo) => {
+                try { showToast('📞 Входящий звонок…'); } catch (_) {}
+                showIncomingCallUI(callerId, callId, !!isVideo);
+            };
+
+            if (meta && meta.caller) {
+                openUI(meta.caller, meta.isVideo);
                 return;
             }
-            if (currentCallId && String(currentCallId) === String(incomingCallId)) return;
-
             const tryLoad = (attempt) => {
-                rtdb.ref('/dg_calls/' + incomingCallId).once('value', callSnap => {
+                rtdb.ref('/dg_calls/' + callId).once('value', callSnap => {
                     const callData = callSnap.val();
                     if (!callData) {
-                        if (attempt < 10) setTimeout(() => tryLoad(attempt + 1), 250);
+                        if (attempt < 12) setTimeout(() => tryLoad(attempt + 1), 200);
+                        else console.warn('[call] no data for', callId);
                         return;
                     }
                     if (callData.status && callData.status !== 'ringing') return;
-                    if (callData.caller && String(callData.caller) === String(me.id)) return;
-                    showIncomingCallUI(callData.caller, incomingCallId, !!callData.isVideo);
+                    if (callData.caller && String(callData.caller) === myId) return;
+                    openUI(callData.caller, callData.isVideo);
                 });
             };
             tryLoad(0);
+        };
+
+        // канал 1
+        try { rtdb.ref('/dg_user_calls/' + myId).off(); } catch (_) {}
+        rtdb.ref('/dg_user_calls/' + myId).on('value', snap => {
+            const v = snap.val();
+            console.log('[call] dg_user_calls', v);
+            if (v) handleIncoming(v, null);
+        });
+
+        // канал 2 — полный объект (надёжнее)
+        try { rtdb.ref('/dg_incoming/' + myId).off(); } catch (_) {}
+        rtdb.ref('/dg_incoming/' + myId).on('value', snap => {
+            const d = snap.val();
+            console.log('[call] dg_incoming', d);
+            if (d && d.callId && (d.status === 'ringing' || !d.status)) {
+                handleIncoming(d.callId, d);
+            }
         });
     }
 
@@ -3298,10 +3364,25 @@
                 offer: { type: offer.type, sdp: offer.sdp },
                 status: 'ringing', isVideo: isVideo
             });
-            await rtdb.ref('/dg_user_calls/' + targetUserId).set(currentCallId);
-            setTimeout(() => { rtdb.ref('/dg_user_calls/' + targetUserId).set(currentCallId).catch(() => {}); }, 400);
-            setTimeout(() => { rtdb.ref('/dg_user_calls/' + targetUserId).set(currentCallId).catch(() => {}); }, 1200);
-            console.log('[call] signaled', targetUserId, currentCallId);
+            const tid = String(targetUserId);
+            const incomingPayload = {
+                callId: currentCallId,
+                caller: me.id,
+                isVideo: !!isVideo,
+                status: 'ringing',
+                at: Date.now()
+            };
+            await rtdb.ref('/dg_user_calls/' + tid).set(currentCallId);
+            await rtdb.ref('/dg_incoming/' + tid).set(incomingPayload);
+            setTimeout(() => {
+                rtdb.ref('/dg_user_calls/' + tid).set(currentCallId).catch(() => {});
+                rtdb.ref('/dg_incoming/' + tid).set(incomingPayload).catch(() => {});
+            }, 500);
+            setTimeout(() => {
+                rtdb.ref('/dg_user_calls/' + tid).set(currentCallId).catch(() => {});
+                rtdb.ref('/dg_incoming/' + tid).set(incomingPayload).catch(() => {});
+            }, 1500);
+            console.log('[call] SIGNALLED to', tid, currentCallId);
             try { notifyUserPush(targetUserId, 'Входящий вызов', (me.name || me.login || 'Nexagram') + (isVideo ? ' (видео)' : '')); } catch (_) {}
 
             // Таймаут ожидания ответа — 20 секунд
@@ -3431,7 +3512,10 @@
             const snap = await rtdb.ref(`/dg_calls/${currentCallId}`).once('value'); const data = snap.val();
             if (data) {
                 const isRinging = data.status === 'ringing'; const isCaller = data.caller === me.id; const endStatus = isRinging ? (isCaller ? 'missed' : 'declined') : 'ended';
-                await rtdb.ref(`/dg_calls/${currentCallId}`).update({ status: endStatus }); await rtdb.ref(`/dg_user_calls/${data.callee}`).remove(); await rtdb.ref(`/dg_user_calls/${data.caller}`).remove();
+                await rtdb.ref(`/dg_calls/${currentCallId}`).update({ status: endStatus }); await rtdb.ref('/dg_user_calls/' + data.callee).remove();
+                await rtdb.ref('/dg_user_calls/' + data.caller).remove();
+                try { await rtdb.ref('/dg_incoming/' + data.callee).remove(); } catch (_) {}
+                try { await rtdb.ref('/dg_incoming/' + data.caller).remove(); } catch (_) {}
                 if (isCaller) { const newLog = { id: 'log_' + Date.now(), caller: data.caller, callee: data.callee, time: Date.now(), status: endStatus, isVideo: data.isVideo, duration: callSeconds }; db.callLogs.push(newLog); rtdb.ref('/dg_app_data/callLogs').set(db.callLogs); }
             }
         }
@@ -5159,62 +5243,177 @@
     }
 
     function toggleVoice() {
-        if (!activeChat) return; const btn = document.getElementById('btn-voice');
-        if (isRecordingVoice) { mediaRecorder.stop(); isRecordingVoice = false; btn.classList.remove('recording-pulse');
-            try { if (window._voiceAnalyserRAF) cancelAnimationFrame(window._voiceAnalyserRAF); } catch(_){}
-            try { const w = document.getElementById('voice-wave-ui'); if (w) w.style.display = 'none';
-              const inp = document.getElementById('msgInput') || document.getElementById('msg-input');
-              if (inp) inp.style.display = inp.dataset._prevDisp || '';
-            } catch(_){}
- } 
-        else {
-            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-                    isRecordingVoice = true; btn.classList.add('recording-pulse');
-                    // визуализация волны
-                    try {
-                        window._voiceRecStream = stream;
-                        let wave = document.getElementById('voice-wave-ui');
-                        if (!wave) {
-                            wave = document.createElement('div');
-                            wave.id = 'voice-wave-ui';
-                            wave.style.cssText = 'display:flex;align-items:center;justify-content:center;gap:3px;height:36px;padding:0 10px;margin:0 6px;background:var(--in);border-radius:18px;flex:1;';
-                            const inp = document.getElementById('msgInput') || document.getElementById('msg-input') || document.querySelector('#chat-window input[type=text], #chat-window textarea');
-                            if (inp && inp.parentNode) { inp.dataset._prevDisp = inp.style.display; inp.style.display = 'none'; inp.parentNode.insertBefore(wave, inp); }
-                            else if (btn && btn.parentNode) btn.parentNode.insertBefore(wave, btn);
-                        }
-                        wave.style.display = 'flex';
-                        wave.innerHTML = '';
-                        const bars = [];
-                        for (let bi = 0; bi < 16; bi++) {
-                            const b = document.createElement('div');
-                            b.style.cssText = 'width:3px;height:6px;border-radius:2px;background:var(--p);';
-                            wave.appendChild(b); bars.push(b);
-                        }
-                        const actx = new (window.AudioContext || window.webkitAudioContext)();
-                        const srcNode = actx.createMediaStreamSource(stream);
-                        const analyser = actx.createAnalyser(); analyser.fftSize = 64;
-                        srcNode.connect(analyser);
-                        const dataArr = new Uint8Array(analyser.frequencyBinCount);
-                        const tickWave = () => {
-                            if (!isRecordingVoice) { try { actx.close(); } catch(e){} return; }
-                            analyser.getByteFrequencyData(dataArr);
-                            for (let bi = 0; bi < bars.length; bi++) {
-                                const v = dataArr[bi % dataArr.length] || 0;
-                                bars[bi].style.height = Math.max(4, Math.min(28, v/255*28)) + 'px';
-                            }
-                            window._voiceAnalyserRAF = requestAnimationFrame(tickWave);
-                        };
-                        tickWave();
-                    } catch (waveErr) { console.warn(waveErr); }
+        if (!activeChat) return;
+        const btn = document.getElementById('btn-voice');
+        const inputEl = document.getElementById('m-in');
 
-                    let options = undefined; if (MediaRecorder.isTypeSupported('audio/webm')) options = { mimeType: 'audio/webm' }; else if (MediaRecorder.isTypeSupported('audio/mp4')) options = { mimeType: 'audio/mp4' };
-                    mediaRecorder = new MediaRecorder(stream, options); recordedChunks = []; mediaRecorder.ondataavailable = e => recordedChunks.push(e.data);
-                    mediaRecorder.onstop = async () => { const finalMime = mediaRecorder.mimeType || 'audio/mp4'; const ext = finalMime.includes('mp4') ? 'mp4' : 'webm'; const blob = new Blob(recordedChunks, { type: finalMime }); const file = new File([blob], 'voice.' + ext, { type: finalMime }); const url = await uploadToCloud(file); if (url) { const chatIndex = ensureChatInDb(); if (chatIndex > -1) { const msgObj = { uid: me.id, type: 'voice', url: url, time: Date.now(), reactions: {} }; if (replyingTo) { msgObj.reply = getSafeReplyObj(replyingTo); cancelReply(); } if (!db.chats[chatIndex].msgs) db.chats[chatIndex].msgs = []; db.chats[chatIndex].msgs.push(msgObj); rtdb.ref(`/dg_app_data/chats/${chatIndex}/msgs`).set(db.chats[chatIndex].msgs); if (activeChat.id === db.chats[chatIndex].id) renderMsgs(); } } stream.getTracks().forEach(t => t.stop()); }; mediaRecorder.start();
-                }).catch(() => showToast("Нет доступа к микрофону"));
-            } else { showToast("Браузер не поддерживает запись голоса"); }
+        const hideWave = () => {
+            try { if (window._voiceAnalyserRAF) cancelAnimationFrame(window._voiceAnalyserRAF); } catch (_) {}
+            window._voiceAnalyserRAF = null;
+            try {
+                if (window._voiceAudioCtx) { window._voiceAudioCtx.close(); window._voiceAudioCtx = null; }
+            } catch (_) {}
+            const w = document.getElementById('voice-wave-ui');
+            if (w) w.style.display = 'none';
+            if (inputEl) inputEl.style.display = '';
+            if (btn) btn.classList.remove('recording-pulse');
+        };
+
+        if (isRecordingVoice) {
+            try {
+                if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+            } catch (_) {}
+            isRecordingVoice = false;
+            hideWave();
+            try {
+                if (window._voiceRecStream) {
+                    window._voiceRecStream.getTracks().forEach(tr => tr.stop());
+                    window._voiceRecStream = null;
+                }
+            } catch (_) {}
+            return;
         }
+
+        if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) {
+            return showToast('Микрофон недоступен');
+        }
+
+        navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+            isRecordingVoice = true;
+            window._voiceRecStream = stream;
+            if (btn) btn.classList.add('recording-pulse');
+
+            // ===== полоска-волна вместо поля ввода =====
+            let wave = document.getElementById('voice-wave-ui');
+            if (!wave) {
+                wave = document.createElement('div');
+                wave.id = 'voice-wave-ui';
+                wave.setAttribute('aria-label', 'Запись…');
+                if (inputEl && inputEl.parentNode) {
+                    inputEl.parentNode.insertBefore(wave, inputEl);
+                } else if (btn && btn.parentNode) {
+                    btn.parentNode.insertBefore(wave, btn);
+                }
+            }
+            wave.style.cssText = [
+                'display:flex',
+                'align-items:center',
+                'justify-content:center',
+                'gap:3px',
+                'height:40px',
+                'flex:1',
+                'min-width:80px',
+                'padding:0 12px',
+                'margin:0 4px',
+                'background:var(--in)',
+                'border-radius:20px',
+                'border:1px solid var(--p)',
+                'box-sizing:border-box'
+            ].join(';');
+            if (inputEl) inputEl.style.display = 'none';
+            wave.style.display = 'flex';
+            wave.innerHTML = '';
+
+            const bars = [];
+            for (let i = 0; i < 20; i++) {
+                const b = document.createElement('div');
+                b.style.cssText = 'width:3px;height:6px;border-radius:2px;background:var(--p);transition:height 0.06s ease';
+                wave.appendChild(b);
+                bars.push(b);
+            }
+
+            try {
+                const AC = window.AudioContext || window.webkitAudioContext;
+                const actx = new AC();
+                window._voiceAudioCtx = actx;
+                if (actx.state === 'suspended') actx.resume();
+                const srcNode = actx.createMediaStreamSource(stream);
+                const analyser = actx.createAnalyser();
+                analyser.fftSize = 256;
+                analyser.smoothingTimeConstant = 0.4;
+                srcNode.connect(analyser);
+                const dataArr = new Uint8Array(analyser.fftSize);
+
+                const tickWave = () => {
+                    if (!isRecordingVoice) return;
+                    analyser.getByteTimeDomainData(dataArr);
+                    const step = Math.floor(dataArr.length / bars.length);
+                    for (let i = 0; i < bars.length; i++) {
+                        let sum = 0;
+                        const start = i * step;
+                        for (let j = 0; j < step; j++) {
+                            const v = dataArr[start + j] - 128;
+                            sum += v * v;
+                        }
+                        const rms = Math.sqrt(sum / Math.max(1, step));
+                        const h = Math.max(4, Math.min(32, 4 + rms * 1.2));
+                        bars[i].style.height = h + 'px';
+                    }
+                    window._voiceAnalyserRAF = requestAnimationFrame(tickWave);
+                };
+                tickWave();
+            } catch (e) {
+                console.warn('voice wave', e);
+                // хоть анимация-заглушка, чтобы было видно, что запись идёт
+                let k = 0;
+                const fake = () => {
+                    if (!isRecordingVoice) return;
+                    for (let i = 0; i < bars.length; i++) {
+                        const h = 6 + Math.abs(Math.sin(k / 5 + i / 3)) * 18;
+                        bars[i].style.height = h + 'px';
+                    }
+                    k++;
+                    window._voiceAnalyserRAF = requestAnimationFrame(fake);
+                };
+                fake();
+            }
+
+            let options = undefined;
+            if (typeof MediaRecorder !== 'undefined') {
+                if (MediaRecorder.isTypeSupported('audio/webm')) options = { mimeType: 'audio/webm' };
+                else if (MediaRecorder.isTypeSupported('audio/mp4')) options = { mimeType: 'audio/mp4' };
+            }
+            mediaRecorder = new MediaRecorder(stream, options);
+            recordedChunks = [];
+            mediaRecorder.ondataavailable = e => {
+                if (e.data && e.data.size) recordedChunks.push(e.data);
+            };
+            mediaRecorder.onstop = async () => {
+                isRecordingVoice = false;
+                hideWave();
+                try { stream.getTracks().forEach(tr => tr.stop()); } catch (_) {}
+                window._voiceRecStream = null;
+                const finalMime = (mediaRecorder && mediaRecorder.mimeType) || 'audio/webm';
+                const ext = finalMime.indexOf('mp4') >= 0 ? 'mp4' : 'webm';
+                const blob = new Blob(recordedChunks, { type: finalMime });
+                if (!blob.size) return showToast('Пустая запись');
+                try {
+                    const file = new File([blob], 'voice.' + ext, { type: finalMime });
+                    const url = await uploadToCloud(file);
+                    if (!url) return showToast('Не удалось загрузить');
+                    const chatIndex = ensureChatInDb();
+                    if (chatIndex > -1) {
+                        const msgObj = { uid: me.id, type: 'voice', url: url, time: Date.now(), reactions: {} };
+                        if (!db.chats[chatIndex].msgs) db.chats[chatIndex].msgs = [];
+                        db.chats[chatIndex].msgs.push(msgObj);
+                        await rtdb.ref('/dg_app_data/chats/' + chatIndex + '/msgs').set(db.chats[chatIndex].msgs);
+                        try { notifyChatRecipients(db.chats[chatIndex], msgObj); } catch (_) {}
+                        try { renderMsgs(false); } catch (_) {}
+                    }
+                } catch (err) {
+                    console.warn(err);
+                    showToast('Ошибка отправки голосового');
+                }
+            };
+            mediaRecorder.start();
+            showToast('Запись… нажми микрофон ещё раз');
+        }).catch(err => {
+            isRecordingVoice = false;
+            console.warn(err);
+            showToast('Нет доступа к микрофону');
+        });
     }
+
 
     function toggleVideoCircle() {
         if (!activeChat) return; const btn = document.getElementById('btn-circle'); const previewContainer = document.getElementById('video-circle-preview-container'); const previewVideo = document.getElementById('video-circle-preview');
