@@ -2736,41 +2736,119 @@
         } catch (e) { console.warn('notifyChatRecipients', e); }
     }
 
+    // presenceMap: userId -> { state: 'online'|'offline', ts: number }
+    let presenceMap = {};
+    let presenceGlobalRef = null;
+
     function setupPresence() {
         if (!me) return;
-        const uIdx = db.users.findIndex(u => u.id === me.id);
-        if (uIdx === -1) return;
         if (presenceHeartbeat) { clearInterval(presenceHeartbeat); presenceHeartbeat = null; }
-        if (connectedRef) connectedRef.off();
-        connectedRef = rtdb.ref('.info/connected');
-        const goOnline = () => {
-            const idx = db.users.findIndex(u => u.id === me.id);
-            if (idx === -1) return;
-            presenceRef = rtdb.ref(`/dg_app_data/users/${idx}/lastSeen`);
-            presenceRef.onDisconnect().set(firebase.database.ServerValue.TIMESTAMP);
-            presenceRef.set('online');
+        if (connectedRef) { try { connectedRef.off(); } catch (_) {} }
+        if (presenceRef) { try { presenceRef.off(); } catch (_) {} }
+
+        const myId = me.id;
+        const presencePath = rtdb.ref('/dg_presence/' + myId);
+
+        const writeOnline = () => {
+            const payload = { state: 'online', ts: firebase.database.ServerValue.TIMESTAMP };
+            presencePath.set(payload).catch(e => console.warn('presence online', e));
+            presencePath.onDisconnect().set({
+                state: 'offline',
+                ts: firebase.database.ServerValue.TIMESTAMP
+            }).catch(() => {});
             me.lastSeen = 'online';
-            if (db.users[idx]) db.users[idx].lastSeen = 'online';
+            const idx = db.users.findIndex(u => u && u.id === myId);
+            if (idx > -1) {
+                db.users[idx].lastSeen = 'online';
+                // дубль в users — для старых клиентов
+                rtdb.ref('/dg_app_data/users/' + idx + '/lastSeen').set('online').catch(() => {});
+                rtdb.ref('/dg_app_data/users/' + idx + '/lastSeen').onDisconnect()
+                    .set(firebase.database.ServerValue.TIMESTAMP).catch(() => {});
+            }
+            presenceMap[myId] = { state: 'online', ts: Date.now() };
         };
-        const goOffline = () => {
-            const idx = db.users.findIndex(u => u.id === me.id);
-            if (idx === -1) return;
+
+        const writeOffline = () => {
             const ts = Date.now();
-            rtdb.ref(`/dg_app_data/users/${idx}/lastSeen`).set(ts);
+            presencePath.set({ state: 'offline', ts: ts }).catch(() => {});
             me.lastSeen = ts;
-            if (db.users[idx]) db.users[idx].lastSeen = ts;
+            const idx = db.users.findIndex(u => u && u.id === myId);
+            if (idx > -1) {
+                db.users[idx].lastSeen = ts;
+                rtdb.ref('/dg_app_data/users/' + idx + '/lastSeen').set(ts).catch(() => {});
+            }
+            presenceMap[myId] = { state: 'offline', ts: ts };
         };
+
+        connectedRef = rtdb.ref('.info/connected');
         connectedRef.on('value', snap => {
-            if (snap.val() === true) goOnline();
+            if (snap.val() === true) writeOnline();
         });
+
+        // при возврате во вкладку — сразу онлайн (как Telegram)
+        try {
+            document.removeEventListener('visibilitychange', window._nexPresenceVis);
+        } catch (_) {}
+        window._nexPresenceVis = () => {
+            if (document.visibilityState === 'visible') writeOnline();
+            else writeOffline();
+        };
+        document.addEventListener('visibilitychange', window._nexPresenceVis);
+
         presenceHeartbeat = setInterval(() => {
-            if (document.visibilityState === 'visible') goOnline();
-        }, 30000);
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible') goOnline();
-            else goOffline();
+            if (document.visibilityState === 'visible') writeOnline();
+        }, 20000);
+
+        writeOnline();
+        listenPresenceMap();
+    }
+
+    function listenPresenceMap() {
+        if (presenceGlobalRef) { try { presenceGlobalRef.off(); } catch (_) {} }
+        presenceGlobalRef = rtdb.ref('/dg_presence');
+        presenceGlobalRef.on('value', snap => {
+            const val = snap.val() || {};
+            presenceMap = {};
+            Object.keys(val).forEach(uid => {
+                const p = val[uid];
+                if (!p) return;
+                if (typeof p === 'string') {
+                    presenceMap[uid] = { state: p === 'online' ? 'online' : 'offline', ts: Date.now() };
+                } else {
+                    presenceMap[uid] = {
+                        state: (p.state === 'online') ? 'online' : 'offline',
+                        ts: typeof p.ts === 'number' ? p.ts : Date.now()
+                    };
+                }
+            });
+            // подмешиваем в db.users для UI
+            (db.users || []).forEach(u => {
+                if (!u || !u.id) return;
+                const p = presenceMap[u.id];
+                if (p && p.state === 'online') u.lastSeen = 'online';
+                else if (p && p.state === 'offline' && p.ts) u.lastSeen = p.ts;
+            });
+            try { refreshPresenceUI(); } catch (_) {}
         });
-        goOnline();
+    }
+
+    function refreshPresenceUI() {
+        // статус в шапке открытого чата
+        try {
+            if (activeChat && activeChat.type === 'direct') {
+                const oid = activeChat.u1 === me.id ? activeChat.u2 : activeChat.u1;
+                const u = (db.users || []).find(x => x && x.id === oid);
+                const el = document.getElementById('chatStatus') || document.querySelector('.chat-status, #hStatus, .head-status');
+                if (u && el) el.textContent = getUserStatus(u);
+            }
+        } catch (_) {}
+        // списки
+        try {
+            if (typeof renderFriends === 'function') renderFriends();
+        } catch (_) {}
+        try {
+            if (typeof renderChats === 'function') renderChats();
+        } catch (_) {}
     }
 
     function isBlockedByMe(uid) {
@@ -2786,39 +2864,47 @@
     }
     function getUserStatus(user) {
         if (!user) return '';
-        if (me && user.id === me.id) return t('st_online');
-        if (hasBlockedMe(user.id)) return t('st_long_ago');
+        if (me && user.id === me.id) return (typeof t === 'function' ? t('st_online') : 'в сети');
+        if (typeof hasBlockedMe === 'function' && hasBlockedMe(user.id)) {
+            return (typeof t === 'function' ? t('st_long_ago') : 'был(а) давно');
+        }
+
+        // 1) живой presence (Telegram-style)
+        try {
+            const p = presenceMap && presenceMap[user.id];
+            if (p && p.state === 'online') return (typeof t === 'function' ? t('st_online') : 'в сети');
+            // offline из presence — берём ts если lastSeen пустой
+            if (p && p.state === 'offline' && p.ts && (user.lastSeen === 'online' || user.lastSeen == null)) {
+                user = Object.assign({}, user, { lastSeen: p.ts });
+            }
+        } catch (_) {}
+
         let ls = user.lastSeen;
-        if (ls === 'online') return t('st_online');
+        if (ls === 'online') return (typeof t === 'function' ? t('st_online') : 'в сети');
         if (ls && typeof ls === 'object' && ls.seconds != null) ls = Number(ls.seconds) * 1000;
-        if (ls == null || ls === '') return t('st_recently');
+        if (ls == null || ls === '') return (typeof t === 'function' ? t('st_recently') : 'был(а) недавно');
         if (typeof ls === 'string' && ls !== 'online') {
             const n = Number(ls);
             if (!isNaN(n) && n > 0) ls = n;
-            else return t('st_recently');
+            else return (typeof t === 'function' ? t('st_recently') : 'был(а) недавно');
         }
         const ts = Number(ls);
-        if (!ts || isNaN(ts)) return t('st_recently');
+        if (!ts || isNaN(ts)) return (typeof t === 'function' ? t('st_recently') : 'был(а) недавно');
         const diff = Date.now() - ts;
-        if (isNaN(diff) || diff < 0) return t('st_recently');
-        // только что / в сети — до 1 мин
-        if (diff < 60 * 1000) return t('st_online');
-        // минуты
+        if (isNaN(diff) || diff < 0) return (typeof t === 'function' ? t('st_recently') : 'был(а) недавно');
+        // только что (до 45 сек после выхода) — ещё «в сети»
+        if (diff < 45 * 1000) return (typeof t === 'function' ? t('st_online') : 'в сети');
         if (diff < 60 * 60 * 1000) {
             const m = Math.max(1, Math.floor(diff / 60000));
-            return t('st_min').replace('{n}', String(m));
+            return (typeof t === 'function' ? t('st_min') : 'был(а) {n} мин. назад').replace('{n}', String(m));
         }
-        // часы
         if (diff < 24 * 60 * 60 * 1000) {
             const h = Math.max(1, Math.floor(diff / 3600000));
-            return t('st_hour').replace('{n}', String(h));
+            return (typeof t === 'function' ? t('st_hour') : 'был(а) {n} ч. назад').replace('{n}', String(h));
         }
-        // 1–2 дня
-        if (diff < 2 * 24 * 60 * 60 * 1000) return t('st_yesterday');
-        // 2–7 дней
-        if (diff < 7 * 24 * 60 * 60 * 1000) return t('st_recently');
-        // > 7 дней
-        return t('st_long_ago');
+        if (diff < 2 * 24 * 60 * 60 * 1000) return (typeof t === 'function' ? t('st_yesterday') : 'был(а) вчера');
+        if (diff < 7 * 24 * 60 * 60 * 1000) return (typeof t === 'function' ? t('st_recently') : 'был(а) недавно');
+        return (typeof t === 'function' ? t('st_long_ago') : 'был(а) давно');
     }
 
 
@@ -2925,11 +3011,34 @@
 
     function listenForIncomingCalls() {
         if (!me) return;
+        try { rtdb.ref('/dg_user_calls/' + me.id).off(); } catch (_) {}
         rtdb.ref('/dg_user_calls/' + me.id).on('value', snap => {
             const incomingCallId = snap.val();
-            if (incomingCallId) {
-                rtdb.ref('/dg_calls/' + incomingCallId).once('value', callSnap => { const callData = callSnap.val(); if (callData && callData.status === 'ringing' && callData.caller !== me.id) { showIncomingCallUI(callData.caller, incomingCallId, callData.isVideo); } });
-            } else { if (currentCallId && !peerConnection) { hideCallUI(); } }
+            if (!incomingCallId) {
+                if (currentCallId && !peerConnection) {
+                    try { hideCallUI(); } catch (_) {}
+                }
+                return;
+            }
+            // уже в этом звонке
+            if (currentCallId && String(currentCallId) === String(incomingCallId) && peerConnection) return;
+
+            rtdb.ref('/dg_calls/' + incomingCallId).once('value', callSnap => {
+                const callData = callSnap.val();
+                if (!callData) return;
+                if (callData.status !== 'ringing') return;
+                if (callData.caller && String(callData.caller) === String(me.id)) return;
+                try {
+                    showIncomingCallUI(callData.caller, incomingCallId, !!callData.isVideo);
+                } catch (e) { console.warn('showIncomingCallUI', e); }
+                // звук + уведомление
+                try { playNotifSound(); } catch (_) {}
+                try {
+                    const caller = (db.users || []).find(u => u && u.id === callData.caller);
+                    const name = caller ? (caller.name || caller.login) : 'Звонок';
+                    showAppNotification('Входящий вызов', name, { tag: 'call-' + incomingCallId, requireInteraction: true });
+                } catch (_) {}
+            });
         });
     }
 
