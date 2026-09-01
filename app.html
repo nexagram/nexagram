@@ -1254,7 +1254,7 @@
 </div>
 
 <div id="callOverlay">
-    <video id="remoteVideo" autoplay playsinline webkit-playsinline muted></video>
+    <video id="remoteVideo" autoplay playsinline webkit-playsinline></video>
     <video id="localVideo" autoplay playsinline webkit-playsinline muted></video>
 
     <div class="call-top-bar">
@@ -2280,13 +2280,22 @@
     let peerConnection = null; let localStream = null; let currentCallId = null; let callRef = null;
     let isCallMicMuted = false; let isCallCamOff = false; let isSpeakerOn = true; let currentCallIsVideo = false; let currentFacingMode = 'user';
 
-    const rtcConfig = { 
+    // STUN — находит IP; TURN — ретрансляция, если P2P не проходит (NAT/CGNAT/РФ)
+    const rtcConfig = {
         iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
             { urls: 'stun:stun1.l.google.com:19302' },
-            { urls: "turn:openrelay.metered.ca:80", username: "openrelayproject", credential: "openrelayproject" },
-            { urls: "turn:openrelay.metered.ca:443", username: "openrelayproject", credential: "openrelayproject" }
-        ] 
+            { urls: 'stun:stun2.l.google.com:19302' },
+            { urls: 'stun:stun3.l.google.com:19302' },
+            { urls: 'stun:stun4.l.google.com:19302' },
+            { urls: 'stun:stun.cloudflare.com:3478' },
+            { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+            { urls: 'turn:openrelay.metered.ca:80?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
+            { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+            { urls: 'turns:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+            { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
+        ],
+        iceCandidatePoolSize: 4
     };
 
     function isSuperAdmin(user) { if (!user) return false; return ['helper', 'demo', 'admin'].includes(user.login.toLowerCase()) || user.isGlobalAdmin; }
@@ -3033,9 +3042,18 @@
         overlay.style.backgroundBlendMode = 'normal';
     }
 
-    function renderCallControls() {
+    function renderCallControls(isIncoming) {
         const controls = document.getElementById('callControls');
         if (!controls) return;
+        if (isIncoming === true || (currentCallId && !peerConnection)) {
+            if (!peerConnection) {
+                controls.innerHTML = `
+                    <div class="call-btn-group"><button class="call-btn-circle red" onclick="endCall()"><span class="material-symbols-outlined">call_end</span></button><div class="call-btn-label">Отклонить</div></div>
+                    <div class="call-btn-group"><button class="call-btn-circle" style="background:#34c759;color:#fff;" onclick="acceptCall(${currentCallIsVideo ? 'true' : 'false'})"><span class="material-symbols-outlined">call</span></button><div class="call-btn-label">Ответить</div></div>
+                `;
+                return;
+            }
+        }
         const minMicBtn = document.getElementById('minCallMicBtn');
         if (minMicBtn) {
             minMicBtn.innerHTML = isCallMicMuted ? '<span class="material-symbols-outlined">mic_off</span>' : '<span class="material-symbols-outlined">mic</span>';
@@ -3065,11 +3083,16 @@
         const handleIncoming = (callId, meta) => {
             if (!callId) return;
             callId = String(callId);
-            if (currentCallId && String(currentCallId) === callId) return;
+            if (currentCallId && String(currentCallId) === callId && peerConnection) return;
+            if (currentCallId && String(currentCallId) === callId) {
+                const ov = document.getElementById('callOverlay');
+                if (ov && ov.classList.contains('active')) return;
+            }
             console.log('[call] handleIncoming', callId, meta);
 
             const openUI = (callerId, isVideo) => {
                 try { showToast('📞 Входящий звонок…'); } catch (_) {}
+                try { alert('Входящий звонок!'); } catch (_) {}
                 showIncomingCallUI(callerId, callId, !!isVideo);
             };
 
@@ -3081,7 +3104,7 @@
                 rtdb.ref('/dg_calls/' + callId).once('value', callSnap => {
                     const callData = callSnap.val();
                     if (!callData) {
-                        if (attempt < 12) setTimeout(() => tryLoad(attempt + 1), 200);
+                        if (attempt < 15) setTimeout(() => tryLoad(attempt + 1), 200);
                         else console.warn('[call] no data for', callId);
                         return;
                     }
@@ -3093,15 +3116,13 @@
             tryLoad(0);
         };
 
-        // канал 1
         try { rtdb.ref('/dg_user_calls/' + myId).off(); } catch (_) {}
         rtdb.ref('/dg_user_calls/' + myId).on('value', snap => {
             const v = snap.val();
             console.log('[call] dg_user_calls', v);
-            if (v) handleIncoming(v, null);
+            if (v) handleIncoming(typeof v === 'object' ? (v.callId || v.id) : v, typeof v === 'object' ? v : null);
         });
 
-        // канал 2 — полный объект (надёжнее)
         try { rtdb.ref('/dg_incoming/' + myId).off(); } catch (_) {}
         rtdb.ref('/dg_incoming/' + myId).on('value', snap => {
             const d = snap.val();
@@ -3110,11 +3131,28 @@
                 handleIncoming(d.callId, d);
             }
         });
+
+        try { rtdb.ref('/dg_calls').off(); } catch (_) {}
+        rtdb.ref('/dg_calls').on('value', snap => {
+            const all = snap.val() || {};
+            Object.keys(all).forEach(cid => {
+                const c = all[cid];
+                if (!c || c.status !== 'ringing') return;
+                if (String(c.callee) !== myId) return;
+                if (String(c.caller) === myId) return;
+                console.log('[call] dg_calls hit', cid, c);
+                handleIncoming(cid, { caller: c.caller, isVideo: c.isVideo, status: c.status });
+            });
+        });
     }
 
 
     function showIncomingCallUI(callerId, callId, isVideoCall) {
         try {
+            if (peerConnection && String(currentCallId) !== String(callId)) {
+                try { peerConnection.close(); } catch (_) {}
+                peerConnection = null;
+            }
             currentCallId = callId;
             currentCallIsVideo = !!isVideoCall;
             const caller = (db.users || []).find(u => u && String(u.id) === String(callerId));
@@ -3130,9 +3168,17 @@
             try { setCallStatusText(typeof t === 'function' ? t('call_incoming') : 'Входящий вызов'); } catch (_) {}
             isCallMicMuted = false; isCallCamOff = false; isSpeakerOn = true;
             const overlay = document.getElementById('callOverlay');
-            if (overlay) { overlay.classList.remove('closing'); overlay.classList.add('active'); }
+            if (overlay) {
+                overlay.classList.remove('closing');
+                overlay.classList.add('active');
+                overlay.style.display = 'flex';
+                overlay.style.opacity = '1';
+                overlay.style.visibility = 'visible';
+                overlay.style.zIndex = '99999';
+            }
             const minBar = document.getElementById('minimizedCallBar'); if (minBar) minBar.style.display = 'none';
             const center = document.getElementById('callCenterArea'); if (center) center.style.display = 'flex';
+            try { renderCallControls(true); } catch (_) {}
             const top = document.getElementById('callTopCenter'); if (top) top.style.display = 'none';
             try { renderCallControls(true); } catch (_) { try { renderCallControls(); } catch (_) {} }
             try { if (typeof startRingtone === 'function') startRingtone(false); } catch (_) {}
