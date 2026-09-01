@@ -750,67 +750,17 @@
             overscroll-behavior: contain;
         }
 
-    /* ===== PC VERSION ===== */
-        html, body {
-            height: 100% !important; width: 100% !important;
-            margin: 0 !important; padding: 0 !important;
-            overflow: hidden !important;
-            background: var(--bg, #0b0b0c) !important;
-        }
-        body { display: block !important; }
-        .auth-screen {
-            position: fixed !important; inset: 0 !important;
-            width: 100% !important; height: 100% !important;
-            z-index: 2000; align-items: center; justify-content: center;
-            background: linear-gradient(145deg, #1a0800 0%, #0a0a0a 45%, #2a0505 100%);
-        }
-        #app {
-            position: fixed !important;
-            top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
-            width: 100% !important; height: 100% !important;
-            max-height: 100dvh !important;
-            flex-direction: row !important;
-            background: var(--bg) !important;
-            opacity: 1 !important; margin: 0 !important; padding: 0 !important;
-            overflow: hidden !important; border: none !important; border-radius: 0 !important;
-            display: flex !important;
-        }
-        .content {
-            width: 380px !important; min-width: 320px !important; max-width: 420px !important;
-            height: 100% !important; max-height: 100% !important;
-            border-right: 1px solid var(--brd) !important;
-            padding-bottom: 62px !important; margin: 0 !important;
-            position: relative !important; flex-shrink: 0 !important;
-            overflow: hidden !important; background: var(--bg) !important;
-            display: flex !important; flex-direction: column !important;
-        }
-        .content > .list, .content > #c-list, .content .tab-page,
-        .content [id$="-list"], .content .sett-wrap {
-            flex: 1 1 auto !important; overflow-y: auto !important;
-            overflow-x: hidden !important; min-height: 0 !important;
-        }
-        .nav {
-            width: 380px !important; max-width: 420px !important;
-            position: absolute !important; left: 0 !important; bottom: 0 !important;
-            right: auto !important; z-index: 30 !important;
-            background: var(--bg) !important; border-top: 1px solid var(--brd);
-        }
-        #chat-window {
-            position: absolute !important;
-            top: 0 !important; right: 0 !important; bottom: 0 !important; left: 380px !important;
-            width: auto !important; height: 100% !important; max-height: 100% !important;
-            transform: none !important; visibility: visible !important;
-            display: flex !important; flex-direction: column !important;
-            background: var(--bg) !important; border-left: 1px solid var(--brd);
-            z-index: 10 !important; margin: 0 !important; overflow: hidden !important;
-        }
-        #chat-window .msgs, #chat-window #msgs {
-            flex: 1 1 auto !important; min-height: 0 !important; overflow-y: auto !important;
-        }
+    
+        /* ===== PC VERSION ===== */
+        html, body { height: 100% !important; overflow: hidden !important; background: #0b0b0c !important; }
+        body { display: block !important; margin: 0 !important; }
+        .auth-screen { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 2000; align-items: center; justify-content: center; background: linear-gradient(145deg, #1a0800 0%, #0a0a0a 45%, #2a0505 100%); }
+        #app { position: fixed !important; inset: 0 !important; width: 100% !important; height: 100% !important; flex-direction: row !important; background: var(--bg) !important; opacity: 1 !important; margin: 0 !important; overflow: hidden !important; border: none !important; border-radius: 0 !important; }
+        .content { width: 400px !important; min-width: 320px; height: 100% !important; border-right: 1px solid var(--brd) !important; padding-bottom: 64px !important; position: relative; flex-shrink: 0; overflow: hidden; background: var(--bg); display: flex; flex-direction: column; }
+        .nav { width: 400px !important; position: absolute !important; left: 0 !important; bottom: 0 !important; right: auto !important; z-index: 20; }
+        #chat-window { position: absolute !important; top: 0 !important; right: 0 !important; bottom: 0 !important; left: 400px !important; width: auto !important; transform: none !important; visibility: visible !important; display: flex !important; flex-direction: column !important; background: var(--bg) !important; border-left: 1px solid var(--brd); z-index: 10; }
         .back-btn { display: none !important; }
-        #callOverlay, .modal, #storyViewer, #storyComposer, #storyTextEditor {
-            position: fixed !important; border-radius: 0 !important;
-        }
+        #callOverlay, .modal, #storyViewer, #storyComposer, #storyTextEditor { position: fixed !important; border-radius: 0 !important; }
 
     </style>
 </head>
@@ -844,20 +794,20 @@
         
         <div class="auth-form" id="registerForm">
             <div class="input-group">
-                <label data-i18n="email_label">Email</label>
-                <input type="email" id="regEmail" data-i18n-placeholder="ph_email" placeholder="you@email.com" autocomplete="email">
-            </div>
-            <div class="input-group">
-                <label data-i18n="user_label">Юз (логин)</label>
-                <input type="text" id="regUsername" data-i18n-placeholder="ph_user" placeholder="Уникальный логин без @" autocomplete="username">
+                <label data-i18n="login_label">Логин (без @) или Email</label>
+                <input type="text" id="regUsername" data-i18n-placeholder="ph_login" placeholder="Email или логин" autocomplete="username">
             </div>
             <div class="input-group">
                 <label data-i18n="pass_label">Пароль</label>
-                <input type="password" id="regPassword" data-i18n-placeholder="ph_pass_new" placeholder="Введите пароль (мин. 6)" autocomplete="new-password">
+                <input type="password" id="regPassword" data-i18n-placeholder="ph_pass_new" placeholder="Введите пароль (мин. 4)" autocomplete="new-password">
             </div>
             <div class="input-group">
                 <label data-i18n="pass_confirm">Подтверждение пароля</label>
                 <input type="password" id="regConfirm" data-i18n-placeholder="ph_pass_confirm" placeholder="Повторите пароль" autocomplete="new-password">
+            </div>
+            <div class="input-group secret-field visible" id="secretGroup">
+                <label data-i18n="secret_label">Секретное слово (если без Email)</label>
+                <input type="text" id="regSecret" data-i18n-placeholder="ph_secret" placeholder="Для восстановления аккаунта">
             </div>
             <button class="auth-btn" onclick="doRegister()" data-i18n="btn_register">Зарегистрироваться →</button>
         </div>
@@ -1008,7 +958,6 @@
                 </div>
                 <div class="sett-row" onclick="openSoundSettings()"><span class="material-symbols-outlined">volume_up</span> <span data-i18n="sett_sound">Настройки звука</span></div>
                 <div class="sett-row" onclick="requestNotifications()"><span class="material-symbols-outlined">notifications_active</span> <span data-i18n="sett_notif">Включить уведомления</span></div>
-                <div class="sett-row" onclick="setupNtfyTopic()"><span class="material-symbols-outlined">cell_tower</span> <span data-i18n="sett_ntfy">Уведомления (ntfy) для РФ</span></div>
                 <div class="sett-row" onclick="openSupportChat()"><span class="material-symbols-outlined">support_agent</span> <span data-i18n="sett_support">Чат с поддержкой</span></div>
                 <div class="sett-row" id="admin-switch-btn" style="display: none;" onclick="switchAccount()"><span class="material-symbols-outlined">swap_horiz</span> Сменить аккаунт (Админ)</div>
                 <div class="sett-row" id="admin-panel-btn" style="display: none; color: #a855f7; font-weight: bold;" onclick="openAdminPanel()"><span class="material-symbols-outlined">admin_panel_settings</span> Управление пользователями</div>
@@ -1217,9 +1166,6 @@
         <button class="auth-btn" style="background:var(--in); color:var(--txt); margin-bottom: 10px; display:flex; align-items:center; justify-content:center; gap:10px;" onclick="copyContactLogin()">
             <span class="material-symbols-outlined">content_copy</span> <span id="copyLoginText">Скопировать логин</span>
         </button>
-        <button class="auth-btn" id="btn-download-avatar" style="background:var(--in); color:var(--txt); margin-bottom: 10px; display:flex; align-items:center; justify-content:center; gap:10px;" onclick="downloadContactAvatar()">
-            <span class="material-symbols-outlined">download</span> Скачать аватарку
-        </button>
         <button class="auth-btn" style="background:var(--in); color:var(--txt); margin-bottom: 10px; display:flex; align-items:center; justify-content:center; gap:10px;" id="btn-block-user" onclick="toggleBlockUser()">
             <span class="material-symbols-outlined">block</span> <span id="blockUserText">Заблокировать</span>
         </button>
@@ -1249,7 +1195,6 @@
         <button class="auth-btn" id="btn-pin-msg" style="background:var(--in); color:var(--txt); margin-bottom: 12px;" onclick="togglePinSelectedMsg()"><span class="material-symbols-outlined">keep</span> <span id="pin-msg-label">Закрепить</span></button>
         <button class="auth-btn" style="margin-bottom: 12px;" onclick="replySelectedMsg()"><span class="material-symbols-outlined">reply</span> Ответить</button>
         <button class="auth-btn" style="background:var(--in); color:var(--txt); margin-bottom: 12px;" onclick="openForwardModal()"><span class="material-symbols-outlined">forward</span> Переслать</button>
-        <button class="auth-btn" id="btn-download-msg" style="background:var(--in); color:var(--txt); margin-bottom: 12px; display:none;" onclick="downloadSelectedMsg()"><span class="material-symbols-outlined">download</span> Скачать</button>
         <button class="auth-btn" id="btn-del-msg" style="background:var(--red); color: white; margin-bottom: 12px;" onclick="deleteSelectedMsg()"><span class="material-symbols-outlined">delete</span> Удалить у всех</button>
         <button class="auth-btn" style="background:transparent; border: 1px solid var(--brd); color:var(--mut);" onclick="closeMsgMenu()">Отмена</button>
     </div>
@@ -1346,7 +1291,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
 
 <script>
     // === ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ ДЛЯ УВЕДОМЛЕНИЙ В ПРИЛОЖЕНИИ ===
@@ -1365,11 +1309,7 @@
         ru: {
             tagline: 'Где рождается общение',
             tab_login: 'Вход', tab_register: 'Регистрация',
-            login_label: 'Логин или Email',
-            email_label: 'Email',
-            user_label: 'Юз (логин)',
-            ph_email: 'you@email.com',
-            ph_user: 'Уникальный логин без @', pass_label: 'Пароль',
+            login_label: 'Логин или Email', pass_label: 'Пароль',
             pass_confirm: 'Подтверждение пароля', secret_label: 'Секретное слово (если без Email)',
             btn_login: 'Войти →', btn_register: 'Зарегистрироваться →',
             forgot: 'Забыли пароль?',
@@ -1382,19 +1322,7 @@
             ph_message: 'Сообщение...',
             add_contact: 'Добавить контакт', clear_calls: 'Очистить',
             sec_profile: 'Профиль', sec_security: 'Безопасность', sec_appearance: 'Внешний вид', sec_system: 'Система',
-            sett_lang: 'Язык интерфейса', sett_sound: 'Настройки звука', 
-            st_online: 'в сети',
-            st_min: 'был(а) {n} мин. назад',
-            st_hour: 'был(а) {n} ч. назад',
-            st_yesterday: 'был(а) вчера',
-            st_recently: 'был(а) недавно',
-            st_long_ago: 'был(а) давно',
-            sett_ntfy: 'Уведомления (ntfy) для РФ',
-            sett_ntfy_hint: 'Тема ntfy.sh — пуши без Google',
-            ntfy_prompt: 'Введите тему ntfy (например nexagram_myname).\nУстановите приложение ntfy и подпишитесь на эту тему.\nПусто — отключить.',
-            ntfy_saved: 'Тема ntfy сохранена',
-            ntfy_off: 'ntfy отключён',
-            sett_notif: 'Включить уведомления',
+            sett_lang: 'Язык интерфейса', sett_sound: 'Настройки звука', sett_notif: 'Включить уведомления',
             sett_support: 'Чат с поддержкой', sett_logout: 'Выйти', sett_delete_acc: 'Удалить аккаунт',
             sett_reset: 'Полный сброс (Локально)', sett_theme: 'Переключить тему',
             sett_name: 'Имя', sett_username: 'Логин', sett_bio: 'О себе', sett_password: 'Сменить пароль',
@@ -1412,12 +1340,7 @@
         en: {
             tagline: 'Where conversation begins',
             tab_login: 'Sign in', tab_register: 'Sign up',
-            login_label: 'Username or Email',
-            email_label: 'Email',
-            user_label: 'Username',
-            ph_email: 'you@email.com',
-            ph_user: 'Unique username (no @)',
-            pass_label: 'Password',
+            login_label: 'Username or Email', pass_label: 'Password',
             pass_confirm: 'Confirm password', secret_label: 'Secret word (if no Email)',
             btn_login: 'Sign in →', btn_register: 'Create account →',
             forgot: 'Forgot password?',
@@ -1430,19 +1353,7 @@
             ph_message: 'Message...',
             add_contact: 'Add contact', clear_calls: 'Clear',
             sec_profile: 'Profile', sec_security: 'Security', sec_appearance: 'Appearance', sec_system: 'System',
-            sett_lang: 'Interface language', sett_sound: 'Sound settings', 
-            st_online: 'online',
-            st_min: 'last seen {n} min ago',
-            st_hour: 'last seen {n} h ago',
-            st_yesterday: 'last seen yesterday',
-            st_recently: 'last seen recently',
-            st_long_ago: 'last seen a long time ago',
-            sett_ntfy: 'Notifications (ntfy) for RU',
-            sett_ntfy_hint: 'ntfy.sh topic — push without Google',
-            ntfy_prompt: 'Enter ntfy topic (e.g. nexagram_myname).\nInstall ntfy app and subscribe to this topic.\nEmpty — disable.',
-            ntfy_saved: 'ntfy topic saved',
-            ntfy_off: 'ntfy disabled',
-            sett_notif: 'Enable notifications',
+            sett_lang: 'Interface language', sett_sound: 'Sound settings', sett_notif: 'Enable notifications',
             sett_support: 'Support chat', sett_logout: 'Log out', sett_delete_acc: 'Delete account',
             sett_reset: 'Full reset (Local)', sett_theme: 'Toggle theme',
             sett_name: 'Name', sett_username: 'Username', sett_bio: 'Bio', sett_password: 'Change password',
@@ -1538,23 +1449,6 @@
                     self.registration.showNotification(title, options || {});
                 }
             });
-            self.addEventListener('push', function(event) {
-                var data = {};
-                try { data = event.data ? event.data.json() : {}; } catch (e) {
-                    try { data = { body: event.data.text() }; } catch (e2) {}
-                }
-                var n = data.notification || data;
-                var title = n.title || data.title || 'Nexagram';
-                var body = n.body || data.body || '';
-                var options = {
-                    body: body,
-                    icon: n.icon || '/favicon.ico',
-                    badge: n.badge || '/favicon.ico',
-                    data: data.data || data,
-                    vibrate: [120, 60, 120]
-                };
-                event.waitUntil(self.registration.showNotification(title, options));
-            });
         `;
         const swBlob = new Blob([swCode], { type: 'application/javascript' });
         navigator.serviceWorker.register(URL.createObjectURL(swBlob)).then(reg => {
@@ -1565,65 +1459,32 @@
 
     // Универсальный показ уведомления
     function showAppNotification(title, body, opts = {}) {
-        title = String(title || 'Nexagram');
-        body = String(body || '');
-        const tag = (opts && opts.tag) ? String(opts.tag) : ('nexagram-' + Date.now());
+        if (!("Notification" in window)) return;
+        if (Notification.permission !== "granted") return;
 
-        // Sketchware / Android WebView
-        try {
-            if (window.NexagramAndroid && typeof window.NexagramAndroid.showNotification === 'function') {
-                window.NexagramAndroid.showNotification(title, body, tag);
-                return true;
-            }
-        } catch (e) { console.warn('Android notif', e); }
-
-        if (typeof Notification === 'undefined') {
-            try { showToast(title + ': ' + body); } catch (_) {}
-            return false;
-        }
-
-        if (Notification.permission !== 'granted') {
-            console.warn('Нет разрешения на уведомления:', Notification.permission);
-            return false;
-        }
-
-        const iconUrl = (typeof location !== 'undefined' && location.origin ? location.origin : '') + '/icon.png';
         const options = {
-            body: body,
-            icon: iconUrl,
-            badge: iconUrl,
-            tag: tag,
+            body: body || '',
+            icon: 'icon.png',
+            badge: 'icon.png',
+            tag: opts.tag || 'nexagram-' + Date.now(),
             renotify: true,
-            silent: !!(opts && opts.silent)
+            silent: false,
+            ...opts
         };
-        if (opts && opts.requireInteraction) options.requireInteraction = true;
 
-        // Главный путь: new Notification (работает при открытой вкладке)
-        let shown = false;
         try {
-            const n = new Notification(title, options);
-            shown = true;
-            if (n && typeof n.close === 'function') {
-                setTimeout(() => { try { n.close(); } catch (_) {} }, 15000);
+            if (swRegistration && swRegistration.active) {
+                swRegistration.showNotification(title, options);
+            } else if (swRegistration) {
+                // SW ещё активируется
+                swRegistration.showNotification(title, options);
+            } else {
+                new Notification(title, options);
             }
         } catch (e) {
-            console.warn('new Notification fail', e);
+            try { new Notification(title, options); } catch (_) {}
         }
-
-        // Дополнительно через SW, если есть
-        if (!shown && swRegistration && typeof swRegistration.showNotification === 'function') {
-            try {
-                swRegistration.showNotification(title, options);
-                shown = true;
-            } catch (e2) { console.warn('SW notif fail', e2); }
-        }
-
-        return shown;
     }
-
-    // алиас (в FCM onMessage вызывался несуществующий playNotificationSound)
-    function playNotificationSound() { try { playNotifSound(); } catch (_) {} }
-
 
     // === УМНАЯ СИСТЕМА ВОСПРОИЗВЕДЕНИЯ ЗВУКА ===
     // === Разблокировка аудио (браузеры блокируют autoplay) ===
@@ -1907,14 +1768,6 @@
     };
 
     firebase.initializeApp(firebaseConfig);
-    const VAPID_KEY = 'BNZONTLOS8clfAbzbuLX7XdK-L3jxP9dOlWvJFVsZMswndsOImTtvnYViSDNa63vT4Z-E9DyZlbMSVh3cutcbNg';
-    let fcmMessaging = null;
-    try {
-        if (typeof firebase.messaging === 'function') {
-            fcmMessaging = firebase.messaging();
-        }
-    } catch (e) { console.warn('FCM', e); }
-
     const rtdb = firebase.database();
     const googleProvider = new firebase.auth.GoogleAuthProvider();
     const githubProvider = new firebase.auth.GithubAuthProvider();
@@ -2393,15 +2246,6 @@
         try {
             const data = snapshot.val() || {};
             db.users = ensureArray(data.users).filter(u => u && typeof u === 'object').map(u => { u.friends = ensureArray(u.friends).filter(f => f); u.friendRequests = ensureArray(u.friendRequests).filter(f => f); return u; });
-            try {
-                (db.users || []).forEach(u => {
-                    if (!u || !u.id) return;
-                    const p = presenceMap[String(u.id)];
-                    if (p && p.state === 'online') u.lastSeen = 'online';
-                    else if (p && p.state === 'offline' && p.ts) u.lastSeen = p.ts;
-                });
-            } catch (_p) {}
-
             db.chats = ensureArray(data.chats).filter(c => c && typeof c === 'object').map(c => { 
                 c.msgs = ensureArray(c.msgs).filter(m => m && typeof m === 'object').map(m => { 
                     if (!m.reactions || typeof m.reactions !== 'object') m.reactions = {}; 
@@ -2420,44 +2264,26 @@
                 updateNavBadges(); 
 
                 db.chats.forEach(c => {
-                    if (!c || !c.id) return;
-                    const msgs = Array.isArray(c.msgs) ? c.msgs : [];
-                    const currentCount = msgs.length;
-                    const prevCount = (lastKnownMsgCounts[c.id] !== undefined && lastKnownMsgCounts[c.id] !== null)
-                        ? Number(lastKnownMsgCounts[c.id])
-                        : null;
-
-                    if (isInitialLoadDone && prevCount !== null && currentCount > prevCount && me) {
-                        for (let mi = prevCount; mi < currentCount; mi++) {
-                            const lastMsg = msgs[mi];
-                            if (!lastMsg || !lastMsg.uid) continue;
-                            if (String(lastMsg.uid) === String(me.id) || lastMsg.uid === 'system') continue;
-
-                            // не спамим, если этот чат сейчас на экране и вкладка видима
-                            if (activeChat && String(activeChat.id) === String(c.id) && typeof document !== 'undefined' && !document.hidden) {
-                                continue;
+                    const currentCount = c.msgs ? c.msgs.length : 0;
+                    const prevCount = lastKnownMsgCounts[c.id] !== undefined ? lastKnownMsgCounts[c.id] : currentCount;
+                    if (isInitialLoadDone && currentCount > prevCount) {
+                        const lastMsg = c.msgs[currentCount - 1];
+                        if (lastMsg.uid !== me.id && lastMsg.uid !== 'system' && (document.hidden || !activeChat || activeChat.id !== c.id)) {
+                            if (!isChatMuted(c.id)) {
+                                playNotifSound();
                             }
-                            try {
-                                if (typeof isChatMuted === 'function' && isChatMuted(c.id)) continue;
-                            } catch (_) {}
 
-                            let senderName = 'Nexagram';
-                            try {
-                                const sender = (db.users || []).find(u => u && String(u.id) === String(lastMsg.uid));
-                                if (sender) senderName = sender.name || sender.login || senderName;
-                            } catch (_) {}
-
-                            let body = '';
-                            if (lastMsg.txt != null && String(lastMsg.txt).trim() !== '') body = String(lastMsg.txt);
-                            else if (lastMsg.text != null && String(lastMsg.text).trim() !== '') body = String(lastMsg.text);
-                            if (lastMsg.type === 'voice' || lastMsg.type === 'audio') body = '🎙️ Голосовое сообщение';
-                            else if (lastMsg.type === 'image') body = '📷 Фото';
-                            else if (lastMsg.type === 'video' || lastMsg.type === 'video_circle') body = '🎥 Видео';
-                            else if (lastMsg.type === 'file') body = '📄 Файл';
-                            if (!body) body = 'Новое сообщение';
-
-                            try { playNotifSound(); } catch (_) {}
-                            try { showAppNotification(senderName, body, { tag: 'chat-' + c.id }); } catch (e) { console.warn(e); }
+                            if ("Notification" in window && Notification.permission === "granted" && !isChatMuted(c.id)) {
+                                let senderName = "Nexagram";
+                                const sender = db.users.find(u => u.id === lastMsg.uid);
+                                if (sender) senderName = sender.name;
+                                let body = lastMsg.txt || 'Новое сообщение';
+                                if (lastMsg.type === 'voice' || lastMsg.type === 'audio') body = '🎙️ Голосовое сообщение';
+                                else if (lastMsg.type === 'image') body = '📷 Фото';
+                                else if (lastMsg.type === 'video' || lastMsg.type === 'video_circle') body = '🎥 Видео';
+                                else if (lastMsg.type === 'file') body = '📄 Файл';
+                                showAppNotification(senderName, body, { tag: 'chat-' + c.id });
+                            }
                         }
                     }
                     lastKnownMsgCounts[c.id] = currentCount;
@@ -2508,15 +2334,7 @@
                         if (activeChat.type === 'direct' && activeChat.u1 !== activeChat.u2) {
                             const otherId = activeChat.u1 === me.id ? activeChat.u2 : activeChat.u1;
                             const other = db.users.find(u => u.id === otherId);
-                            if (other) { const hStatus = document.getElementById('h-status'); if (hStatus) {
-                            try {
-                                const oid = other && other.id ? String(other.id) : '';
-                                const p = presenceMap[oid];
-                                if (p && p.state === 'online') other = Object.assign({}, other, { lastSeen: 'online' });
-                            } catch (_) {}
-                            hStatus.textContent = getUserStatus(other);
-                            hStatus.style.color = (other && other.lastSeen === 'online') ? '#34c759' : 'var(--mut)';
-                        } }
+                            if (other) { const hStatus = document.getElementById('h-status'); if (hStatus) hStatus.textContent = getUserStatus(other); }
                         }
                     }
                 }
@@ -2554,408 +2372,69 @@
         alert("Ошибка подключения к серверу: " + (error.message || error) + (String(error.message||'').indexOf('permission')>=0 ? "\n\nОткройте Firebase → Realtime Database → Rules и разрешите чтение dg_app_data (см. инструкцию)." : ""));
     });
 
-    async function requestNotifications() {
-        try {
-            if (window.NexagramAndroid && typeof window.NexagramAndroid.requestPermission === 'function') {
-                try { window.NexagramAndroid.requestPermission(); } catch (_) {}
-            }
-        } catch (_) {}
-
-        if (typeof Notification === 'undefined') {
-            alert('Ваш браузер не поддерживает уведомления.');
+    async function requestNotifications() { 
+        if (!("Notification" in window)) {
+            alert("Ваш браузер не поддерживает уведомления.");
             return;
         }
         try {
-            if ('serviceWorker' in navigator) {
-                try { await navigator.serviceWorker.ready; } catch (_) {}
+            // На некоторых браузерах нужно сначала зарегистрировать SW
+            if ('serviceWorker' in navigator && !swRegistration) {
+                await navigator.serviceWorker.ready.catch(() => {});
             }
-            let permission = Notification.permission;
-            if (permission !== 'granted') {
-                permission = await Notification.requestPermission();
-            }
-            if (permission === 'granted') {
-                showToast('Уведомления включены');
-                // тестовое уведомление сразу
-                try {
-                    new Notification('Nexagram', {
-                        body: 'Уведомления работают ✓',
-                        icon: (location.origin || '') + '/icon.png',
-                        tag: 'nexagram-test'
-                    });
-                } catch (e) {
-                    try { showAppNotification('Nexagram', 'Уведомления работают ✓'); } catch (_) {}
-                }
-                try { await registerFcmToken(); } catch (_) {}
-            } else if (permission === 'denied') {
-                alert('Уведомления заблокированы.\n\nНажмите на замок слева от адреса сайта → Разрешить уведомления.');
+            const permission = await Notification.requestPermission();
+            if (permission === "granted") {
+                showAppNotification("Nexagram", "Уведомления успешно включены! 🔔");
+                showToast("Уведомления включены");
+            } else if (permission === "denied") {
+                alert("Уведомления заблокированы.\n\nОткройте настройки сайта в браузере и разрешите уведомления для nexagram.site");
             } else {
-                showToast('Разрешение не получено');
+                showToast("Разрешение не получено");
             }
         } catch (e) {
             console.error(e);
-            alert('Не удалось запросить уведомления: ' + (e.message || e));
+            alert("Не удалось запросить уведомления: " + e.message);
         }
     }
-
-    async function registerFcmToken() {
-        if (!me) return;
-        try {
-            if (!fcmMessaging) {
-                try { fcmMessaging = firebase.messaging(); } catch (e) { console.warn(e); return; }
-            }
-            const opts = { vapidKey: VAPID_KEY };
-            if (swRegistration) opts.serviceWorkerRegistration = swRegistration;
-            const token = await fcmMessaging.getToken(opts);
-            if (!token) return;
-            me.fcmToken = token;
-            const uIdx = db.users.findIndex(u => u && u.id === me.id);
-            if (uIdx > -1) {
-                db.users[uIdx].fcmToken = token;
-                try { await rtdb.ref('/dg_app_data/users/' + uIdx + '/fcmToken').set(token); } catch (_) {}
-            }
-            try { await rtdb.ref('/dg_fcm_tokens/' + me.id).set({ token: token, updated: Date.now() }); } catch (_) {}
-            try {
-                fcmMessaging.onMessage((payload) => {
-                    const n = (payload && payload.notification) || {};
-                    showAppNotification(n.title || 'Nexagram', n.body || '');
-                    try { playNotificationSound(); } catch (_) {}
-                });
-            } catch (_) {}
-            console.log('FCM token OK');
-        } catch (e) {
-            console.warn('registerFcmToken', e);
-        }
-    }
-
 
     function markChatAsReadLocally() { if (!activeChat || !me) return; const chatIndex = db.chats.findIndex(c => c.id === activeChat.id); if (chatIndex > -1) { const currentRead = (activeChat.lastRead && activeChat.lastRead[me.id]) || 0; const lastMsg = activeChat.msgs && activeChat.msgs.length > 0 ? activeChat.msgs[activeChat.msgs.length - 1] : null; if (!lastMsg || currentRead >= lastMsg.time) return; rtdb.ref(`/dg_app_data/chats/${chatIndex}/lastRead/${me.id}`).set(Date.now()); } }
 
-
-    // ===== ntfy (несколько серверов — ntfy.sh в РФ часто недоступен) =====
-    const NTFY_SERVERS = [
-        'https://ntfy.sh',
-        'https://ntfy.envs.net',
-        'https://ntfy.tedomum.net',
-        'https://ntfy.adminforge.de'
-    ];
-
-    function getNtfyServer() {
-        try {
-            const s = localStorage.getItem('Nexagram_NtfyServer');
-            if (s && /^https?:\/\//i.test(s)) return s.replace(/\/$/, '');
-        } catch (_) {}
-        return NTFY_SERVERS[0];
-    }
-
-    function getNtfyServerList() {
-        const preferred = getNtfyServer();
-        return [preferred].concat(NTFY_SERVERS.filter(s => s !== preferred));
-    }
-
-    async function ntfyPublish(topic, title, message) {
-        topic = String(topic || '').trim();
-        if (!topic) return { ok: false, error: 'empty topic' };
-        title = String(title || 'Nexagram').slice(0, 100);
-        message = String(message || '').slice(0, 500);
-        let lastErr = null;
-        for (const base of getNtfyServerList()) {
-            try {
-                const r1 = await fetch(base + '/' + encodeURIComponent(topic), {
-                    method: 'POST',
-                    headers: {
-                        'Title': title,
-                        'Priority': '4',
-                        'Tags': 'speech_balloon',
-                        'Click': 'https://web.nexagram.site/'
-                    },
-                    body: message
-                });
-                if (r1.ok || r1.status === 200 || r1.status === 201 || r1.status === 202) {
-                    try { localStorage.setItem('Nexagram_NtfyServer', base); } catch (_) {}
-                    console.log('ntfy OK', base, topic, message.slice(0, 40));
-                    return { ok: true, server: base };
-                }
-                const r2 = await fetch(base + '/', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        topic: topic,
-                        title: title,
-                        message: message,
-                        priority: 4,
-                        click: 'https://web.nexagram.site/',
-                        tags: ['speech_balloon']
-                    })
-                });
-                if (r2.ok || r2.status === 200 || r2.status === 201) {
-                    try { localStorage.setItem('Nexagram_NtfyServer', base); } catch (_) {}
-                    console.log('ntfy OK json', base, topic);
-                    return { ok: true, server: base };
-                }
-                lastErr = 'HTTP ' + r1.status + '/' + r2.status + ' @ ' + base;
-            } catch (e) {
-                lastErr = (e && e.message) ? e.message : String(e);
-                console.warn('ntfy fail', base, lastErr);
-            }
-        }
-        return { ok: false, error: lastErr || 'all servers failed' };
-    }
-
-    async function setupNtfyTopic() {
-        if (!me) return showToast('Сначала войдите');
-        const curTopic = (me.ntfyTopic || '');
-        const topic = prompt(
-            (typeof t === 'function' ? t('ntfy_prompt') : null) ||
-            'Тема ntfy (латиница, цифры, _).\\nВ приложении ntfy подпишись на неё.\\nПусто — отключить.',
-            curTopic
-        );
-        if (topic === null) return;
-        const clean = String(topic).trim().replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 64);
-
-        const serverIn = prompt(
-            'Сервер ntfy (в РФ ntfy.sh часто не работает):\\nhttps://ntfy.sh\\nhttps://ntfy.envs.net\\nhttps://ntfy.tedomum.net',
-            getNtfyServer()
-        );
-        if (serverIn === null) return;
-        let server = String(serverIn || '').trim().replace(/\/$/, '');
-        if (server && !/^https?:\/\//i.test(server)) server = 'https://' + server;
-        if (server) {
-            try { localStorage.setItem('Nexagram_NtfyServer', server); } catch (_) {}
-        }
-
-        me.ntfyTopic = clean;
-        const uIdx = db.users.findIndex(u => u && u.id === me.id);
-        if (uIdx > -1) {
-            db.users[uIdx].ntfyTopic = clean;
-            try { await rtdb.ref('/dg_app_data/users/' + uIdx + '/ntfyTopic').set(clean || null); } catch (e) { console.warn(e); }
-        }
-        try {
-            if (clean) await rtdb.ref('/dg_ntfy/' + me.id).set({ topic: clean, server: getNtfyServer(), updated: Date.now() });
-            else await rtdb.ref('/dg_ntfy/' + me.id).remove();
-        } catch (e) { console.warn('dg_ntfy', e); }
-
-        if (!clean) {
-            showToast((typeof t === 'function' && t('ntfy_off')) || 'ntfy отключён');
-            return;
-        }
-
-        showToast('Проверка ntfy…');
-        const test = await ntfyPublish(clean, 'Nexagram', (typeof lang !== 'undefined' && lang === 'en') ? 'ntfy connected ✓' : 'ntfy подключён ✓');
-        if (test.ok) {
-            showToast('ntfy OK → ' + (test.server || ''));
-            try {
-                alert('Готово!\\nТема: ' + clean + '\\nСервер: ' + (test.server || '') + '\\n\\nВ приложении ntfy: подписка на тему + тот же сервер.');
-            } catch (_) {}
-        } else {
-            showToast('ntfy ошибка');
-            try {
-                alert('ntfy не отправил тест.\\n' + (test.error || '') + '\\n\\nСмени сервер (ntfy.envs.net) или включи VPN.');
-            } catch (_) {}
-        }
-    }
-
-    async function resolveNtfyTopic(userId) {
-        try {
-            const u = (db.users || []).find(x => x && String(x.id) === String(userId));
-            if (u && u.ntfyTopic) return String(u.ntfyTopic).trim();
-        } catch (_) {}
-        try {
-            const snap = await rtdb.ref('/dg_ntfy/' + userId).once('value');
-            const v = snap.val();
-            if (v && v.topic) return String(v.topic).trim();
-            if (typeof v === 'string') return v.trim();
-        } catch (_) {}
-        return '';
-    }
-
-    function notifyUserPush(userId, title, body) {
-        if (!userId || (me && String(userId) === String(me.id))) return;
-        const msgText = String(body || 'Новое сообщение').slice(0, 500);
-        const ttl = String(title || 'Nexagram').slice(0, 100);
-        (async () => {
-            try {
-                let topic = '';
-                try {
-                    const u = (db.users || []).find(x => x && String(x.id) === String(userId));
-                    if (u && u.ntfyTopic) topic = String(u.ntfyTopic).trim();
-                } catch (_) {}
-                if (!topic) topic = await resolveNtfyTopic(userId);
-                if (!topic) {
-                    console.log('ntfy: нет темы у получателя', userId);
-                    return;
-                }
-                const res = await ntfyPublish(topic, ttl, msgText);
-                if (!res.ok) console.warn('ntfy deliver fail', res.error);
-            } catch (e) { console.warn('notifyUserPush', e); }
-        })();
-    }
-
-    function notifyChatRecipients(chat, msg) {
-        if (!chat || !msg || !me) return;
-        try {
-            let ids = [];
-            if (chat.type === 'direct' || (!chat.type && chat.u1)) {
-                ids = [chat.u1, chat.u2].filter(id => id && String(id) !== String(me.id));
-            } else if (Array.isArray(chat.members)) {
-                ids = chat.members.filter(id => id && String(id) !== String(me.id));
-            } else if (chat.ownerId && String(chat.ownerId) !== String(me.id)) {
-                ids = [chat.ownerId];
-            }
-            if (!ids.length) {
-                console.log('ntfy: нет получателей');
-                return;
-            }
-            const senderName = me.name || me.login || 'Nexagram';
-            let body = (msg.txt != null && msg.txt !== '') ? String(msg.txt)
-                     : (msg.text != null && msg.text !== '') ? String(msg.text) : '';
-            if (msg.type === 'image') body = '📷 Фото';
-            else if (msg.type === 'video' || msg.type === 'video_circle') body = '🎥 Видео';
-            else if (msg.type === 'voice' || msg.type === 'audio') body = '🎙️ Голосовое сообщение';
-            else if (msg.type === 'file') body = '📄 Файл';
-            if (!body || !String(body).trim()) body = 'Новое сообщение';
-            body = String(body).trim().slice(0, 500);
-            console.log('ntfy notify →', ids, body.slice(0, 40));
-            ids.forEach(id => notifyUserPush(id, senderName, body));
-        } catch (e) { console.warn('notifyChatRecipients', e); }
-    }
-
-
-    // ===== ONLINE STATUS (по userId, не по индексу массива) =====
-    let presenceMap = {};
-    let presenceGlobalRef = null;
-    let statusPollTimer = null;
-
+    let presenceRef = null; let connectedRef = null; let presenceHeartbeat = null;
     function setupPresence() {
-        if (!me || !me.id) return;
-        const myId = String(me.id);
-
+        if (!me) return;
+        const uIdx = db.users.findIndex(u => u.id === me.id);
+        if (uIdx === -1) return;
         if (presenceHeartbeat) { clearInterval(presenceHeartbeat); presenceHeartbeat = null; }
-        if (statusPollTimer) { clearInterval(statusPollTimer); statusPollTimer = null; }
-        if (connectedRef) { try { connectedRef.off(); } catch (_) {} }
-
-        const statusRef = rtdb.ref('/dg_status/' + myId);
-        const presenceRefLocal = rtdb.ref('/dg_presence/' + myId);
-
-        const writeOnline = () => {
-            try {
-                statusRef.set('online');
-                statusRef.onDisconnect().set(firebase.database.ServerValue.TIMESTAMP);
-                presenceRefLocal.set({ state: 'online', ts: Date.now() });
-                presenceRefLocal.onDisconnect().set({ state: 'offline', ts: firebase.database.ServerValue.TIMESTAMP });
-            } catch (e) { console.warn('[presence] write', e); }
-            me.lastSeen = 'online';
-            presenceMap[myId] = { state: 'online', ts: Date.now() };
-            const idx = (db.users || []).findIndex(u => u && String(u.id) === myId);
-            if (idx > -1) {
-                db.users[idx].lastSeen = 'online';
-                try { rtdb.ref('/dg_app_data/users/' + idx + '/lastSeen').set('online'); } catch (_) {}
-            }
-            console.log('[presence] ONLINE', myId);
-        };
-
-        const writeOffline = () => {
-            const ts = Date.now();
-            try {
-                statusRef.set(ts);
-                presenceRefLocal.set({ state: 'offline', ts: ts });
-            } catch (_) {}
-            me.lastSeen = ts;
-            presenceMap[myId] = { state: 'offline', ts: ts };
-            const idx = (db.users || []).findIndex(u => u && String(u.id) === myId);
-            if (idx > -1) {
-                db.users[idx].lastSeen = ts;
-                try { rtdb.ref('/dg_app_data/users/' + idx + '/lastSeen').set(ts); } catch (_) {}
-            }
-        };
-
+        if (connectedRef) connectedRef.off();
         connectedRef = rtdb.ref('.info/connected');
-        connectedRef.on('value', snap => {
-            if (snap.val() === true) writeOnline();
-        });
-
-        try { document.removeEventListener('visibilitychange', window._nexPresenceVis); } catch (_) {}
-        window._nexPresenceVis = () => {
-            if (document.visibilityState === 'visible') writeOnline();
-            // НЕ ставим offline при скрытии вкладки на мобиле — только onDisconnect
-            // иначе статус мигает «недавно» при каждом переключении
+        const goOnline = () => {
+            const idx = db.users.findIndex(u => u.id === me.id);
+            if (idx === -1) return;
+            presenceRef = rtdb.ref(`/dg_app_data/users/${idx}/lastSeen`);
+            presenceRef.onDisconnect().set(firebase.database.ServerValue.TIMESTAMP);
+            presenceRef.set('online');
+            me.lastSeen = 'online';
+            if (db.users[idx]) db.users[idx].lastSeen = 'online';
         };
-        document.addEventListener('visibilitychange', window._nexPresenceVis);
-
-        presenceHeartbeat = setInterval(() => {
-            if (document.visibilityState === 'visible') writeOnline();
-        }, 15000);
-
-        writeOnline();
-        listenPresenceMap();
-
-        // UI опрос каждые 3 сек — статус всегда свежий
-        statusPollTimer = setInterval(() => {
-            try { refreshPresenceUI(); } catch (_) {}
-        }, 3000);
-    }
-
-    function listenPresenceMap() {
-        if (presenceGlobalRef) { try { presenceGlobalRef.off(); } catch (_) {} }
-
-        // простой путь /dg_status/{uid} = "online" | timestamp
-        presenceGlobalRef = rtdb.ref('/dg_status');
-        presenceGlobalRef.on('value', snap => {
-            const val = snap.val() || {};
-            Object.keys(val).forEach(uid => {
-                const v = val[uid];
-                if (v === 'online') {
-                    presenceMap[uid] = { state: 'online', ts: Date.now() };
-                } else {
-                    const n = Number(v);
-                    presenceMap[uid] = { state: 'offline', ts: (n && !isNaN(n)) ? n : Date.now() };
-                }
-            });
-            // подмешать в users
-            (db.users || []).forEach(u => {
-                if (!u || !u.id) return;
-                const p = presenceMap[String(u.id)];
-                if (!p) return;
-                if (p.state === 'online') u.lastSeen = 'online';
-                else if (p.ts) u.lastSeen = p.ts;
-            });
-            try { refreshPresenceUI(); } catch (_) {}
+        const goOffline = () => {
+            const idx = db.users.findIndex(u => u.id === me.id);
+            if (idx === -1) return;
+            const ts = Date.now();
+            rtdb.ref(`/dg_app_data/users/${idx}/lastSeen`).set(ts);
+            me.lastSeen = ts;
+            if (db.users[idx]) db.users[idx].lastSeen = ts;
+        };
+        connectedRef.on('value', snap => {
+            if (snap.val() === true) goOnline();
         });
-
-        // запасной /dg_presence
-        try {
-            rtdb.ref('/dg_presence').on('value', snap => {
-                const val = snap.val() || {};
-                Object.keys(val).forEach(uid => {
-                    const p = val[uid];
-                    if (!p) return;
-                    if (p === 'online' || (p.state === 'online')) {
-                        presenceMap[uid] = { state: 'online', ts: Date.now() };
-                    } else if (p.state === 'offline') {
-                        presenceMap[uid] = { state: 'offline', ts: p.ts || Date.now() };
-                    }
-                });
-                try { refreshPresenceUI(); } catch (_) {}
-            });
-        } catch (_) {}
-    }
-
-    function refreshPresenceUI() {
-        try {
-            if (me && activeChat && activeChat.type === 'direct') {
-                const oid = String(activeChat.u1 === me.id ? activeChat.u2 : activeChat.u1);
-                let u = (db.users || []).find(x => x && String(x.id) === oid);
-                if (!u) u = { id: oid, lastSeen: null };
-                // presence важнее users
-                const p = presenceMap[oid];
-                if (p && p.state === 'online') u = Object.assign({}, u, { lastSeen: 'online' });
-                else if (p && p.state === 'offline' && p.ts) u = Object.assign({}, u, { lastSeen: p.ts });
-                const el = document.getElementById('h-status');
-                if (el) {
-                    el.textContent = getUserStatus(u);
-                    el.style.color = (p && p.state === 'online') ? '#34c759' : 'var(--mut)';
-                }
-            }
-        } catch (_) {}
+        presenceHeartbeat = setInterval(() => {
+            if (document.visibilityState === 'visible') goOnline();
+        }, 30000);
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') goOnline();
+            else goOffline();
+        });
+        goOnline();
     }
 
     function isBlockedByMe(uid) {
@@ -2971,48 +2450,30 @@
     }
     function getUserStatus(user) {
         if (!user) return '';
-        const uid = user.id ? String(user.id) : '';
-        if (me && uid && uid === String(me.id)) return 'в сети';
-        try {
-            if (typeof hasBlockedMe === 'function' && hasBlockedMe(user.id)) return 'был(а) давно';
-        } catch (_) {}
-
-        // presenceMap — главный источник
-        try {
-            const p = presenceMap && uid && presenceMap[uid];
-            if (p && p.state === 'online') return 'в сети';
-        } catch (_) {}
-
+        if (me && user.id === me.id) return 'в сети';
+        // WhatsApp-стиль: если нас заблокировали — «был(а) давно»
+        if (hasBlockedMe(user.id)) return 'был(а) давно';
         let ls = user.lastSeen;
         if (ls === 'online') return 'в сети';
-        if (ls && typeof ls === 'object' && ls.seconds != null) ls = Number(ls.seconds) * 1000;
-        if (ls == null || ls === '') {
-            // ещё раз presence offline ts
-            try {
-                const p = presenceMap && uid && presenceMap[uid];
-                if (p && p.ts) ls = p.ts;
-            } catch (_) {}
-        }
+        if (ls && typeof ls === 'object' && ls.seconds) ls = ls.seconds * 1000;
         if (ls == null || ls === '') return 'был(а) недавно';
         if (typeof ls === 'string' && ls !== 'online') {
-            const n = Number(ls);
-            if (!isNaN(n) && n > 0) ls = n;
+            const n = parseInt(ls, 10);
+            if (!isNaN(n)) ls = n;
             else return 'был(а) недавно';
         }
-        const ts = Number(ls);
-        if (!ts || isNaN(ts)) return 'был(а) недавно';
-        const diff = Date.now() - ts;
+        const diff = Date.now() - Number(ls);
         if (isNaN(diff) || diff < 0) return 'был(а) недавно';
-        if (diff < 60 * 1000) return 'в сети';
+        if (diff < 2 * 60 * 1000) return 'в сети';
         if (diff < 60 * 60 * 1000) {
-            const m = Math.max(1, Math.floor(diff / 60000));
+            const m = Math.floor(diff / 60000);
             return 'был(а) ' + m + ' мин. назад';
         }
         if (diff < 24 * 60 * 60 * 1000) {
-            const h = Math.max(1, Math.floor(diff / 3600000));
+            const h = Math.floor(diff / 3600000);
             return 'был(а) ' + h + ' ч. назад';
         }
-        if (diff < 2 * 24 * 60 * 60 * 1000) return 'был(а) вчера';
+        if (diff < 2 * 24 * 60 * 60 * 1000) return 'был(а) недавно';
         if (diff < 7 * 24 * 60 * 60 * 1000) return 'был(а) недавно';
         return 'был(а) давно';
     }
@@ -3120,95 +2581,37 @@
     }
 
     function listenForIncomingCalls() {
-        if (!me || !me.id) return;
-        const myId = String(me.id);
-        console.log('[call] listen start', myId);
-
-        const handleIncoming = (callId, meta) => {
-            if (!callId) return;
-            callId = String(callId);
-            if (currentCallId && String(currentCallId) === callId) return;
-            console.log('[call] handleIncoming', callId, meta);
-
-            const openUI = (callerId, isVideo) => {
-                try { showToast('📞 Входящий звонок…'); } catch (_) {}
-                showIncomingCallUI(callerId, callId, !!isVideo);
-            };
-
-            if (meta && meta.caller) {
-                openUI(meta.caller, meta.isVideo);
-                return;
-            }
-            const tryLoad = (attempt) => {
-                rtdb.ref('/dg_calls/' + callId).once('value', callSnap => {
-                    const callData = callSnap.val();
-                    if (!callData) {
-                        if (attempt < 12) setTimeout(() => tryLoad(attempt + 1), 200);
-                        else console.warn('[call] no data for', callId);
-                        return;
-                    }
-                    if (callData.status && callData.status !== 'ringing') return;
-                    if (callData.caller && String(callData.caller) === myId) return;
-                    openUI(callData.caller, callData.isVideo);
-                });
-            };
-            tryLoad(0);
-        };
-
-        // канал 1
-        try { rtdb.ref('/dg_user_calls/' + myId).off(); } catch (_) {}
-        rtdb.ref('/dg_user_calls/' + myId).on('value', snap => {
-            const v = snap.val();
-            console.log('[call] dg_user_calls', v);
-            if (v) handleIncoming(v, null);
-        });
-
-        // канал 2 — полный объект (надёжнее)
-        try { rtdb.ref('/dg_incoming/' + myId).off(); } catch (_) {}
-        rtdb.ref('/dg_incoming/' + myId).on('value', snap => {
-            const d = snap.val();
-            console.log('[call] dg_incoming', d);
-            if (d && d.callId && (d.status === 'ringing' || !d.status)) {
-                handleIncoming(d.callId, d);
-            }
+        if (!me) return;
+        rtdb.ref('/dg_user_calls/' + me.id).on('value', snap => {
+            const incomingCallId = snap.val();
+            if (incomingCallId) {
+                rtdb.ref('/dg_calls/' + incomingCallId).once('value', callSnap => { const callData = callSnap.val(); if (callData && callData.status === 'ringing' && callData.caller !== me.id) { showIncomingCallUI(callData.caller, incomingCallId, callData.isVideo); } });
+            } else { if (currentCallId && !peerConnection) { hideCallUI(); } }
         });
     }
-
 
     function showIncomingCallUI(callerId, callId, isVideoCall) {
-        try {
-            currentCallId = callId;
-            currentCallIsVideo = !!isVideoCall;
-            const caller = (db.users || []).find(u => u && String(u.id) === String(callerId));
-            const name = caller ? (caller.name || caller.login || 'Абонент') : 'Входящий вызов';
-            const avType = caller ? (caller.avatarType || 'emoji') : 'emoji';
-            const avVal = caller ? (caller.avatarValue || '📞') : '📞';
-            try { applyCallBackground(); } catch (_) {}
-            const avEl = document.getElementById('callAvatar');
-            if (avEl) avEl.innerHTML = getAvatarHtml(avType, avVal);
-            const n1 = document.getElementById('callName'); if (n1) n1.textContent = name;
-            const n2 = document.getElementById('callNameSmall'); if (n2) n2.textContent = name;
-            const min = document.getElementById('minCallInfo'); if (min) min.textContent = name + ' · входящий';
-            try { setCallStatusText(typeof t === 'function' ? t('call_incoming') : 'Входящий вызов'); } catch (_) {}
-            isCallMicMuted = false; isCallCamOff = false; isSpeakerOn = true;
-            const overlay = document.getElementById('callOverlay');
-            if (overlay) { overlay.classList.remove('closing'); overlay.classList.add('active'); }
-            const minBar = document.getElementById('minimizedCallBar'); if (minBar) minBar.style.display = 'none';
-            const center = document.getElementById('callCenterArea'); if (center) center.style.display = 'flex';
-            const top = document.getElementById('callTopCenter'); if (top) top.style.display = 'none';
-            try { renderCallControls(true); } catch (_) { try { renderCallControls(); } catch (_) {} }
-            try { if (typeof startRingtone === 'function') startRingtone(false); } catch (_) {}
-            try { unlockAudioContext(); playNotifSound(); } catch (_) {}
-            try {
-                showAppNotification('Входящий вызов', name + (isVideoCall ? ' (видео)' : ''), { tag: 'call-' + callId, requireInteraction: true });
-            } catch (_) {}
-            console.log('[call] incoming UI', callId, callerId, name);
-        } catch (e) {
-            console.error('[call] showIncoming fail', e);
-            try { alert('Входящий звонок!'); } catch (_) {}
+        currentCallId = callId; currentCallIsVideo = isVideoCall; const caller = db.users.find(u => u.id === callerId);
+        applyCallBackground(); 
+        document.getElementById('callAvatar').innerHTML = getAvatarHtml(caller.avatarType, caller.avatarValue); document.getElementById('callName').textContent = caller.name; document.getElementById('callNameSmall').textContent = caller.name; document.getElementById('minCallInfo').textContent = `${caller.name} · Ожидание...`;
+        setCallStatusText(t('call_incoming')); isCallMicMuted = false; isCallCamOff = false; isSpeakerOn = true;
+        const overlay = document.getElementById('callOverlay'); 
+        overlay.classList.remove('closing');
+        overlay.classList.add('active'); 
+        document.getElementById('minimizedCallBar').style.display = 'none';
+        document.getElementById('callCenterArea').style.display = 'flex'; document.getElementById('callTopCenter').style.display = 'none';
+        document.getElementById('callControls').innerHTML = `
+            <div class="call-btn-group"><button class="call-btn-circle" style="background:#30d158;color:#fff;" onclick="acceptCall(${currentCallIsVideo})"><span class="material-symbols-outlined">${currentCallIsVideo ? 'videocam' : 'call'}</span></button><div class="call-btn-label">${t('call_accept')}</div></div>
+            <div class="call-btn-group"><button class="call-btn-circle red" onclick="endCall()"><span class="material-symbols-outlined">call_end</span></button><div class="call-btn-label">${t('call_decline')}</div></div>
+        `;
+        document.getElementById('localVideo').style.display = 'none'; document.getElementById('remoteVideo').classList.remove('active-video');
+        
+        startRingtone(false);
+        
+        if ("Notification" in window && Notification.permission === "granted" && document.hidden) {
+            showAppNotification('Входящий вызов', `Звонит ${caller.name}`, { tag: 'call-' + callId, requireInteraction: true });
         }
     }
-
 
     function minimizeCall() { 
         document.getElementById('callOverlay').classList.remove('active');
@@ -3364,42 +2767,7 @@
                 offer: { type: offer.type, sdp: offer.sdp },
                 status: 'ringing', isVideo: isVideo
             });
-            const tid = String(targetUserId);
-            const incomingPayload = {
-                callId: currentCallId,
-                caller: me.id,
-                isVideo: !!isVideo,
-                status: 'ringing',
-                at: Date.now()
-            };
-            await rtdb.ref('/dg_user_calls/' + tid).set(currentCallId);
-            await rtdb.ref('/dg_incoming/' + tid).set(incomingPayload);
-            setTimeout(() => {
-                rtdb.ref('/dg_user_calls/' + tid).set(currentCallId).catch(() => {});
-                rtdb.ref('/dg_incoming/' + tid).set(incomingPayload).catch(() => {});
-            }, 500);
-            setTimeout(() => {
-                rtdb.ref('/dg_user_calls/' + tid).set(currentCallId).catch(() => {});
-                rtdb.ref('/dg_incoming/' + tid).set(incomingPayload).catch(() => {});
-            }, 1500);
-            console.log('[call] SIGNALLED to', tid, currentCallId);
-            try { notifyUserPush(targetUserId, 'Входящий вызов', (me.name || me.login || 'Nexagram') + (isVideo ? ' (видео)' : '')); } catch (_) {}
-
-            // Таймаут ожидания ответа — 20 секунд
-            if (window._callAnswerTimer) { clearTimeout(window._callAnswerTimer); }
-            const callIdForTimeout = currentCallId;
-            window._callAnswerTimer = setTimeout(async () => {
-                try {
-                    if (!currentCallId || currentCallId !== callIdForTimeout) return;
-                    const snap = await rtdb.ref('/dg_calls/' + callIdForTimeout).once('value');
-                    const d = snap.val();
-                    if (d && d.status === 'ringing') {
-                        await rtdb.ref('/dg_calls/' + callIdForTimeout).update({ status: 'missed' });
-                        await rtdb.ref('/dg_user_calls/' + targetUserId).remove();
-                        showToast('Нет ответа');
-                    }
-                } catch (e) { console.warn('call timeout', e); }
-            }, 20000);
+            await rtdb.ref(`/dg_user_calls/${targetUserId}`).set(currentCallId);
 
             let isAnswerProcessed = false;
             callRef = rtdb.ref(`/dg_calls/${currentCallId}`);
@@ -3407,7 +2775,6 @@
                 const data = snap.val();
                 if (!data) return;
                 if (data.status === 'ended' || data.status === 'declined' || data.status === 'missed') {
-                    if (window._callAnswerTimer) { clearTimeout(window._callAnswerTimer); window._callAnswerTimer = null; }
                     cleanupCall();
                     if (data.caller === me.id) {
                         const newLog = { id: 'log_' + Date.now(), caller: data.caller, callee: data.callee, time: Date.now(), status: data.status, isVideo: data.isVideo, duration: callSeconds };
@@ -3418,7 +2785,6 @@
                 }
                 if (data.answer && !isAnswerProcessed) {
                     isAnswerProcessed = true;
-                    if (window._callAnswerTimer) { clearTimeout(window._callAnswerTimer); window._callAnswerTimer = null; }
                     stopAllRingtones();
                     setCallStatusText(t('call_talking') + ' (0:00)');
                     startCallTimer();
@@ -3512,10 +2878,7 @@
             const snap = await rtdb.ref(`/dg_calls/${currentCallId}`).once('value'); const data = snap.val();
             if (data) {
                 const isRinging = data.status === 'ringing'; const isCaller = data.caller === me.id; const endStatus = isRinging ? (isCaller ? 'missed' : 'declined') : 'ended';
-                await rtdb.ref(`/dg_calls/${currentCallId}`).update({ status: endStatus }); await rtdb.ref('/dg_user_calls/' + data.callee).remove();
-                await rtdb.ref('/dg_user_calls/' + data.caller).remove();
-                try { await rtdb.ref('/dg_incoming/' + data.callee).remove(); } catch (_) {}
-                try { await rtdb.ref('/dg_incoming/' + data.caller).remove(); } catch (_) {}
+                await rtdb.ref(`/dg_calls/${currentCallId}`).update({ status: endStatus }); await rtdb.ref(`/dg_user_calls/${data.callee}`).remove(); await rtdb.ref(`/dg_user_calls/${data.caller}`).remove();
                 if (isCaller) { const newLog = { id: 'log_' + Date.now(), caller: data.caller, callee: data.callee, time: Date.now(), status: endStatus, isVideo: data.isVideo, duration: callSeconds }; db.callLogs.push(newLog); rtdb.ref('/dg_app_data/callLogs').set(db.callLogs); }
             }
         }
@@ -3681,7 +3044,6 @@
     let callInterval; let callSeconds = 0;
     function startCallTimer() { clearInterval(callInterval); callSeconds = 0; callInterval = setInterval(() => { callSeconds++; const m = Math.floor(callSeconds / 60); const s = (callSeconds % 60).toString().padStart(2, '0'); const timeStr = `${m}:${s}`; setCallStatusText(`Разговор (${timeStr})`); const name = document.getElementById('callNameSmall').textContent; document.getElementById('minCallInfo').textContent = `${name} · ${m.toString().padStart(2, '0')}:${s}`; }, 1000); }
     function cleanupCall() {
-        if (window._callAnswerTimer) { clearTimeout(window._callAnswerTimer); window._callAnswerTimer = null; }
         clearInterval(callInterval);
         stopVoiceVisualizer();
         if (localStream) localStream.getTracks().forEach(t => t.stop());
@@ -3960,102 +3322,60 @@
     }
 
     async function doRegister() {
-        if (!isDbReady) return alert('Подождите, идет подключение к серверу...');
-        ensureHelper();
-
-        const emailVal = (document.getElementById('regEmail') || {}).value || '';
-        const userVal = (document.getElementById('regUsername') || {}).value || '';
-        const passwordVal = (document.getElementById('regPassword') || {}).value || '';
-        const confirmVal = (document.getElementById('regConfirm') || {}).value || '';
-
-        const email = String(emailVal).trim().toLowerCase();
-        const username = String(userVal).trim().toLowerCase().replace(/^@+/, '').replace(/\s+/g, '_');
-
-        if (!email || email.indexOf('@') < 1) return showToast('Введите корректный Email');
-        if (!username || username.length < 3) return showToast('Юз от 3 символов');
-        if (username.includes('@')) return showToast('Юз без @');
-        if (!/^[a-z0-9_\.]+$/i.test(username)) return showToast('Юз: только латиница, цифры, _ и .');
-        if (!passwordVal || passwordVal.length < 6) return showToast('Пароль от 6 символов');
+        if (!isDbReady) return alert('Подождите, идет подключение к серверу...'); ensureHelper();
+        
+        const loginVal = document.getElementById('regUsername').value.trim();
+        const passwordVal = document.getElementById('regPassword').value;
+        const confirmVal = document.getElementById('regConfirm').value;
+        const secretVal = document.getElementById('regSecret').value.trim();
+        
+        if (!loginVal) return showToast('Введите логин или почту');
+        const loginLower = loginVal.toLowerCase(); const isEmail = loginLower.includes('@');
+        
+        if (!passwordVal || passwordVal.length < 4) return showToast('Пароль от 4 символов');
         if (passwordVal !== confirmVal) return showToast('Пароли не совпадают!');
-        if (db.users.find(u => u && u.login === username)) return showToast('Этот юз уже занят');
-        if (db.users.find(u => u && u.email && String(u.email).toLowerCase() === email)) return showToast('Email уже зарегистрирован');
-
-        try {
-            document.getElementById('loader').style.display = 'flex';
-            setTimeout(() => document.getElementById('loader').style.opacity = '1', 50);
-
-            const userCred = await firebase.auth().createUserWithEmailAndPassword(email, passwordVal);
-            const fUser = userCred.user;
+        if (!isEmail && (!secretVal || secretVal.length < 3)) return showToast('Секретное слово от 3 символов');
+        if (!isEmail && db.users.find(u => u.login === loginLower)) return showToast('Логин занят');
+        
+        if (isEmail) {
+            let customLogin = prompt("Уникальный логин (без @):");
+            if (!customLogin || customLogin.trim().length < 3 || customLogin.includes('@')) { return showToast('Некорректный логин.'); }
+            customLogin = customLogin.trim().toLowerCase();
+            if (db.users.find(u => u.login === customLogin)) { return showToast('Этот логин занят.'); }
 
             try {
-                await fUser.sendEmailVerification();
-            } catch (ve) {
-                console.warn('sendEmailVerification', ve);
-            }
-
-            const user = {
-                id: 'u_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
-                login: username,
-                email: email,
-                name: username,
-                avatarType: 'emoji',
-                avatarValue: builtInAvatars[Math.floor(Math.random() * builtInAvatars.length)],
-                friends: [],
-                friendRequests: [],
-                password: hashString('firebase_auth'),
-                secretWord: hashString('firebase_auth'),
-                lastSeen: Date.now(),
-                isBanned: false,
-                firebaseUid: fUser.uid,
-                emailOk: false
-            };
-            db.users.push(user);
-            try {
-                await rtdb.ref('/dg_app_data/users').set(db.users);
-            } catch (writeErr) {
-                console.warn('users write', writeErr);
-                try {
-                    await rtdb.ref('/dg_app_data/users/' + (db.users.length - 1)).set(user);
-                } catch (e2) {
-                    showToast('База: нет прав на запись users. Обновите Rules в Firebase.');
-                    throw writeErr;
+                document.getElementById('loader').style.display = 'flex'; setTimeout(()=>document.getElementById('loader').style.opacity = '1', 50);
+                const userCred = await firebase.auth().createUserWithEmailAndPassword(loginLower, passwordVal);
+                const fUser = userCred.user;
+                
+                let user = db.users.find(u => u.email === loginLower);
+                if (!user) {
+                    user = { id: 'u_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6), login: customLogin, email: loginLower, name: customLogin, avatarType: 'emoji', avatarValue: builtInAvatars[Math.floor(Math.random() * builtInAvatars.length)], friends: [], friendRequests: [], password: hashString('firebase_auth'), secretWord: hashString(secretVal || 'firebase_auth'), lastSeen: Date.now(), isBanned: false, firebaseUid: fUser.uid, emailOk: false };
+                    db.users.push(user);
+                    try {
+                        await rtdb.ref('/dg_app_data/users').set(db.users);
+                    } catch (writeErr) {
+                        console.warn('users write', writeErr);
+                        // пробуем записать только новый элемент по индексу
+                        try {
+                            await rtdb.ref('/dg_app_data/users/' + (db.users.length - 1)).set(user);
+                        } catch (e2) {
+                            showToast('База: нет прав на запись users. Обновите Rules в Firebase.');
+                            throw writeErr;
+                        }
+                    }
                 }
-            }
-
-            document.getElementById('loader').style.opacity = '0';
-            setTimeout(() => document.getElementById('loader').style.display = 'none', 300);
-
-            // Не входим сразу — сначала письмо от Firebase, вход вручную
-            try { await firebase.auth().signOut(); } catch (_) {}
-            try { localStorage.removeItem('Nexagram_Session_UID'); } catch (_) {}
-
-            showToast('Аккаунт создан. Проверьте почту: ' + email);
-            try {
-                alert('Аккаунт создан.\n\nНа ' + email + ' отправлено письмо от Firebase.\nПодтвердите почту, затем войдите с Email и паролем.');
-            } catch (_) {}
-
-            // Переключаем на вкладку входа и подставляем email
-            try {
-                if (typeof switchAuthTab === 'function') switchAuthTab('login');
-                const li = document.getElementById('loginUsername');
-                if (li) li.value = email;
-                const lp = document.getElementById('loginPassword');
-                if (lp) lp.value = '';
-            } catch (_) {}
-        } catch (error) {
-            document.getElementById('loader').style.opacity = '0';
-            setTimeout(() => document.getElementById('loader').style.display = 'none', 300);
-            const code = (error && error.code) || '';
-            let msg = (error && error.message) || String(error);
-            if (code === 'auth/email-already-in-use') msg = 'Email уже используется';
-            else if (code === 'auth/invalid-email') msg = 'Некорректный Email';
-            else if (code === 'auth/weak-password') msg = 'Слишком слабый пароль (мин. 6)';
-            showToast('Ошибка: ' + msg);
+                try { await fUser.sendEmailVerification(); } catch (ve) { console.warn(ve); }
+                document.getElementById('loader').style.opacity = '0'; setTimeout(()=>document.getElementById('loader').style.display='none', 300);
+                showToast('Аккаунт создан');
+                proceedWithLogin(user);
+            } catch (error) { document.getElementById('loader').style.opacity = '0'; setTimeout(()=>document.getElementById('loader').style.display='none', 300); return showToast('Ошибка: ' + error.message); }
+        } else {
+            me = { id: 'u_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6), login: loginLower, name: loginVal, avatarType: 'emoji', avatarValue: builtInAvatars[Math.floor(Math.random() * builtInAvatars.length)], friends: [], friendRequests: [], password: hashString(passwordVal), secretWord: hashString(secretVal), lastSeen: Date.now(), isBanned: false };
+            db.users.push(me); rtdb.ref('/dg_app_data/users').set(db.users); proceedWithLogin(me);
         }
     }
-
     
-
     function proceedWithLogin(user) {
         me = user; localStorage.setItem('Nexagram_Session_UID', me.id);
         // Сохраняем аккаунт в список для быстрого входа (Sketchware / multi-account)
@@ -4076,8 +3396,7 @@
             appEl.style.display = 'flex';
             appEl.style.opacity = '1';
             if (localSettings.lightMode) { document.documentElement.setAttribute('data-theme', 'light'); document.getElementById('themeIcon').textContent = 'dark_mode'; } else { document.documentElement.removeAttribute('data-theme'); document.getElementById('themeIcon').textContent = 'light_mode'; }
-            applyTheme(localSettings.theme || 'orange'); updUI(); renderFriends(); renderChats(); renderStories(); renderCalls(); setupPresence(); try { setStoriesCollapsed(true); } catch(e) {}
-            try { if (typeof Notification !== "undefined" && Notification.permission === "granted") registerFcmToken(); } catch(e) {} listenForIncomingCalls(); updateNavBadges();
+            applyTheme(localSettings.theme || 'orange'); updUI(); renderFriends(); renderChats(); renderStories(); renderCalls(); setupPresence(); try { setStoriesCollapsed(true); } catch(e) {} listenForIncomingCalls(); updateNavBadges();
             document.getElementById('loginPassword').value = ''; document.getElementById('regPassword').value = ''; document.getElementById('regConfirm').value = '';
         }, 300);
     }
@@ -4532,48 +3851,6 @@
         if (activeChat.admins && activeChat.admins.includes(me.id)) return true;
         return false;
     }
-
-    function downloadSelectedMsg() {
-        try {
-            const msgs = getFilteredMsgs();
-            const msg = msgs[selectedMsgIdxForMenu];
-            if (!msg) return showToast('Нет сообщения');
-            const url = msg.url || msg.fileUrl || msg.src;
-            if (!url) return showToast('Нечего скачивать');
-            let name = msg.name || msg.fileName || ('nexagram_' + (msg.type || 'file') + '_' + Date.now());
-            if ((msg.type === 'voice' || msg.type === 'audio') && name.indexOf('.') < 0) name += '.webm';
-            if (msg.type === 'image' && name.indexOf('.') < 0) name += '.jpg';
-            if ((msg.type === 'video' || msg.type === 'video_circle') && name.indexOf('.') < 0) name += '.mp4';
-            const a = document.createElement('a');
-            a.href = url; a.download = name; a.target = '_blank'; a.rel = 'noopener';
-            document.body.appendChild(a); a.click(); a.remove();
-            showToast('Скачивание…');
-            closeMsgMenu();
-        } catch (e) { showToast('Не удалось скачать'); }
-    }
-
-    async function downloadContactAvatar() {
-        try {
-            let user = null;
-            if (typeof profileMenuTargetUserId !== 'undefined' && profileMenuTargetUserId) {
-                user = (db.users || []).find(u => u && u.id === profileMenuTargetUserId);
-            } else if (activeChat && activeChat.type === 'direct') {
-                const oid = activeChat.u1 === me.id ? activeChat.u2 : activeChat.u1;
-                user = (db.users || []).find(u => u && u.id === oid);
-            }
-            if (!user) return showToast('Нет контакта');
-            let url = null;
-            if (user.avatarType === 'image' || user.avatarType === 'url') url = user.avatarValue;
-            if (!url || String(url).indexOf('http') !== 0) return showToast('Нет фото-аватарки');
-            const a = document.createElement('a');
-            a.href = url; a.download = (user.login || user.name || 'avatar') + '.jpg';
-            a.target = '_blank'; a.rel = 'noopener';
-            document.body.appendChild(a); a.click(); a.remove();
-            showToast('Скачивание аватарки…');
-            closeProfileMenu();
-        } catch (e) { showToast('Не удалось скачать'); }
-    }
-
     function openMsgMenu(e, idx, msgUid) {
         e.preventDefault(); selectedMsgIdxForMenu = idx;
         const btnDel = document.getElementById('btn-del-msg');
@@ -4595,12 +3872,6 @@
         // Редактирование: только своё текстовое (в канале тоже только своё + админ может писать)
         if (msgUid === me.id && (!targetMsg.type || targetMsg.type === 'text')) btnEdit.style.display = 'block';
         else btnEdit.style.display = 'none';
-        const btnDl = document.getElementById('btn-download-msg');
-        if (btnDl) {
-            const canDl = targetMsg && targetMsg.url && ['image','video','video_circle','voice','audio','file'].indexOf(targetMsg.type) >= 0;
-            btnDl.style.display = canDl ? 'block' : 'none';
-        }
-
 
         // Закреп: в канале и группе — только админ; в личке — можно обоим (как обычно)
         let canPin = false;
@@ -4802,7 +4073,7 @@
             } else {
                 hName.textContent = 'Пользователь';
                 hAv.innerHTML = getBlockedAvatarHtml();
-                hStatus.textContent = t('st_long_ago');
+                hStatus.textContent = 'был(а) давно';
             }
             // я заблокировал — как в канале: панель «Разблокировать»
             if (other && isBlockedByMe(other.id)) {
@@ -5215,7 +4486,6 @@
             if (!db.chats[chatIndex].msgs) db.chats[chatIndex].msgs = [];
             db.chats[chatIndex].msgs.push(msgObj);
             rtdb.ref(`/dg_app_data/chats/${chatIndex}/msgs`).set(db.chats[chatIndex].msgs);
-            try { notifyChatRecipients(db.chats[chatIndex], msgObj); } catch (_) {}
             inp.value = '';
             delete drafts[activeChat.id];
             localStorage.setItem('Nexagram_Drafts', JSON.stringify(drafts));
@@ -5243,177 +4513,19 @@
     }
 
     function toggleVoice() {
-        if (!activeChat) return;
-        const btn = document.getElementById('btn-voice');
-        const inputEl = document.getElementById('m-in');
-
-        const hideWave = () => {
-            try { if (window._voiceAnalyserRAF) cancelAnimationFrame(window._voiceAnalyserRAF); } catch (_) {}
-            window._voiceAnalyserRAF = null;
-            try {
-                if (window._voiceAudioCtx) { window._voiceAudioCtx.close(); window._voiceAudioCtx = null; }
-            } catch (_) {}
-            const w = document.getElementById('voice-wave-ui');
-            if (w) w.style.display = 'none';
-            if (inputEl) inputEl.style.display = '';
-            if (btn) btn.classList.remove('recording-pulse');
-        };
-
-        if (isRecordingVoice) {
-            try {
-                if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
-            } catch (_) {}
-            isRecordingVoice = false;
-            hideWave();
-            try {
-                if (window._voiceRecStream) {
-                    window._voiceRecStream.getTracks().forEach(tr => tr.stop());
-                    window._voiceRecStream = null;
-                }
-            } catch (_) {}
-            return;
+        if (!activeChat) return; const btn = document.getElementById('btn-voice');
+        if (isRecordingVoice) { mediaRecorder.stop(); isRecordingVoice = false; btn.classList.remove('recording-pulse'); } 
+        else {
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+                    isRecordingVoice = true; btn.classList.add('recording-pulse');
+                    let options = undefined; if (MediaRecorder.isTypeSupported('audio/webm')) options = { mimeType: 'audio/webm' }; else if (MediaRecorder.isTypeSupported('audio/mp4')) options = { mimeType: 'audio/mp4' };
+                    mediaRecorder = new MediaRecorder(stream, options); recordedChunks = []; mediaRecorder.ondataavailable = e => recordedChunks.push(e.data);
+                    mediaRecorder.onstop = async () => { const finalMime = mediaRecorder.mimeType || 'audio/mp4'; const ext = finalMime.includes('mp4') ? 'mp4' : 'webm'; const blob = new Blob(recordedChunks, { type: finalMime }); const file = new File([blob], 'voice.' + ext, { type: finalMime }); const url = await uploadToCloud(file); if (url) { const chatIndex = ensureChatInDb(); if (chatIndex > -1) { const msgObj = { uid: me.id, type: 'voice', url: url, time: Date.now(), reactions: {} }; if (replyingTo) { msgObj.reply = getSafeReplyObj(replyingTo); cancelReply(); } if (!db.chats[chatIndex].msgs) db.chats[chatIndex].msgs = []; db.chats[chatIndex].msgs.push(msgObj); rtdb.ref(`/dg_app_data/chats/${chatIndex}/msgs`).set(db.chats[chatIndex].msgs); if (activeChat.id === db.chats[chatIndex].id) renderMsgs(); } } stream.getTracks().forEach(t => t.stop()); }; mediaRecorder.start();
+                }).catch(() => showToast("Нет доступа к микрофону"));
+            } else { showToast("Браузер не поддерживает запись голоса"); }
         }
-
-        if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) {
-            return showToast('Микрофон недоступен');
-        }
-
-        navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-            isRecordingVoice = true;
-            window._voiceRecStream = stream;
-            if (btn) btn.classList.add('recording-pulse');
-
-            // ===== полоска-волна вместо поля ввода =====
-            let wave = document.getElementById('voice-wave-ui');
-            if (!wave) {
-                wave = document.createElement('div');
-                wave.id = 'voice-wave-ui';
-                wave.setAttribute('aria-label', 'Запись…');
-                if (inputEl && inputEl.parentNode) {
-                    inputEl.parentNode.insertBefore(wave, inputEl);
-                } else if (btn && btn.parentNode) {
-                    btn.parentNode.insertBefore(wave, btn);
-                }
-            }
-            wave.style.cssText = [
-                'display:flex',
-                'align-items:center',
-                'justify-content:center',
-                'gap:3px',
-                'height:40px',
-                'flex:1',
-                'min-width:80px',
-                'padding:0 12px',
-                'margin:0 4px',
-                'background:var(--in)',
-                'border-radius:20px',
-                'border:1px solid var(--p)',
-                'box-sizing:border-box'
-            ].join(';');
-            if (inputEl) inputEl.style.display = 'none';
-            wave.style.display = 'flex';
-            wave.innerHTML = '';
-
-            const bars = [];
-            for (let i = 0; i < 20; i++) {
-                const b = document.createElement('div');
-                b.style.cssText = 'width:3px;height:6px;border-radius:2px;background:var(--p);transition:height 0.06s ease';
-                wave.appendChild(b);
-                bars.push(b);
-            }
-
-            try {
-                const AC = window.AudioContext || window.webkitAudioContext;
-                const actx = new AC();
-                window._voiceAudioCtx = actx;
-                if (actx.state === 'suspended') actx.resume();
-                const srcNode = actx.createMediaStreamSource(stream);
-                const analyser = actx.createAnalyser();
-                analyser.fftSize = 256;
-                analyser.smoothingTimeConstant = 0.4;
-                srcNode.connect(analyser);
-                const dataArr = new Uint8Array(analyser.fftSize);
-
-                const tickWave = () => {
-                    if (!isRecordingVoice) return;
-                    analyser.getByteTimeDomainData(dataArr);
-                    const step = Math.floor(dataArr.length / bars.length);
-                    for (let i = 0; i < bars.length; i++) {
-                        let sum = 0;
-                        const start = i * step;
-                        for (let j = 0; j < step; j++) {
-                            const v = dataArr[start + j] - 128;
-                            sum += v * v;
-                        }
-                        const rms = Math.sqrt(sum / Math.max(1, step));
-                        const h = Math.max(4, Math.min(32, 4 + rms * 1.2));
-                        bars[i].style.height = h + 'px';
-                    }
-                    window._voiceAnalyserRAF = requestAnimationFrame(tickWave);
-                };
-                tickWave();
-            } catch (e) {
-                console.warn('voice wave', e);
-                // хоть анимация-заглушка, чтобы было видно, что запись идёт
-                let k = 0;
-                const fake = () => {
-                    if (!isRecordingVoice) return;
-                    for (let i = 0; i < bars.length; i++) {
-                        const h = 6 + Math.abs(Math.sin(k / 5 + i / 3)) * 18;
-                        bars[i].style.height = h + 'px';
-                    }
-                    k++;
-                    window._voiceAnalyserRAF = requestAnimationFrame(fake);
-                };
-                fake();
-            }
-
-            let options = undefined;
-            if (typeof MediaRecorder !== 'undefined') {
-                if (MediaRecorder.isTypeSupported('audio/webm')) options = { mimeType: 'audio/webm' };
-                else if (MediaRecorder.isTypeSupported('audio/mp4')) options = { mimeType: 'audio/mp4' };
-            }
-            mediaRecorder = new MediaRecorder(stream, options);
-            recordedChunks = [];
-            mediaRecorder.ondataavailable = e => {
-                if (e.data && e.data.size) recordedChunks.push(e.data);
-            };
-            mediaRecorder.onstop = async () => {
-                isRecordingVoice = false;
-                hideWave();
-                try { stream.getTracks().forEach(tr => tr.stop()); } catch (_) {}
-                window._voiceRecStream = null;
-                const finalMime = (mediaRecorder && mediaRecorder.mimeType) || 'audio/webm';
-                const ext = finalMime.indexOf('mp4') >= 0 ? 'mp4' : 'webm';
-                const blob = new Blob(recordedChunks, { type: finalMime });
-                if (!blob.size) return showToast('Пустая запись');
-                try {
-                    const file = new File([blob], 'voice.' + ext, { type: finalMime });
-                    const url = await uploadToCloud(file);
-                    if (!url) return showToast('Не удалось загрузить');
-                    const chatIndex = ensureChatInDb();
-                    if (chatIndex > -1) {
-                        const msgObj = { uid: me.id, type: 'voice', url: url, time: Date.now(), reactions: {} };
-                        if (!db.chats[chatIndex].msgs) db.chats[chatIndex].msgs = [];
-                        db.chats[chatIndex].msgs.push(msgObj);
-                        await rtdb.ref('/dg_app_data/chats/' + chatIndex + '/msgs').set(db.chats[chatIndex].msgs);
-                        try { notifyChatRecipients(db.chats[chatIndex], msgObj); } catch (_) {}
-                        try { renderMsgs(false); } catch (_) {}
-                    }
-                } catch (err) {
-                    console.warn(err);
-                    showToast('Ошибка отправки голосового');
-                }
-            };
-            mediaRecorder.start();
-            showToast('Запись… нажми микрофон ещё раз');
-        }).catch(err => {
-            isRecordingVoice = false;
-            console.warn(err);
-            showToast('Нет доступа к микрофону');
-        });
     }
-
 
     function toggleVideoCircle() {
         if (!activeChat) return; const btn = document.getElementById('btn-circle'); const previewContainer = document.getElementById('video-circle-preview-container'); const previewVideo = document.getElementById('video-circle-preview');
