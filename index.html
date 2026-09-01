@@ -2292,6 +2292,7 @@ let me = null; let activeChat = null; let currentChatsFilter = ''; let isDbReady
 
     let peerConnection = null; let localStream = null; let currentCallId = null; let callRef = null;
     let isCallMicMuted = false; let isCallCamOff = false; let isSpeakerOn = true; let currentCallIsVideo = false; let currentFacingMode = 'user';
+    let isIncomingCallUI = false; // true только когда нам звонят (экран Ответить/Отклонить)
 
     // STUN — находит IP; TURN — ретрансляция, если P2P не проходит (NAT/CGNAT/РФ)
     const rtcConfig = {
@@ -3055,21 +3056,23 @@ let me = null; let activeChat = null; let currentChatsFilter = ''; let isDbReady
         overlay.style.backgroundBlendMode = 'normal';
     }
 
-    function renderCallControls(isIncoming) {
+    function renderCallControls() {
         const controls = document.getElementById('callControls');
         if (!controls) return;
-        // Входящий до ответа — только принять / сбросить
-        if (isIncoming || (currentCallId && !peerConnection && document.getElementById('callOverlay')?.classList.contains('active'))) {
-            // если уже есть peer — это разговор
-            if (!peerConnection || isIncoming === true) {
-                if (!peerConnection) {
-                    controls.innerHTML = `
-                        <div class="call-btn-group"><button class="call-btn-circle red" onclick="endCall()"><span class="material-symbols-outlined">call_end</span></button><div class="call-btn-label">Отклонить</div></div>
-                        <div class="call-btn-group"><button class="call-btn-circle" style="background:#34c759;color:#fff;" onclick="acceptCall(${currentCallIsVideo ? 'true' : 'false'})"><span class="material-symbols-outlined">call</span></button><div class="call-btn-label">Ответить</div></div>
-                    `;
-                    return;
-                }
-            }
+        // Только когда НАМ звонят и ещё не ответили
+        if (isIncomingCallUI && !peerConnection) {
+            controls.innerHTML = `
+                <div class="call-btn-group"><button class="call-btn-circle red" onclick="endCall()"><span class="material-symbols-outlined">call_end</span></button><div class="call-btn-label">Отклонить</div></div>
+                <div class="call-btn-group"><button class="call-btn-circle" style="background:#34c759;color:#fff;" onclick="acceptCall(${currentCallIsVideo ? 'true' : 'false'})"><span class="material-symbols-outlined">call</span></button><div class="call-btn-label">Ответить</div></div>
+            `;
+            return;
+        }
+        // Исходящий звонок (ждём ответа) — только сброс
+        if (!isIncomingCallUI && currentCallId && peerConnection && peerConnection.signalingState === 'have-local-offer') {
+            controls.innerHTML = `
+                <div class="call-btn-group"><button class="call-btn-circle red" onclick="endCall()"><span class="material-symbols-outlined">call_end</span></button><div class="call-btn-label">${t('call_end')}</div></div>
+            `;
+            return;
         }
         const minMicBtn = document.getElementById('minCallMicBtn');
         if (minMicBtn) {
@@ -3111,7 +3114,6 @@ let me = null; let activeChat = null; let currentChatsFilter = ''; let isDbReady
 
             const openUI = (callerId, isVideo) => {
                 try { showToast('📞 Входящий звонок…'); } catch (_) {}
-                try { alert('Входящий звонок!'); } catch (_) {}
                 showIncomingCallUI(callerId, callId, !!isVideo);
             };
 
@@ -3176,6 +3178,7 @@ let me = null; let activeChat = null; let currentChatsFilter = ''; let isDbReady
                 try { peerConnection.close(); } catch (_) {}
                 peerConnection = null;
             }
+            isIncomingCallUI = true;
             currentCallId = callId;
             currentCallIsVideo = !!isVideoCall;
             const caller = (db.users || []).find(u => u && String(u.id) === String(callerId));
@@ -3323,6 +3326,7 @@ let me = null; let activeChat = null; let currentChatsFilter = ''; let isDbReady
         const targetUserId = activeChat.u1 === me.id ? activeChat.u2 : activeChat.u1;
         const targetUser = db.users.find(u => u.id === targetUserId);
         if (!targetUser) return;
+        isIncomingCallUI = false; // мы звоним, не принимаем
         currentCallId = 'call_' + Date.now();
         currentCallIsVideo = isVideo;
         currentFacingMode = 'user';
@@ -3339,7 +3343,11 @@ let me = null; let activeChat = null; let currentChatsFilter = ''; let isDbReady
         document.getElementById('minimizedCallBar').style.display = 'none';
         document.getElementById('callCenterArea').style.display = 'flex';
         document.getElementById('callTopCenter').style.display = 'none';
-        renderCallControls();
+        // Пока peer не создан — только «Завершить» (не Ответить!)
+        const controlsEarly = document.getElementById('callControls');
+        if (controlsEarly) {
+            controlsEarly.innerHTML = `<div class="call-btn-group"><button class="call-btn-circle red" onclick="endCall()"><span class="material-symbols-outlined">call_end</span></button><div class="call-btn-label">${t('call_end')}</div></div>`;
+        }
 
         try {
             pendingIceCandidates = [];
@@ -3363,6 +3371,7 @@ let me = null; let activeChat = null; let currentChatsFilter = ''; let isDbReady
 
             const offer = await peerConnection.createOffer();
             await peerConnection.setLocalDescription(offer);
+            try { renderCallControls(); } catch (_) {}
 
             startRingtone(true);
 
@@ -3427,15 +3436,27 @@ let me = null; let activeChat = null; let currentChatsFilter = ''; let isDbReady
                     isAnswerProcessed = true;
                     if (window._callAnswerTimer) { clearTimeout(window._callAnswerTimer); window._callAnswerTimer = null; }
                     stopAllRingtones();
+                    isIncomingCallUI = false;
                     setCallStatusText(t('call_talking') + ' (0:00)');
                     startCallTimer();
                     try {
-                        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
-                        await flushPendingIce();
+                        if (!peerConnection) throw new Error('нет peerConnection');
+                        // ответ ставим только в состоянии have-local-offer (иначе "stable")
+                        const st = peerConnection.signalingState;
+                        if (st === 'have-local-offer') {
+                            await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+                            await flushPendingIce();
+                        } else if (st === 'stable') {
+                            console.warn('[call] answer already applied, state=stable');
+                        } else {
+                            console.warn('[call] unexpected state for answer:', st);
+                        }
+                        try { renderCallControls(); } catch (_) {}
                     } catch (err) {
                         console.error(err);
                         showToast(t('call_error') + ': ' + err.message);
-                        endCall();
+                        // не рвём звонок при повторном answer
+                        if (String(err.message || '').indexOf('stable') === -1) endCall();
                     }
                 }
             });
@@ -3454,6 +3475,7 @@ let me = null; let activeChat = null; let currentChatsFilter = ''; let isDbReady
         if (!currentCallId) return;
         unlockAudioContext();
         stopAllRingtones();
+        isIncomingCallUI = false;
         currentCallIsVideo = isVideo;
         setCallStatusText(t('call_connecting'));
         isCallMicMuted = false; isCallCamOff = false; isSpeakerOn = true;
@@ -3697,6 +3719,7 @@ let me = null; let activeChat = null; let currentChatsFilter = ''; let isDbReady
         localStream = null;
         if (callRef) callRef.off();
         currentCallId = null;
+        isIncomingCallUI = false;
         const rVid = document.getElementById('remoteVideo');
         const rAud = document.getElementById('remoteAudio');
         if (rVid) { rVid.srcObject = null; rVid.classList.remove('active-video'); }
